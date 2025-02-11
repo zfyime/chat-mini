@@ -7,8 +7,6 @@ import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
 import type { ChatMessage, ErrorMessage } from '@/types'
 
-const model = import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini'
-
 export default () => {
   let inputRef: HTMLTextAreaElement
   const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal('')
@@ -20,10 +18,10 @@ export default () => {
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.7)
-  const [chatModel, setChatModel] = createSignal(model)
+  const [chatModel, setChatModel] = createSignal('deepseek-chat')
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
-  const maxHistoryMessages = parseInt(import.meta.env.PUBLIC_MAX_HISTORY_MESSAGES || '9')
+  const maxHistoryMessages = parseInt('6')
 
   createEffect(() => (isStick() && smoothToBottom()))
 

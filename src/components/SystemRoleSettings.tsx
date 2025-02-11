@@ -3,8 +3,6 @@ import IconEnv from './icons/Env'
 import SettingsSlider from './SettingsSlider'
 import type { Accessor, Setter } from 'solid-js'
 
-const model = import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini'
-
 interface Props {
   canEdit: Accessor<boolean>
   systemRoleEditing: Accessor<boolean>
@@ -18,7 +16,7 @@ interface Props {
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(0.7)
-  const [chatModel, setChatModel] = createSignal(model)
+  const [chatModel, setChatModel] = createSignal('deepseek-chat')
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
