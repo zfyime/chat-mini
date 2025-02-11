@@ -60,7 +60,7 @@ export default (props: Props) => {
             <select
               id="select-setting"
               value={chatModel()}
-              class="w-full ml-2 py-3 bg-slate bg-op-15"
+              class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
               onChange={(e) => setChatModel(e.currentTarget.value)}
             >
               <option value="deepseek-chat">deepseek-chat</option>
