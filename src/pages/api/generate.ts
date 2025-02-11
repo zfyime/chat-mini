@@ -13,7 +13,7 @@ const passList = sitePassword.split(',') || []
 
 export const post: APIRoute = async(context) => {
   const body = await context.request.json()
-  const { sign, time, messages, pass, temperature } = body
+  const { sign, time, messages, pass, temperature, model } = body
   if (!messages) {
     return new Response(JSON.stringify({
       error: {
@@ -35,7 +35,7 @@ export const post: APIRoute = async(context) => {
       },
     }), { status: 401 })
   }
-  const initOptions = generatePayload(apiKey, messages, temperature)
+  const initOptions = generatePayload(apiKey, messages, temperature, model)
   // #vercel-disable-blocks
   if (httpsProxy)
     initOptions.dispatcher = new ProxyAgent(httpsProxy)

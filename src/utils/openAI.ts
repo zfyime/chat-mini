@@ -2,12 +2,13 @@ import { createParser } from 'eventsource-parser'
 import type { ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import type { ChatMessage } from '@/types'
 
-export const model = import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini'
+// export const model = import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini'
 
 export const generatePayload = (
-  apiKey: string,
-  messages: ChatMessage[],
-  temperature: number,
+    apiKey: string,
+    messages: ChatMessage[],
+    temperature: number,
+    model: string,
 ): RequestInit & { dispatcher?: any } => ({
   headers: {
     'Content-Type': 'application/json',

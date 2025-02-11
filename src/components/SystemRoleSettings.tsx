@@ -11,11 +11,13 @@ interface Props {
   currentSystemRoleSettings: Accessor<string>
   setCurrentSystemRoleSettings: Setter<string>
   temperatureSetting: (value: number) => void
+  chatModelSetting: (value: string) => void // 新增的回调函数
 }
 
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(0.6)
+  const [chatModel, setChatModel] = createSignal('deepseek-coder') // 新增的状态
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
@@ -24,6 +26,7 @@ export default (props: Props) => {
 
   createEffect(() => {
     props.temperatureSetting(temperature())
+    props.chatModelSetting(chatModel()) // 调用新的回调函数
   })
 
   return (
@@ -84,6 +87,25 @@ export default (props: Props) => {
                 setValue={setTemperature}
               />
             </div>
+          </div>
+          <div class="w-full mt-4">
+            <label for="select-setting">Model Setting:</label>
+            <select
+              id="select-setting"
+              value={chatModel}
+              onChange={(e) => setChatModel(e.currentTarget.value)}
+                      >
+              <option value="deepseek-coder">deepseek-coder</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-4o-mini">gpt-4o-mini</option>
+              <option value="gpt-4-turbo">gpt-4-turbo</option>
+              <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
+              <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
+              <option value="deepseek-reasoner">deepseek-reasoner</option>
+              <option value="deepseek-chat">deepseek-chat</option>
+              <option value="o1-mini">o1-mini</option>
+              <option value="o3-mini">o3-mini</option>
+            </select>
           </div>
         </div>
       </Show>

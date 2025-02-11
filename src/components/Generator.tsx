@@ -18,7 +18,9 @@ export default () => {
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.6)
+  const [chatModel, setChatModel] = createSignal('deepseek-coder') // 新增的状态
   const temperatureSetting = (value: number) => { setTemperature(value) }
+  const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = parseInt(import.meta.env.PUBLIC_MAX_HISTORY_MESSAGES || '9')
 
   createEffect(() => (isStick() && smoothToBottom()))
@@ -108,7 +110,8 @@ export default () => {
             t: timestamp,
             m: requestMessageList?.[requestMessageList.length - 1]?.content || '',
           }),
-          temperature: temperature(),
+            temperature: temperature(),
+            model: chatModel(), // 新增的参数
         }),
         signal: controller.signal,
       })
@@ -211,6 +214,7 @@ export default () => {
         currentSystemRoleSettings={currentSystemRoleSettings}
         setCurrentSystemRoleSettings={setCurrentSystemRoleSettings}
         temperatureSetting={temperatureSetting}
+        chatModelSetting={chatModelSetting}
       />
       <Index each={messageList()}>
         {(message, index) => (
