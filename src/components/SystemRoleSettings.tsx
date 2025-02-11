@@ -59,8 +59,8 @@ export default (props: Props) => {
             <label for="select-setting">Model:</label>
             <select
               id="select-setting"
-              value={chatModel()} // 绑定到 chatModel 状态
-              class="w-full ml-2 py-2 bg-slate bg-op-15"
+              value={chatModel()}
+              class="w-full ml-2 py-3 bg-slate bg-op-15"
               onChange={(e) => setChatModel(e.currentTarget.value)}
             >
               <option value="deepseek-chat">deepseek-chat</option>
