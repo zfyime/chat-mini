@@ -44,7 +44,7 @@ export default (props: Props) => {
             <IconEnv />
             <span>System Role:</span>
           </div>
-          <div>
+          <div class="mt-2">
             <textarea
               ref={systemInputRef!}
               placeholder="Gently instruct the assistant and set the behavior of the assistant."
@@ -65,11 +65,15 @@ export default (props: Props) => {
             >
               <option value="deepseek-chat">deepseek-chat</option>
               <option value="deepseek-reasoner">deepseek-reasoner</option>
+              <option value="deepseek-v3">deepseek-v3</option>
+              <option value="deepseek-r1">deepseek-r1</option>
               <option value="gpt-4o">gpt-4o</option>
               <option value="gpt-4o-mini">gpt-4o-mini</option>
               <option value="o1-mini">o1-mini</option>
               <option value="o3-mini">o3-mini</option>
               <option value="gpt-4-turbo">gpt-4-turbo</option>
+              <option value="gpt-4-search">gpt-4-search</option>
+              <option value="gemini-2.0-flash">gemini-2.0-flash</option>
               <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
               <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
             </select>
