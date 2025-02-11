@@ -69,14 +69,14 @@ export default (props: Props) => {
               gen-textarea
             />
           </div>
-          <div class="w-full mt-4 fi fb op-50">
+          <div class="w-full fi fb op-50 mt-2 mb-2">
             <label for="select-setting">Model:</label>
             <select
               id="select-setting"
-              value={chatModel}
-              class="bg-(slate op-15)"
+              value={chatModel()} // 绑定到 chatModel 状态
+              class="w-full ml-2 py-2 bg-slate bg-op-15"
               onChange={(e) => setChatModel(e.currentTarget.value)}
-                      >
+            >
               <option value="deepseek-chat">deepseek-chat</option>
               <option value="deepseek-reasoner">deepseek-reasoner</option>
               <option value="gpt-4o">gpt-4o</option>
