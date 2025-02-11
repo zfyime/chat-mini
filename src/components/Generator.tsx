@@ -18,7 +18,8 @@ export default () => {
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.7)
-  const [chatModel, setChatModel] = createSignal(import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini')
+  const model = import.meta.env.OPENAI_API_MODEL || 'gpt-4o-mini'
+  const [chatModel, setChatModel] = createSignal(model)
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = parseInt(import.meta.env.PUBLIC_MAX_HISTORY_MESSAGES || '9')
