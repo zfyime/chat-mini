@@ -17,7 +17,7 @@ export default () => {
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
-  const [temperature, setTemperature] = createSignal(0.6)
+  const [temperature, setTemperature] = createSignal(0.7)
   const [chatModel, setChatModel] = createSignal('deepseek-coder') // 新增的状态
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }

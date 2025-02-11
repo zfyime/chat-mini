@@ -16,7 +16,7 @@ interface Props {
 
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
-  const [temperature, setTemperature] = createSignal(0.6)
+  const [temperature, setTemperature] = createSignal(0.7)
   const [chatModel, setChatModel] = createSignal('deepseek-chat') // 新增的状态
 
   const handleButtonClick = () => {
@@ -32,20 +32,7 @@ export default (props: Props) => {
   return (
     <div class="my-4">
       <Show when={!props.systemRoleEditing()}>
-        <Show when={props.currentSystemRoleSettings()}>
-          <div>
-            <div class="fi gap-1 op-50 dark:op-60">
-              <Show when={props.canEdit()} fallback={<IconEnv />}>
-                <span onClick={() => props.setCurrentSystemRoleSettings('')} class="sys-edit-btn p-1 rd-50%" > <IconX /> </span>
-              </Show>
-              <span>System Role ( Temp = {temperature()} ) : </span>
-            </div>
-            <div class="mt-1">
-              {props.currentSystemRoleSettings()}
-            </div>
-          </div>
-        </Show>
-        <Show when={!props.currentSystemRoleSettings() && props.canEdit()}>
+        <Show when={props.canEdit()}>
           <span onClick={() => props.setSystemRoleEditing(!props.systemRoleEditing())} class="sys-edit-btn">
             <IconEnv />
             <span>Chat Setting</span>
@@ -58,11 +45,10 @@ export default (props: Props) => {
             <IconEnv />
             <span>System Role:</span>
           </div>
-          <p class="my-2 leading-normal text-sm op-50 dark:op-60">Gently instruct the assistant and set the behavior of the assistant.</p>
           <div>
             <textarea
               ref={systemInputRef!}
-              placeholder="You are a helpful assistant, answer as concisely as possible...."
+              placeholder="Gently instruct the assistant and set the behavior of the assistant."
               autocomplete="off"
               autofocus
               rows="3"
