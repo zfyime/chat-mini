@@ -206,7 +206,7 @@ export default () => {
   }
 
   return (
-    <div my-6>
+    <div my-4>
       <SystemRoleSettings
         canEdit={() => messageList().length === 0}
         systemRoleEditing={systemRoleEditing}
