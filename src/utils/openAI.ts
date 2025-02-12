@@ -54,7 +54,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             let text = json.choices[0].delta?.content || ''
             
             // 检查并替换 <think> 标签
-            text = text.replace(/<think>(.*?)<\/think>/g, '<details><summary>思考过程</summary>$1</details>')
+            text = text.replace(/<think>/g, '<details><summary>思考过程</summary>')
+            text = text.replace(/<\/think>/g, '</details>')
             
             const queue = encoder.encode(text)
             controller.enqueue(queue)
