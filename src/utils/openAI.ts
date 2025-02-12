@@ -51,7 +51,11 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             //   ],
             // }
             const json = JSON.parse(data)
-            const text = json.choices[0].delta?.content || ''
+            let text = json.choices[0].delta?.content || ''
+            
+            // 检查并替换 <think> 标签
+            text = text.replace(/<think>(.*?)<\/think>/g, '<details><summary>思考过程</summary>$1</details>')
+            
             const queue = encoder.encode(text)
             controller.enqueue(queue)
           } catch (e) {
