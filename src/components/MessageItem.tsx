@@ -60,21 +60,12 @@ export default ({ role, message, showRetry, onRetry }: Props) => {
       </div>`
     }
 
-    let renderedMessage = ''
-    let rawMessage = ''
-  
     if (typeof message === 'function')
-      rawMessage = message()
+      return md.render(message())
     else if (typeof message === 'string')
-      rawMessage = message
-  
-    // 替换 <think> 标签为 <details> 标签
-    rawMessage = rawMessage.replace(/<think>/g, '<details><summary>思考过程</summary>')
-    rawMessage = rawMessage.replace(/<\/think>/g, '</details>')
-  
-    renderedMessage = md.render(rawMessage)
-  
-    return renderedMessage
+      return md.render(message)
+
+    return ''
   }
 
   return (
