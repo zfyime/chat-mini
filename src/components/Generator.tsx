@@ -139,7 +139,7 @@ export default () => {
           if (char)
             setCurrentAssistantMessage(currentAssistantMessage() + char)
 
-          isStick() && instantToBottom()
+          instantToBottom()
         }
         done = readerDone
       }
@@ -150,7 +150,7 @@ export default () => {
       return
     }
     archiveCurrentMessage()
-    isStick() && instantToBottom()
+    instantToBottom()
   }
 
   const archiveCurrentMessage = () => {
