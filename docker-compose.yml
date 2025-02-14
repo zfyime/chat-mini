@@ -1,12 +1,21 @@
 version: '3'
 
 services:
-  chatgpt-demo:
+  chat:
     build: .
-    container_name: chatgpt-demo
+    container_name: chat-mini
     restart: always
     ports:
         - "3000:3000"
     environment:
         OPENAI_API_KEY: ${OPENAI_API_KEY}
         OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL}
+        VIRTUAL_HOST: ${VIRTUAL_HOST}
+        LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+        VIRTUAL_PROTO: http
+        VIRTUAL_PORT: 3000
+    networks:
+      - nginx-proxy_nginx-proxy
+networks:
+  nginx-proxy_nginx-proxy:
+    external: true
