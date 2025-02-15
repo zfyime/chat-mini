@@ -14,11 +14,12 @@ export default () => {
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
   const [currentError, setCurrentError] = createSignal<ErrorMessage>()
   const [currentAssistantMessage, setCurrentAssistantMessage] = createSignal('')
+  const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.7)
-  const [chatModel, setChatModel] = createSignal('deepseek-chat')
+  const [chatModel, setChatModel] = createSignal('deepseek-reasoner')
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = parseInt('6')
@@ -70,6 +71,7 @@ export default () => {
       {
         role: 'user',
         content: inputValue,
+        think: '',
       },
     ])
     requestWithLatestMessage()
@@ -87,6 +89,7 @@ export default () => {
   const requestWithLatestMessage = async() => {
     setLoading(true)
     setCurrentAssistantMessage('')
+    setCurrentAssistantThinkMessage('')
     setCurrentError(null)
     const storagePassword = localStorage.getItem('pass')
     try {
@@ -128,17 +131,37 @@ export default () => {
       const reader = data.getReader()
       const decoder = new TextDecoder('utf-8')
       let done = false
+      let think = false
 
       while (!done) {
         const { value, done: readerDone } = await reader.read()
         if (value) {
-          const char = decoder.decode(value)
+          let char = decoder.decode(value)
+
+          if (char.indexOf("<think>") != -1 || char.indexOf("</think>") != -1 || think) {
+            if (char === '\n' && currentAssistantThinkMessage().endsWith('\n')) 
+              continue
+            if (char.indexOf("<think>") != -1) {
+              char = char.replace("<think>", "");
+              think = true
+            }
+            if (char.indexOf("<\/think>") != -1) {
+              think = false
+              const [before, after] = char.split('<\/think>');
+              char = before
+              setCurrentAssistantMessage(currentAssistantMessage() + after)
+            }
+            if (char)
+              setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + char)
+            instantToBottom()
+            continue
+          }
+          
           if (char === '\n' && currentAssistantMessage().endsWith('\n'))
             continue
-
           if (char)
             setCurrentAssistantMessage(currentAssistantMessage() + char)
-
+          
           instantToBottom()
         }
         done = readerDone
@@ -160,9 +183,11 @@ export default () => {
         {
           role: 'assistant',
           content: currentAssistantMessage(),
+          think: currentAssistantThinkMessage(),
         },
       ])
       setCurrentAssistantMessage('')
+      setCurrentAssistantThinkMessage('')
       setLoading(false)
       setController(null)
       // Disable auto-focus on touch devices
@@ -176,6 +201,7 @@ export default () => {
     inputRef.style.height = 'auto'
     setMessageList([])
     setCurrentAssistantMessage('')
+    setCurrentAssistantThinkMessage('')
     setCurrentError(null)
   }
 
@@ -221,15 +247,17 @@ export default () => {
           <MessageItem
             role={message().role}
             message={message().content}
+            thinkMessage={message().think}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
           />
         )}
       </Index>
-      {currentAssistantMessage() && (
+      {(currentAssistantMessage() || currentAssistantThinkMessage()) && (
         <MessageItem
           role="assistant"
           message={currentAssistantMessage}
+          thinkMessage={currentAssistantThinkMessage}
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
