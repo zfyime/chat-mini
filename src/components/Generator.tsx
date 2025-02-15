@@ -153,7 +153,7 @@ export default () => {
             }
             if (char)
               setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + char)
-            instantToBottom()
+            isStick() && instantToBottom()
             continue
           }
           
@@ -162,7 +162,7 @@ export default () => {
           if (char)
             setCurrentAssistantMessage(currentAssistantMessage() + char)
           
-          instantToBottom()
+          isStick() && instantToBottom()
         }
         done = readerDone
       }
