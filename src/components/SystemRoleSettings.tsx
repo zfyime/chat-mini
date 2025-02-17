@@ -15,7 +15,7 @@ interface Props {
 
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
-  const [temperature, setTemperature] = createSignal(0.7)
+  const [temperature, setTemperature] = createSignal(0.6)
   const [chatModel, setChatModel] = createSignal('deepseek-reasoner')
 
   const handleButtonClick = () => {
@@ -74,6 +74,7 @@ export default (props: Props) => {
               <option value="gpt-4-turbo">gpt-4-turbo</option>
               <option value="gpt-4-search">gpt-4-search</option>
               <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+              <option value="gemini-2.0-flash-thinking-exp-01-21">gemini-2.0-flash-thinking-exp-01-21</option>
               <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
               <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest</option>
             </select>
