@@ -17,7 +17,7 @@ export default () => {
   const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
-  const [isStick, setStick] = createSignal(true)
+  const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.6)
   const [chatModel, setChatModel] = createSignal('deepseek-reasoner')
   const temperatureSetting = (value: number) => { setTemperature(value) }

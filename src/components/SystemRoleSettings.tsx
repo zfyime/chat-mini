@@ -63,8 +63,9 @@ export default (props: Props) => {
               class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
               onChange={(e) => setChatModel(e.currentTarget.value)}
             >
-              <option value="deepseek-reasoner">deepseek-reasoner</option>
               <option value="deepseek-chat">deepseek-chat</option>
+              <option value="deepseek-reasoner">deepseek-reasoner</option>
+              <option value="deepseek-reasoner-all">deepseek-reasoner-all</option>
               <option value="gpt-4o-mini">gpt-4o-mini</option>
               <option value="gpt-4o">gpt-4o</option>
               <option value="gpt-4-turbo">gpt-4-turbo</option>
