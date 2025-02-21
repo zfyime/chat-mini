@@ -16,7 +16,7 @@ interface Props {
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(0.6)
-  const [chatModel, setChatModel] = createSignal('deepseek-reasoner')
+  const [chatModel, setChatModel] = createSignal('deepseek-chat')
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
