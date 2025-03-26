@@ -65,12 +65,13 @@ export default (props: Props) => {
             >
               <option value="deepseek-chat">deepseek-chat</option>
               <option value="deepseek-reasoner">deepseek-reasoner</option>
-              <option value="deepseek-reasoner-all">deepseek-reasoner-all</option>
               <option value="gpt-4o-mini">gpt-4o-mini</option>
               <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-4-turbo">gpt-4-turbo</option>
-              <option value="gpt-4-search">gpt-4-search</option>
-              <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest</option>
+              <option value="claude-3-7-sonnet-all">claude-3-7-sonnet-all</option>
+              <option value="claude-3-7-sonnet-thinking">claude-3-7-sonnet-thinking</option>
+              <option value="grok-3">grok-3</option>
+              <option value="grok-3-reasoner">grok-3-reasoner</option>
+              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
               <option value="gemini-2.0-flash">gemini-2.0-flash</option>
             </select>
           </div>
