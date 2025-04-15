@@ -16,7 +16,7 @@ interface Props {
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(0.6)
-  const [chatModel, setChatModel] = createSignal('deepseek-chat')
+  const [chatModel, setChatModel] = createSignal('deepseek-v3-250324')
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
@@ -63,15 +63,12 @@ export default (props: Props) => {
               class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
               onChange={(e) => setChatModel(e.currentTarget.value)}
             >
-              <option value="deepseek-chat">deepseek-chat</option>
+              <option value="deepseek-v3-250324">deepseek-v3-250324</option>
               <option value="deepseek-reasoner">deepseek-reasoner</option>
-              <option value="gpt-4o-mini">gpt-4o-mini</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="claude-3-7-sonnet-all">claude-3-7-sonnet-all</option>
-              <option value="claude-3-7-sonnet-thinking">claude-3-7-sonnet-thinking</option>
+              <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+              <option value="gpt-4.1">gpt-4.1</option>
               <option value="grok-3">grok-3</option>
-              <option value="grok-3-reasoner">grok-3-reasoner</option>
-              <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
               <option value="gemini-2.0-flash">gemini-2.0-flash</option>
             </select>
           </div>
