@@ -19,7 +19,7 @@ export default () => {
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false)
   const [temperature, setTemperature] = createSignal(0.6)
-  const [chatModel, setChatModel] = createSignal('deepseek-v3-250324')
+  const [chatModel, setChatModel] = createSignal('gpt-4.1')
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = parseInt('6')
