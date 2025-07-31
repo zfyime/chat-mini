@@ -63,9 +63,11 @@ export default (props: Props) => {
               class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
               onChange={(e) => setChatModel(e.currentTarget.value)}
             >
-              <option value="gpt-4.1">gpt-4.1</option>
-              <option value="deepseek-chat">deepseek-chat</option>
-              <option value="deepseek-r1">deepseek-r1</option>
+              <option value="gpt-4.1">OpenAI-4.1</option>
+              <option value="gpt-4o">OpenAI-4o</option>
+              <option value="DeepSeek-V3-0324">DeepSeek-V3</option>
+              <option value="DeepSeek-R1-0528">DeepSeek-R1</option>
+              <option value="grok-3">Grok-3</option>
             </select>
           </div>
           <div class="w-full fi fb">

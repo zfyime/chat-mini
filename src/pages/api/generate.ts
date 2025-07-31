@@ -7,7 +7,7 @@ import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
 const httpsProxy = import.meta.env.HTTPS_PROXY
-const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com').trim().replace(/\/$/, '')
+const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
 const sitePassword = import.meta.env.SITE_PASSWORD || ''
 const passList = sitePassword.split(',') || []
 
@@ -43,7 +43,7 @@ export const post: APIRoute = async(context) => {
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-expect-error
-  const response = await fetch(`${baseUrl}/v1/chat/completions`, initOptions).catch((err: Error) => {
+  const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
     console.error(err)
     return new Response(JSON.stringify({
       error: {
