@@ -53,10 +53,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             const json = JSON.parse(data)
             const choice = json.choices && json.choices[0]
             const text = choice && choice.delta?.content ? choice.delta.content : ''
-            if (text) {
-              const queue = encoder.encode(text)
-              controller.enqueue(queue)
-            }
+            const queue = encoder.encode(text)
+            controller.enqueue(queue)
           } catch (e) {
             controller.error(e)
           }
