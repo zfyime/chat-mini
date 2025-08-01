@@ -33,9 +33,6 @@ export const parseOpenAIStream = (rawResponse: Response) => {
   
   const stream = new ReadableStream({
     async start(controller) {
-      const decoder = new TextDecoder('utf-8')
-      let buffer = '' // 用于累积不完整的数据
-      
       const streamParser = (event: ParsedEvent | ReconnectInterval) => {
         if (event.type === 'event') {
           const data = event.data
@@ -46,59 +43,52 @@ export const parseOpenAIStream = (rawResponse: Response) => {
           
           try {
             const json = JSON.parse(data)
-            const text = json.choices?.[0]?.delta?.content || ''
-            if (text) {
+            const text = json.choices?.[0]?.delta?.content
+            
+            // 更严格的检查：只有当 text 存在且不为 undefined/null 时才处理
+            if (text !== undefined && text !== null) {
+              // 即使是空字符串也可能有意义（比如删除字符的操作）
               controller.enqueue(encoder.encode(text))
             }
           } catch (e) {
-            console.error('Parse error:', e, 'Data:', data)
+            console.error('Parse error:', e)
           }
         }
       }
 
       const parser = createParser(streamParser)
+      const decoder = new TextDecoder()
+      
+      if (!rawResponse.body) {
+        controller.close()
+        return
+      }
+
+      const reader = rawResponse.body.getReader()
       
       try {
-        const reader = rawResponse.body?.getReader()
-        if (!reader) {
-          controller.close()
-          return
-        }
-
-        // 逐块读取和处理
         while (true) {
           const { done, value } = await reader.read()
-          if (done) {
-            // 处理剩余的 buffer
-            if (buffer.trim()) {
-              parser.feed(buffer)
-            }
-            controller.close()
-            break
-          }
-
-          // 将新的 chunk 添加到 buffer，使用 stream: true 处理跨块的多字节字符
-          buffer += decoder.decode(value, { stream: true })
+          if (done) break
           
-          // 按行分割处理完整的 SSE 消息
-          const lines = buffer.split('\n')
-          buffer = lines.pop() || '' // 保留最后一个可能不完整的行
-          
-          // 处理每一行
-          for (const line of lines) {
-            parser.feed(line + '\n')
-          }
+          const chunk = decoder.decode(value, { stream: true })
+          parser.feed(chunk)
         }
+        
+        const finalChunk = decoder.decode()
+        if (finalChunk) {
+          parser.feed(finalChunk)
+        }
+        
+        controller.close()
       } catch (error) {
-        console.error('Stream processing error:', error)
+        console.error('Stream error:', error)
         controller.error(error)
+      } finally {
+        reader.releaseLock()
       }
     },
   })
 
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-    }
-  })
+  return new Response(stream)
 }
