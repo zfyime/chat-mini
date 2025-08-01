@@ -22,8 +22,6 @@ export const generatePayload = (
 })
 
 export const parseOpenAIStream = (rawResponse: Response) => {
-  const encoder = new TextEncoder()
-  const decoder = new TextDecoder()
   if (!rawResponse.ok) {
     return new Response(rawResponse.body, {
       status: rawResponse.status,
@@ -31,6 +29,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
     })
   }
 
+  const encoder = new TextEncoder()
+  
   const stream = new ReadableStream({
     async start(controller) {
       const streamParser = (event: ParsedEvent | ReconnectInterval) => {
@@ -40,32 +40,28 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             controller.close()
             return
           }
+          
           try {
-            // response = {
-            //   id: 'chatcmpl-6pULPSegWhFgi0XQ1DtgA3zTa1WR6',
-            //   object: 'chat.completion.chunk',
-            //   created: 1677729391,
-            //   model: 'gpt-3.5-turbo-0301',
-            //   choices: [
-            //     { delta: { content: '你' }, index: 0, finish_reason: null }
-            //   ],
-            // }
             const json = JSON.parse(data)
-            const choice = json.choices && json.choices[0]
-            const text = choice && choice.delta?.content ? choice.delta.content : ''
-            const queue = encoder.encode(text)
-            controller.enqueue(queue)
+            const text = json.choices?.[0]?.delta?.content || ''
+            
+            if (text) {
+              controller.enqueue(encoder.encode(text))
+            }
           } catch (e) {
-            controller.error(e)
+            console.error('Parse error:', e)
           }
         }
       }
 
       const parser = createParser(streamParser)
-      for await (const chunk of rawResponse.body as any)
-        parser.feed(decoder.decode(chunk))
+      
+      // 使用 Response.text() 确保正确的 UTF-8 处理
+      const text = await rawResponse.text()
+      parser.feed(text)
     },
   })
 
   return new Response(stream)
 }
+
