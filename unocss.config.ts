@@ -22,6 +22,13 @@ export default defineConfig({
           'padding-left': '2.25em',
           'position': 'relative',
         },
+        '.prose': {
+          'max-width': 'none',
+        },
+        'h2': {
+          'margin-top': '1.2em',
+          'margin-bottom': '0.8em',
+        },
       },
     }),
   ],
