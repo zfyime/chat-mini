@@ -23,7 +23,7 @@ export default defineConfig({
           'position': 'relative',
         },
         'h2': {
-          'margin-top': '1.2em',
+          'margin-top': '1em',
           'margin-bottom': '0.8em',
         },
         'hr': {
