@@ -21,6 +21,9 @@ export default () => {
   const [isStick, setStick] = createSignal(false) // 默认关闭
   const [temperature, setTemperature] = createSignal(0.6)
   const [chatModel, setChatModel] = createSignal('gpt-4.1')
+  // 新增：跟踪对话状态
+  const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
+  const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = parseInt('6')
@@ -76,6 +79,14 @@ export default () => {
   })
 
   const handleBeforeUnload = () => {
+    // 如果有未保存的对话修改，自动保存
+    if (messageList().length > 0 && isCurrentChatModified()) {
+      const saveFunc = (window as any).saveCurrentChatHistory
+      if (saveFunc) {
+        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
+      }
+    }
+    
     sessionStorage.setItem('messageList', JSON.stringify(messageList()))
     sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
     // 不需要保存 stickToBottom 状态
@@ -87,14 +98,19 @@ export default () => {
       return
 
     inputRef.value = ''
+    const newMessage: ChatMessage = {
+      role: 'user',
+      content: inputValue,
+      think: '',
+    }
+    
     setMessageList([
       ...messageList(),
-      {
-        role: 'user',
-        content: inputValue,
-        think: '',
-      },
+      newMessage,
     ])
+    
+    // 标记对话已修改
+    setIsCurrentChatModified(true)
     
     // 用户发送消息时自动开启自动滚动
     setStick(true)
@@ -202,18 +218,35 @@ export default () => {
 
   const archiveCurrentMessage = () => {
     if (currentAssistantMessage()) {
-      setMessageList([
+      const newAssistantMessage: ChatMessage = {
+        role: 'assistant',
+        content: currentAssistantMessage(),
+        think: currentAssistantThinkMessage(),
+      }
+      
+      const updatedMessages = [
         ...messageList(),
-        {
-          role: 'assistant',
-          content: currentAssistantMessage(),
-          think: currentAssistantThinkMessage(),
-        },
-      ])
+        newAssistantMessage,
+      ]
+      
+      setMessageList(updatedMessages)
       setCurrentAssistantMessage('')
       setCurrentAssistantThinkMessage('')
       setLoading(false)
       setController(null)
+      
+      // 标记对话已修改并立即保存/更新历史
+      setIsCurrentChatModified(true)
+      
+      // 立即保存或更新历史记录
+      const saveFunc = (window as any).saveCurrentChatHistory
+      if (saveFunc) {
+        const historyId = saveFunc(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
+        if (historyId) {
+          setCurrentChatHistoryId(historyId)
+        }
+      }
+      
       // Disable auto-focus on touch devices
       if (!('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0))
         inputRef.focus()
@@ -221,11 +254,11 @@ export default () => {
   }
 
   const clear = () => {
-    // 如果有对话内容，保存到历史记录
-    if (messageList().length > 0) {
+    // 只有当对话被修改且不是历史对话时才保存
+    if (messageList().length > 0 && isCurrentChatModified()) {
       const saveFunc = (window as any).saveCurrentChatHistory
       if (saveFunc) {
-        saveFunc(messageList(), currentSystemRoleSettings())
+        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
       }
     }
     
@@ -237,6 +270,9 @@ export default () => {
     setCurrentError(null)
     // 清空后关闭自动滚动
     setStick(false)
+    // 重置对话状态
+    setIsCurrentChatModified(false)
+    setCurrentChatHistoryId()
   }
 
   const stopStreamFetch = () => {
@@ -277,12 +313,12 @@ export default () => {
   }
 
   // 加载历史对话
-  const loadHistory = (messages: ChatMessage[], systemRole: string) => {
-    // 如果当前有对话内容，先保存到历史记录
-    if (messageList().length > 0) {
+  const loadHistory = (messages: ChatMessage[], systemRole: string, historyId?: string) => {
+    // 如果当前有对话内容且被修改过，先保存到历史记录
+    if (messageList().length > 0 && isCurrentChatModified()) {
       const saveFunc = (window as any).saveCurrentChatHistory
       if (saveFunc) {
-        saveFunc(messageList(), currentSystemRoleSettings())
+        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
       }
     }
     
@@ -292,6 +328,10 @@ export default () => {
     setCurrentAssistantThinkMessage('')
     setCurrentError(null)
     setStick(false)
+    
+    // 设置当前加载的历史对话状态
+    setCurrentChatHistoryId(historyId)
+    setIsCurrentChatModified(false) // 刚加载的历史对话未修改
     
     // 清除input内容
     if (inputRef) {
@@ -337,12 +377,12 @@ export default () => {
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
       <Show
         when={!loading()}
-        fallback={() => (
+        fallback={
           <div class="gen-cb-wrapper">
             <span>AI is thinking...</span>
             <div class="gen-cb-stop" onClick={stopStreamFetch}>Stop</div>
           </div>
-        )}
+        }
       >
         <div class="gen-text-wrapper" class:op-50={systemRoleEditing()}>
           <textarea

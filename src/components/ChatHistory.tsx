@@ -4,7 +4,7 @@ import IconDelete from './icons/Delete'
 import IconHistory from './icons/History'
 
 interface Props {
-  onLoadHistory: (messages: ChatMessage[], systemRole: string) => void
+  onLoadHistory: (messages: ChatMessage[], systemRole: string, historyId?: string) => void
 }
 
 export default (props: Props) => {
@@ -42,7 +42,7 @@ export default (props: Props) => {
 
   // 加载历史对话
   const loadHistory = (history: ChatHistory) => {
-    props.onLoadHistory(history.messages, history.systemRole)
+    props.onLoadHistory(history.messages, history.systemRole, history.id)
     setShowHistory(false)
   }
 
@@ -73,27 +73,48 @@ export default (props: Props) => {
     }
   }
 
-  // 保存当前对话到历史记录
-  const saveCurrentChat = (messages: ChatMessage[], systemRole: string) => {
+  // 保存或更新对话历史
+  const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, existingId?: string) => {
     if (messages.length === 0) return
     
-    const id = Date.now().toString()
-    const newHistory: ChatHistory = {
-      id,
-      title: generateTitle(messages),
-      messages: [...messages],
-      systemRole,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    }
+    const now = Date.now()
     
-    const newList = [newHistory, ...historyList()]
-    // 最多保存50条历史记录
-    if (newList.length > 50) {
-      newList.splice(50)
+    if (existingId) {
+      // 更新现有历史记录
+      const updatedList = historyList().map(item => 
+        item.id === existingId 
+          ? {
+              ...item,
+              title: generateTitle(messages),
+              messages: [...messages],
+              systemRole,
+              updatedAt: now
+            }
+          : item
+      )
+      saveHistoryList(updatedList)
+      return existingId
+    } else {
+      // 创建新的历史记录
+      const id = now.toString()
+      const newHistory: ChatHistory = {
+        id,
+        title: generateTitle(messages),
+        messages: [...messages],
+        systemRole,
+        createdAt: now,
+        updatedAt: now
+      }
+      
+      const newList = [newHistory, ...historyList()]
+      // 最多保存50条历史记录
+      if (newList.length > 50) {
+        newList.splice(50)
+      }
+      
+      saveHistoryList(newList)
+      return id
     }
-    
-    saveHistoryList(newList)
   }
 
   return (
@@ -165,7 +186,7 @@ export default (props: Props) => {
       <div style="display: none" ref={(el) => {
         // 将保存方法挂载到全局，供Generator组件调用
         if (el) {
-          (window as any).saveCurrentChatHistory = saveCurrentChat
+          (window as any).saveCurrentChatHistory = saveOrUpdateChat
         }
       }}></div>
     </>
