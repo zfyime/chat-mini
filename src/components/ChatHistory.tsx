@@ -1,4 +1,6 @@
 import { createSignal, createEffect, For } from 'solid-js'
+import { useThrottleFn } from 'solidjs-use'
+import { CONFIG } from '@/config/constants'
 import type { ChatHistory, ChatMessage } from '@/types'
 import IconDelete from './icons/Delete'
 import IconHistory from './icons/History'
@@ -23,15 +25,15 @@ export default (props: Props) => {
     }
   })
 
-  // 保存历史对话到localStorage
-  const saveHistoryList = (list: ChatHistory[]) => {
+  // 保存历史对话到localStorage（防抖版本）
+  const saveHistoryList = useThrottleFn((list: ChatHistory[]) => {
     try {
       localStorage.setItem('chatHistoryList', JSON.stringify(list))
       setHistoryList(list)
     } catch (e) {
       console.error('Failed to save chat history:', e)
     }
-  }
+  }, CONFIG.SAVE_DEBOUNCE_TIME, false, true)
 
   // 删除历史对话
   const deleteHistory = (id: string, e: Event) => {
@@ -107,9 +109,9 @@ export default (props: Props) => {
       }
       
       const newList = [newHistory, ...historyList()]
-      // 最多保存50条历史记录
-      if (newList.length > 50) {
-        newList.splice(50)
+      // 最多保存历史记录
+      if (newList.length > CONFIG.MAX_HISTORY_COUNT) {
+        newList.splice(CONFIG.MAX_HISTORY_COUNT)
       }
       
       saveHistoryList(newList)
@@ -120,7 +122,7 @@ export default (props: Props) => {
   return (
     <>
       {/* 历史对话按钮 */}
-      <div class="fixed bottom-16 left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90">
+      <div class="fixed bottom-16 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90">
         <button 
           class="p-2.5 text-base" 
           title="历史对话" 
@@ -138,7 +140,7 @@ export default (props: Props) => {
         onClick={() => setShowHistory(false)}
       >
         <div 
-          class="fixed left-4 bottom-20 w-80 max-h-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          class="fixed left-4 right-4 sm:left-4 sm:right-auto bottom-20 sm:w-80 w-auto max-h-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           <div class="p-4 border-b border-gray-200 dark:border-gray-700">

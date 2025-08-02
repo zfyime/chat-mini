@@ -1,7 +1,9 @@
 import { Index, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { useThrottleFn } from 'solidjs-use'
 import { generateSignature } from '@/utils/auth'
+import { CONFIG } from '@/config/constants'
 import IconClear from './icons/Clear'
+import IconLoading from './icons/Loading'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
@@ -19,18 +21,18 @@ export default () => {
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
   const [isStick, setStick] = createSignal(false) // 默认关闭
-  const [temperature, setTemperature] = createSignal(0.6)
-  const [chatModel, setChatModel] = createSignal('gpt-4.1')
+  const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
+  const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
   // 新增：跟踪对话状态
   const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
   const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
-  const maxHistoryMessages = parseInt('6')
+  const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
 
   // 检查是否已经在底部的函数
   const isAtBottom = () => {
-    const threshold = 25 // 允许的误差 px
+    const threshold = CONFIG.SCROLL_THRESHOLD // 允许的误差 px
     return window.innerHeight + window.scrollY >= document.body.scrollHeight - threshold
   }
 
@@ -120,7 +122,7 @@ export default () => {
 
   const smoothToBottom = useThrottleFn(() => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-  }, 300, false, true)
+  }, CONFIG.SMOOTH_SCROLL_DELAY, false, true)
 
   const instantToBottom = () => {
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })
@@ -379,8 +381,9 @@ export default () => {
         when={!loading()}
         fallback={
           <div class="gen-cb-wrapper">
-            <span>AI is thinking...</span>
-            <div class="gen-cb-stop" onClick={stopStreamFetch}>Stop</div>
+            <IconLoading />
+            <span>AI 正在思考中...</span>
+            <div class="gen-cb-stop" onClick={stopStreamFetch}>停止</div>
           </div>
         }
       >
@@ -409,7 +412,7 @@ export default () => {
       </Show>
       <ChatHistory onLoadHistory={loadHistory} />
       
-      <div class="fixed bottom-5 left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90" class:stick-btn-on={isStick()}>
+      <div class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90" class:stick-btn-on={isStick()}>
         <div>
           <button class="p-2.5 text-base" title="stick to bottom" type="button" onClick={toggleStick}>
             <div i-ph-arrow-line-down-bold />
