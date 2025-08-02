@@ -22,14 +22,6 @@ export default defineConfig({
           'padding-left': '2.25em',
           'position': 'relative',
         },
-        'h2': {
-          'margin-top': '1em',
-          'margin-bottom': '0.8em',
-        },
-        'hr': {
-          'margin-top': '0.8em',
-          'margin-bottom': '0em',
-        },
       },
     }),
   ],

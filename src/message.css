@@ -1,24 +1,73 @@
 .message pre {
   background-color: #64748b10;
-  font-size: 0.8rem;
-  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
 }
 
 .message .hljs {
   background-color: transparent;
 }
 
+/* 覆盖 prose 插件的标题样式 */
+.message.prose h1,
+.message h1 {
+  margin-top: 0.8em !important;
+  margin-bottom: 0.5em !important;
+}
+
+.message.prose h2,
+.message h2 {
+  margin-top: 0.6em !important;
+  margin-bottom: 0.4em !important;
+}
+
+.message.prose h3,
+.message h3 {
+  margin-top: 0.5em !important;
+  margin-bottom: 0.3em !important;
+}
+
+.message.prose hr,
+.message hr {
+  margin-top: 0.6em !important;
+  margin-bottom: 0.4em !important;
+}
+
+/* 表格容器：添加水平滚动 */
+.message {
+  overflow-x: auto;
+  width: 100%;
+}
+
 .message table {
-  font-size: 0.8em;
+  font-size: 0.85em;
+  width: 100%;
+  table-layout: auto; /* 自动布局，基于内容调整列宽 */
+   /* 确保表格至少等于内容宽度 */
+  /* min-width: max-content; */
+}
+
+/* 针对列数较多的表格优化 */
+.message table th,
+.message table td {
+  min-width: 80px; /* 最小列宽，避免过窄 */
+  word-wrap: break-word; /* 长单词自动换行 */
+  vertical-align: top; /* 顶部对齐 */
+  padding: 0.6rem 1rem;
+}
+
+/* 对于列数很多的情况，设置最小宽度确保需要滚动 */
+.message table th:first-child:nth-last-child(n+5),
+.message table th:first-child:nth-last-child(n+5) ~ th,
+.message table td:first-child:nth-last-child(n+5),
+.message table td:first-child:nth-last-child(n+5) ~ td {
+  min-width: 120px; /* 增加最小宽度，确保需要滚动 */
+  white-space: nowrap; /* 5列以上不换行，保持紧凑 */
 }
 
 .message table thead tr {
   background-color: #64748b40;
-  text-align: left;
-}
-
-.message table th, .message table td {
-  padding: 0.6rem 1rem;
+  /* text-align: left; */
 }
 
 .message table tbody tr:last-of-type {
@@ -26,5 +75,5 @@
 }
 
 .prose {
-  max-width: 72ch !important;
+  max-width: 80ch !important;
 }
