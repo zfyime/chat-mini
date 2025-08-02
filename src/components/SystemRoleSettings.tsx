@@ -36,7 +36,7 @@ export default (props: Props) => {
         <Show when={props.canEdit()}>
           <span onClick={() => props.setSystemRoleEditing(!props.systemRoleEditing())} class="sys-edit-btn">
             <IconEnv />
-            <span>Chat Setting</span>
+            <span>聊天设置</span>
           </span>
         </Show>
       </Show>
@@ -44,12 +44,12 @@ export default (props: Props) => {
         <div>
           <div class="fi gap-1 op-50 dark:op-60">
             <IconEnv />
-            <span>Role:</span>
+            <span>角色预设:</span>
           </div>
           <div class="mt-2">
             <textarea
               ref={systemInputRef!}
-              placeholder="Gently instruct the assistant and set the behavior of the assistant."
+              placeholder="在这里为 AI 设定行为和角色。"
               autocomplete="off"
               autofocus
               rows="3"
@@ -58,7 +58,7 @@ export default (props: Props) => {
             />
           </div>
           <div class="w-full fi fb op-50 mt-2 mb-2">
-            <label for="select-setting">Model:</label>
+            <label for="select-setting" class="flex-shrink-0">模型:</label>
             <select
               id="select-setting"
               value={chatModel()}
@@ -71,13 +71,13 @@ export default (props: Props) => {
             </select>
           </div>
           <div class="w-full fi fb">
-            <button onClick={handleButtonClick} gen-slate-btn>
-              Set
+            <button onClick={handleButtonClick} class="flex-shrink-0" gen-slate-btn>
+              设置
             </button>
             <div class="w-full ml-2">
               <SettingsSlider
                 settings={{
-                  name: 'Temperature',
+                  name: '温度',
                   type: 'slider',
                   min: 0,
                   max: 2,

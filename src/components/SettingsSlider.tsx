@@ -23,6 +23,7 @@ export default ({ settings, editing, value, setValue }: Props) => {
     <div>
       {editing() && (
         <Slider
+          name={sliderSettings.name}
           setValue={setValue}
           max={sliderSettings.max}
           value={value}

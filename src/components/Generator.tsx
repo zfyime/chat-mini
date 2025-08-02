@@ -164,11 +164,11 @@ export default () => {
         const error = await response.json()
         console.error(error.error)
         setCurrentError(error.error)
-        throw new Error('Request failed')
+        throw new Error('请求失败')
       }
       const data = response.body
       if (!data)
-        throw new Error('No data')
+        throw new Error('没有数据')
 
       const reader = data.getReader()
       const decoder = new TextDecoder('utf-8')
@@ -376,7 +376,7 @@ export default () => {
             ref={inputRef!}
             disabled={systemRoleEditing()}
             onKeyDown={handleKeydown}
-            placeholder="Enter something..."
+            placeholder="输入一些什么..."
             autocomplete="off"
             autofocus
             onInput={() => {
@@ -386,10 +386,10 @@ export default () => {
             rows="1"
             class="gen-textarea"
           />
-          <button onClick={handleButtonClick} disabled={systemRoleEditing()} gen-slate-btn>
-            Send
+          <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="flex-shrink-0" gen-slate-btn>
+            发送
           </button>
-          <button title="Clear" onClick={clear} disabled={systemRoleEditing()} gen-slate-btn>
+          <button title="清空" onClick={clear} disabled={systemRoleEditing()} gen-slate-btn>
             <IconClear />
           </button>
         </div>
@@ -398,7 +398,7 @@ export default () => {
       
       <div class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90" class:stick-btn-on={isStick()}>
         <div>
-          <button class="p-2.5 text-base" title="stick to bottom" type="button" onClick={toggleStick}>
+          <button class="p-2.5 text-base" title="滚动到底部" type="button" onClick={toggleStick}>
             <div i-ph-arrow-line-down-bold />
           </button>
         </div>

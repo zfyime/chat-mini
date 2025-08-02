@@ -5,6 +5,7 @@ import type { Accessor } from 'solid-js'
 import '../slider.css'
 
 interface Props {
+  name: string
   value: Accessor<number>
   min: number
   max: number
@@ -15,6 +16,7 @@ interface Props {
 
 export const Slider = (selectProps: Props) => {
   const props = mergeProps({
+    name: 'Temperature',
     min: 0,
     max: 2,
     step: 0.01,
@@ -41,7 +43,7 @@ export const Slider = (selectProps: Props) => {
   return (
     <div {...api().rootProps}>
       <div class="text-xs op-50 fb items-center">
-        <span>Temperature</span>
+        <span>{props.name}</span>
         <output {...api().outputProps}>{formatSliderValue(api().value)}</output>
       </div>
       <div class="mt-2" {...api().controlProps}>
