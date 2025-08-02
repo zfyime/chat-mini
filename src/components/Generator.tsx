@@ -381,15 +381,15 @@ export default () => {
             autofocus
             onInput={() => {
               inputRef.style.height = 'auto'
-              inputRef.style.height = `${inputRef.scrollHeight}px`
+              inputRef.style.height = `${input.scrollHeight}px`
             }}
             rows="1"
-            class="gen-textarea"
+            class="gen-textarea rounded-lg"
           />
-          <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="flex-shrink-0" gen-slate-btn>
+          <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="flex-shrink-0 rounded-lg" gen-slate-btn>
             发送
           </button>
-          <button title="清空" onClick={clear} disabled={systemRoleEditing()} gen-slate-btn>
+          <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="rounded-lg" gen-slate-btn>
             <IconClear />
           </button>
         </div>

@@ -12,6 +12,9 @@ services:
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL}
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      VIRTUAL_PROTO: http
+      VIRTUAL_PORT: 3000
     volumes:
       # 挂载源代码目录以支持热重载
       - ./src:/usr/src/src
