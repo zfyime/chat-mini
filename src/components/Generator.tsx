@@ -5,6 +5,7 @@ import IconClear from './icons/Clear'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
+import ChatHistory from './ChatHistory'
 import type { ChatMessage, ErrorMessage } from '@/types'
 
 export default () => {
@@ -220,6 +221,14 @@ export default () => {
   }
 
   const clear = () => {
+    // 如果有对话内容，保存到历史记录
+    if (messageList().length > 0) {
+      const saveFunc = (window as any).saveCurrentChatHistory
+      if (saveFunc) {
+        saveFunc(messageList(), currentSystemRoleSettings())
+      }
+    }
+    
     inputRef.value = ''
     inputRef.style.height = 'auto'
     setMessageList([])
@@ -265,6 +274,35 @@ export default () => {
     if (newStickState) {
       instantToBottom()
     }
+  }
+
+  // 加载历史对话
+  const loadHistory = (messages: ChatMessage[], systemRole: string) => {
+    // 如果当前有对话内容，先保存到历史记录
+    if (messageList().length > 0) {
+      const saveFunc = (window as any).saveCurrentChatHistory
+      if (saveFunc) {
+        saveFunc(messageList(), currentSystemRoleSettings())
+      }
+    }
+    
+    setMessageList(messages)
+    setCurrentSystemRoleSettings(systemRole)
+    setCurrentAssistantMessage('')
+    setCurrentAssistantThinkMessage('')
+    setCurrentError(null)
+    setStick(false)
+    
+    // 清除input内容
+    if (inputRef) {
+      inputRef.value = ''
+      inputRef.style.height = 'auto'
+    }
+    
+    // 滚动到底部
+    setTimeout(() => {
+      instantToBottom()
+    }, 100)
   }
 
   return (
@@ -329,6 +367,8 @@ export default () => {
           </button>
         </div>
       </Show>
+      <ChatHistory onLoadHistory={loadHistory} />
+      
       <div class="fixed bottom-5 left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90" class:stick-btn-on={isStick()}>
         <div>
           <button class="p-2.5 text-base" title="stick to bottom" type="button" onClick={toggleStick}>

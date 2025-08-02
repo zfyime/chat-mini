@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  chat-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: chat-mini-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL}
+    volumes:
+      # 挂载源代码目录以支持热重载
+      - ./src:/usr/src/src
+      - ./public:/usr/src/public
+      - ./astro.config.mjs:/usr/src/astro.config.mjs
+      - ./tsconfig.json:/usr/src/tsconfig.json
+      - ./unocss.config.ts:/usr/src/unocss.config.ts
+      - ./plugins:/usr/src/plugins
+      - ./shims.d.ts:/usr/src/shims.d.ts
+      # 排除 node_modules 以避免冲突
+      - /usr/src/node_modules
+    working_dir: /usr/src
+    command: pnpm run dev --host 0.0.0.0
