@@ -94,9 +94,6 @@ export default (props: Props) => {
 
           {/* Buttons section */}
           <div class="fi justify-start gap-2">
-            <button onClick={() => props.setSystemRoleEditing(false)} class="rounded-lg" gen-slate-btn>
-              取消
-            </button>
             <button onClick={handleButtonClick} class="rounded-lg" gen-slate-btn>
               保存
             </button>

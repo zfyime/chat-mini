@@ -381,7 +381,7 @@ export default () => {
             autofocus
             onInput={() => {
               inputRef.style.height = 'auto'
-              inputRef.style.height = `${input.scrollHeight}px`
+              inputRef.style.height = `${inputRef.scrollHeight}px`
             }}
             rows="1"
             class="gen-textarea rounded-lg"
