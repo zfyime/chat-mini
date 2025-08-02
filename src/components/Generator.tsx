@@ -187,9 +187,9 @@ export default () => {
               char = char.replace("<think>", "");
               think = true
             }
-            if (char.indexOf("<\/think>") != -1) {
+            if (char.indexOf("</think>") != -1) {
               think = false
-              const [before, after] = char.split('<\/think>');
+              const [before, after] = char.split('</think>');
               char = before
               setCurrentAssistantMessage(currentAssistantMessage() + after)
             }
@@ -316,30 +316,14 @@ export default () => {
 
   // 加载历史对话
   const loadHistory = (messages: ChatMessage[], systemRole: string, historyId?: string) => {
-    // 如果当前有对话内容且被修改过，先保存到历史记录
-    if (messageList().length > 0 && isCurrentChatModified()) {
-      const saveFunc = (window as any).saveCurrentChatHistory
-      if (saveFunc) {
-        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-      }
-    }
+    clear()
     
     setMessageList(messages)
     setCurrentSystemRoleSettings(systemRole)
-    setCurrentAssistantMessage('')
-    setCurrentAssistantThinkMessage('')
-    setCurrentError(null)
-    setStick(false)
     
     // 设置当前加载的历史对话状态
     setCurrentChatHistoryId(historyId)
     setIsCurrentChatModified(false) // 刚加载的历史对话未修改
-    
-    // 清除input内容
-    if (inputRef) {
-      inputRef.value = ''
-      inputRef.style.height = 'auto'
-    }
     
     // 滚动到底部
     setTimeout(() => {
