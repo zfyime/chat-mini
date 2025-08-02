@@ -1,6 +1,8 @@
-import { Show, createEffect, createSignal } from 'solid-js'
+import { Show, createEffect, createSignal, For } from 'solid-js'
+import { useStorage } from 'solidjs-use'
 import IconEnv from './icons/Env'
 import SettingsSlider from './SettingsSlider'
+import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import type { Accessor, Setter } from 'solid-js'
 
 interface Props {
@@ -10,13 +12,13 @@ interface Props {
   currentSystemRoleSettings: Accessor<string>
   setCurrentSystemRoleSettings: Setter<string>
   temperatureSetting: (value: number) => void
-  chatModelSetting: (value: string) => void // 新增的回调函数
+  chatModelSetting: (value: string) => void
 }
 
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
-  const [temperature, setTemperature] = createSignal(0.6)
-  const [chatModel, setChatModel] = createSignal('gpt-4.1')
+  const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
+  const [chatModel, setChatModel] = useStorage('selected_model', AVAILABLE_MODELS[0].id)
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
@@ -25,7 +27,7 @@ export default (props: Props) => {
 
   createEffect(() => {
     props.temperatureSetting(temperature())
-    props.chatModelSetting(chatModel()) // 调用新的回调函数
+    props.chatModelSetting(chatModel())
   })
 
   return (
@@ -61,13 +63,11 @@ export default (props: Props) => {
               id="select-setting"
               value={chatModel()}
               class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
-              onChange={(e) => setChatModel(e.currentTarget.value)}
+              onChange={e => setChatModel(e.currentTarget.value)}
             >
-              <option value="gpt-4.1">OpenAI-4.1</option>
-              <option value="gpt-4o">OpenAI-4o</option>
-              <option value="DeepSeek-V3-0324">DeepSeek-V3</option>
-              <option value="DeepSeek-R1-0528">DeepSeek-R1</option>
-              <option value="grok-3">Grok-3</option>
+              <For each={AVAILABLE_MODELS}>
+                {model => <option value={model.id}>{model.name}</option>}
+              </For>
             </select>
           </div>
           <div class="w-full fi fb">

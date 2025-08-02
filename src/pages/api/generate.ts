@@ -3,6 +3,7 @@ import { ProxyAgent, fetch } from 'undici'
 // #vercel-end
 import { generatePayload, parseOpenAIStream } from '@/utils/openAI'
 import { verifySignature } from '@/utils/auth'
+import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
@@ -10,6 +11,8 @@ const httpsProxy = import.meta.env.HTTPS_PROXY
 const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
 const sitePassword = import.meta.env.SITE_PASSWORD || ''
 const passList = sitePassword.split(',') || []
+const allowedModels = AVAILABLE_MODELS.map(m => m.id)
+const apiModel = import.meta.env.OPENAI_API_MODEL || CONFIG.DEFAULT_MODEL
 
 export const post: APIRoute = async(context) => {
   const body = await context.request.json()
@@ -35,7 +38,17 @@ export const post: APIRoute = async(context) => {
       },
     }), { status: 401 })
   }
-  const initOptions = generatePayload(apiKey, messages, temperature, model)
+
+  const modelToUse = model || apiModel
+
+  if (!allowedModels.includes(modelToUse)) {
+    return new Response(JSON.stringify({
+      error: {
+        message: `Model ${modelToUse} is not allowed.`,
+      },
+    }), { status: 400 })
+  }
+  const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
   // #vercel-disable-blocks
   if (httpsProxy)
     initOptions.dispatcher = new ProxyAgent(httpsProxy)

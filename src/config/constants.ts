@@ -17,6 +17,15 @@ export const CONFIG = {
   DEFAULT_MODEL: 'gpt-4.1',
 } as const
 
+export const AVAILABLE_MODELS = [
+  { id: 'gpt-4.1', name: 'OpenAI-4.1' },
+  { id: 'gpt-4o', name: 'OpenAI-4o' },
+  { id: 'DeepSeek-V3-0324', name: 'DeepSeek-V3' },
+  { id: 'DeepSeek-R1-0528', name: 'DeepSeek-R1' },
+  { id: 'grok-3', name: 'Grok-3' },
+] as const
+
+
 // 错误消息
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: '网络连接失败，请检查网络后重试',
