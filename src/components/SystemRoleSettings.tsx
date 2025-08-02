@@ -41,12 +41,13 @@ export default (props: Props) => {
         </Show>
       </Show>
       <Show when={props.systemRoleEditing() && props.canEdit()}>
-        <div>
-          <div class="fi gap-1 op-50 dark:op-60">
-            <IconEnv />
-            <span>角色预设:</span>
-          </div>
-          <div class="mt-2">
+        <div class="space-y-4">
+          {/* Prompt section */}
+          <div>
+            <div class="fi gap-1 op-50 dark:op-60">
+              <IconEnv />
+              <span>角色预设:</span>
+            </div>
             <textarea
               ref={systemInputRef!}
               placeholder="在这里为 AI 设定行为和角色。"
@@ -54,27 +55,28 @@ export default (props: Props) => {
               autofocus
               rows="3"
               value={props.currentSystemRoleSettings()}
+              class="mt-2 w-full rounded-lg"
               gen-textarea
             />
           </div>
-          <div class="w-full fi fb op-50 mt-2 mb-2">
-            <label for="select-setting" class="flex-shrink-0">模型:</label>
-            <select
-              id="select-setting"
-              value={chatModel()}
-              class="px-3 w-full ml-2 py-3 bg-(slate op-15)"
-              onChange={e => setChatModel(e.currentTarget.value)}
-            >
-              <For each={AVAILABLE_MODELS}>
-                {model => <option value={model.id}>{model.name}</option>}
-              </For>
-            </select>
-          </div>
-          <div class="w-full fi fb">
-            <button onClick={handleButtonClick} class="flex-shrink-0" gen-slate-btn>
-              设置
-            </button>
-            <div class="w-full ml-2">
+
+          {/* Parameters section */}
+          <div class="grid grid-cols-2 gap-x-4 items-center">
+            <div class="space-y-2">
+              <label for="select-setting" class="fi gap-1 op-50 dark:op-60 text-sm">模型:</label>
+              <select
+                id="select-setting"
+                value={chatModel()}
+                class="w-full rounded-lg p-2 appearance-none"
+                gen-textarea
+                onChange={e => setChatModel(e.currentTarget.value)}
+              >
+                <For each={AVAILABLE_MODELS}>
+                  {model => <option value={model.id}>{model.name}</option>}
+                </For>
+              </select>
+            </div>
+            <div class="space-y-2 pt-6">
               <SettingsSlider
                 settings={{
                   name: '温度',
@@ -88,6 +90,16 @@ export default (props: Props) => {
                 setValue={setTemperature}
               />
             </div>
+          </div>
+
+          {/* Buttons section */}
+          <div class="fi justify-start gap-2">
+            <button onClick={() => props.setSystemRoleEditing(false)} class="rounded-lg" gen-slate-btn>
+              取消
+            </button>
+            <button onClick={handleButtonClick} class="rounded-lg" gen-slate-btn>
+              保存
+            </button>
           </div>
         </div>
       </Show>
