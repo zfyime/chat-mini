@@ -376,7 +376,7 @@ export default () => {
             ref={inputRef!}
             disabled={systemRoleEditing()}
             onKeyDown={handleKeydown}
-            placeholder="输入一些什么..."
+            placeholder="想问一些什么..."
             autocomplete="off"
             autofocus
             onInput={() => {
