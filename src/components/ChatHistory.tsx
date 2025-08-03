@@ -48,7 +48,7 @@ export default (props: Props) => {
   return (
     <>
       {/* 历史对话按钮 */}
-      <div class="fixed bottom-16 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90">
+      <div class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90">
         <button 
           class="p-2.5 text-base" 
           title="历史对话" 
@@ -85,7 +85,7 @@ export default (props: Props) => {
                     class="p-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
                     onClick={() => loadHistory(history)}
                   >
-                    <div class="flex items-start justify-between">
+                    <div class="flex items-center justify-between">
                       <div class="flex-1 min-w-0">
                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {history.title}

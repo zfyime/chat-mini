@@ -305,15 +305,6 @@ export default () => {
     }
   }
 
-  // 手动切换粘性滚动状态
-  const toggleStick = () => {
-    const newStickState = !isStick()
-    setStick(newStickState)
-    if (newStickState) {
-      instantToBottom()
-    }
-  }
-
   // 加载历史对话
   const loadHistory = (messages: ChatMessage[], systemRole: string, historyId?: string) => {
     clear()
@@ -395,14 +386,6 @@ export default () => {
         </div>
       </Show>
       <ChatHistory onLoadHistory={loadHistory} />
-      
-      <div class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90" class:stick-btn-on={isStick()}>
-        <div>
-          <button class="p-2.5 text-base" title="滚动到底部" type="button" onClick={toggleStick}>
-            <div i-ph-arrow-line-down-bold />
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
