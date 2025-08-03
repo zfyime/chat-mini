@@ -1,8 +1,8 @@
 // 应用配置常量
 export const CONFIG = {
   // 对话相关
-  MAX_HISTORY_MESSAGES: 6,
-  MAX_HISTORY_COUNT: 50,
+  MAX_HISTORY_MESSAGES: 6, // 传给openai api的消息最大上下文条数
+  MAX_HISTORY_COUNT: 50,  // 保留最近的多少次历史会话
   
   // 时间相关
   AUTH_TIMEOUT: 1000 * 60 * 5, // 5分钟
@@ -12,11 +12,12 @@ export const CONFIG = {
   SCROLL_THRESHOLD: 25, // 滚动阈值
   SMOOTH_SCROLL_DELAY: 300,
   
-  // 默认值
+  // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6,
   DEFAULT_MODEL: 'gpt-4.1',
 } as const
 
+// 可选的模型列表
 export const AVAILABLE_MODELS = [
   { id: 'gpt-4.1', name: 'OpenAI-4.1' },
   { id: 'gpt-4o', name: 'OpenAI-4o' },
