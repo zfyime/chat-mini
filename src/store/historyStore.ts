@@ -8,7 +8,7 @@ const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
 
 // --- Effects ---
 // Load from localStorage on startup
-createEffect(() => {
+const loadHistoryFromStorage = () => {
   try {
     const saved = localStorage.getItem('chatHistoryList')
     if (saved) {
@@ -17,6 +17,11 @@ createEffect(() => {
   } catch (e) {
     console.error('Failed to load chat history:', e)
   }
+}
+
+// Initial load
+createEffect(() => {
+  loadHistoryFromStorage()
 })
 
 // --- Private Actions ---
@@ -26,6 +31,19 @@ const generateTitle = (messages: ChatMessage[]) => {
     return firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '')
   }
   return '新对话'
+}
+
+const generateUniqueId = () => {
+  // Try to use crypto.randomUUID() first, fall back to timestamp + random
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    try {
+      return crypto.randomUUID()
+    } catch (e) {
+      console.warn('crypto.randomUUID() failed, falling back to timestamp-based ID')
+    }
+  }
+  // Fallback: timestamp + random number for reasonable uniqueness
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
 const saveHistoryList = useThrottleFn((list: ChatHistory[]) => {
@@ -65,7 +83,7 @@ export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, ex
     return existingId
   } else {
     // Create new history
-    const id = crypto.randomUUID() // Using crypto.randomUUID() for reliable unique IDs
+    const id = generateUniqueId()
     const newHistory: ChatHistory = {
       id,
       title: generateTitle(messages),
@@ -89,4 +107,5 @@ export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, ex
 // --- Exported State ---
 export const historyState = {
   historyList,
+  loadHistoryFromStorage, // Export the reload function
 }
