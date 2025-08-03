@@ -2,6 +2,7 @@ import { Index, Show, createEffect, createSignal, onCleanup, onMount } from 'sol
 import { useThrottleFn } from 'solidjs-use'
 import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
+import { saveOrUpdateChat } from '@/store/historyStore'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
 import MessageItem from './MessageItem'
@@ -83,10 +84,7 @@ export default () => {
   const handleBeforeUnload = () => {
     // 如果有未保存的对话修改，自动保存
     if (messageList().length > 0 && isCurrentChatModified()) {
-      const saveFunc = (window as any).saveCurrentChatHistory
-      if (saveFunc) {
-        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-      }
+      saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
     }
     
     sessionStorage.setItem('messageList', JSON.stringify(messageList()))
@@ -173,36 +171,44 @@ export default () => {
       const reader = data.getReader()
       const decoder = new TextDecoder('utf-8')
       let done = false
-      let think = false
+      let buffer = ''
+      let inThinkTag = false
 
       while (!done) {
         const { value, done: readerDone } = await reader.read()
         if (value) {
-          let char = decoder.decode(value)
+          buffer += decoder.decode(value, { stream: true })
 
-          if (char.indexOf("<think>") != -1 || char.indexOf("</think>") != -1 || think) {
-            if (char === '\n' && currentAssistantThinkMessage().endsWith('\n')) 
-              continue
-            if (char.indexOf("<think>") != -1) {
-              char = char.replace("<think>", "");
-              think = true
+          // Process buffer for think tags
+          while (true) {
+            if (inThinkTag) {
+              const endTagIndex = buffer.indexOf('</think>')
+              if (endTagIndex !== -1) {
+                const thinkContent = buffer.substring(0, endTagIndex)
+                setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + thinkContent)
+                buffer = buffer.substring(endTagIndex + 8) // 8 is length of '</think>'
+                inThinkTag = false
+              } else {
+                // Incomplete think tag, wait for more data
+                setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + buffer)
+                buffer = ''
+                break
+              }
+            } else {
+              const startTagIndex = buffer.indexOf('<think>')
+              if (startTagIndex !== -1) {
+                const regularContent = buffer.substring(0, startTagIndex)
+                setCurrentAssistantMessage(currentAssistantMessage() + regularContent)
+                buffer = buffer.substring(startTagIndex + 7) // 7 is length of '<think>'
+                inThinkTag = true
+              } else {
+                // No think tag found, treat all as regular content
+                setCurrentAssistantMessage(currentAssistantMessage() + buffer)
+                buffer = ''
+                break
+              }
             }
-            if (char.indexOf("</think>") != -1) {
-              think = false
-              const [before, after] = char.split('</think>');
-              char = before
-              setCurrentAssistantMessage(currentAssistantMessage() + after)
-            }
-            if (char)
-              setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + char)
-            isStick() && instantToBottom()
-            continue
           }
-          
-          if (char === '\n' && currentAssistantMessage().endsWith('\n'))
-            continue
-          if (char)
-            setCurrentAssistantMessage(currentAssistantMessage() + char)
           
           isStick() && instantToBottom()
         }
@@ -219,7 +225,7 @@ export default () => {
   }
 
   const archiveCurrentMessage = () => {
-    if (currentAssistantMessage()) {
+    if (currentAssistantMessage() || currentAssistantThinkMessage()) {
       const newAssistantMessage: ChatMessage = {
         role: 'assistant',
         content: currentAssistantMessage(),
@@ -241,12 +247,9 @@ export default () => {
       setIsCurrentChatModified(true)
       
       // 立即保存或更新历史记录
-      const saveFunc = (window as any).saveCurrentChatHistory
-      if (saveFunc) {
-        const historyId = saveFunc(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
-        if (historyId) {
-          setCurrentChatHistoryId(historyId)
-        }
+      const historyId = saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
+      if (historyId) {
+        setCurrentChatHistoryId(historyId)
       }
       
       // Disable auto-focus on touch devices
@@ -258,10 +261,7 @@ export default () => {
   const clear = () => {
     // 只有当对话被修改且不是历史对话时才保存
     if (messageList().length > 0 && isCurrentChatModified()) {
-      const saveFunc = (window as any).saveCurrentChatHistory
-      if (saveFunc) {
-        saveFunc(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-      }
+      saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
     }
     
     inputRef.value = ''

@@ -1,6 +1,5 @@
-import { createSignal, createEffect, For } from 'solid-js'
-import { useThrottleFn } from 'solidjs-use'
-import { CONFIG } from '@/config/constants'
+import { createSignal, For } from 'solid-js'
+import { historyState, deleteHistory } from '@/store/historyStore'
 import type { ChatHistory, ChatMessage } from '@/types'
 import IconDelete from './icons/Delete'
 import IconHistory from './icons/History'
@@ -11,50 +10,16 @@ interface Props {
 
 export default (props: Props) => {
   const [showHistory, setShowHistory] = createSignal(false)
-  const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
+  const { historyList } = historyState
 
-  // 从localStorage加载历史对话
-  createEffect(() => {
-    try {
-      const saved = localStorage.getItem('chatHistoryList')
-      if (saved) {
-        setHistoryList(JSON.parse(saved))
-      }
-    } catch (e) {
-      console.error('Failed to load chat history:', e)
-    }
-  })
-
-  // 保存历史对话到localStorage（防抖版本）
-  const saveHistoryList = useThrottleFn((list: ChatHistory[]) => {
-    try {
-      localStorage.setItem('chatHistoryList', JSON.stringify(list))
-      setHistoryList(list)
-    } catch (e) {
-      console.error('Failed to save chat history:', e)
-    }
-  }, CONFIG.SAVE_DEBOUNCE_TIME, false, true)
-
-  // 删除历史对话
-  const deleteHistory = (id: string, e: Event) => {
+  const handleDelete = (id: string, e: Event) => {
     e.stopPropagation()
-    const newList = historyList().filter(item => item.id !== id)
-    saveHistoryList(newList)
+    deleteHistory(id)
   }
 
-  // 加载历史对话
   const loadHistory = (history: ChatHistory) => {
     props.onLoadHistory(history.messages, history.systemRole, history.id)
     setShowHistory(false)
-  }
-
-  // 生成对话标题（取第一条用户消息的前20个字符）
-  const generateTitle = (messages: ChatMessage[]) => {
-    const firstUserMessage = messages.find(msg => msg.role === 'user')
-    if (firstUserMessage) {
-      return firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '')
-    }
-    return '新对话'
   }
 
   // 格式化时间
@@ -72,50 +37,6 @@ export default (props: Props) => {
       return `${days}天前`
     } else {
       return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
-    }
-  }
-
-  // 保存或更新对话历史
-  const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, existingId?: string) => {
-    if (messages.length === 0) return
-    
-    const now = Date.now()
-    
-    if (existingId) {
-      // 更新现有历史记录
-      const updatedList = historyList().map(item => 
-        item.id === existingId 
-          ? {
-              ...item,
-              title: generateTitle(messages),
-              messages: [...messages],
-              systemRole,
-              updatedAt: now
-            }
-          : item
-      )
-      saveHistoryList(updatedList)
-      return existingId
-    } else {
-      // 创建新的历史记录
-      const id = now.toString()
-      const newHistory: ChatHistory = {
-        id,
-        title: generateTitle(messages),
-        messages: [...messages],
-        systemRole,
-        createdAt: now,
-        updatedAt: now
-      }
-      
-      const newList = [newHistory, ...historyList()]
-      // 最多保存历史记录
-      if (newList.length > CONFIG.MAX_HISTORY_COUNT) {
-        newList.splice(CONFIG.MAX_HISTORY_COUNT)
-      }
-      
-      saveHistoryList(newList)
-      return id
     }
   }
 
@@ -170,7 +91,7 @@ export default (props: Props) => {
                       </div>
                       <button
                         class="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
-                        onClick={(e) => deleteHistory(history.id, e)}
+                        onClick={(e) => handleDelete(history.id, e)}
                         title="删除"
                       >
                         <IconDelete />
@@ -183,14 +104,6 @@ export default (props: Props) => {
           </div>
         </div>
       </div>
-
-      {/* 暴露保存方法给父组件 */}
-      <div style="display: none" ref={(el) => {
-        // 将保存方法挂载到全局，供Generator组件调用
-        if (el) {
-          (window as any).saveCurrentChatHistory = saveOrUpdateChat
-        }
-      }}></div>
     </>
   )
 }
