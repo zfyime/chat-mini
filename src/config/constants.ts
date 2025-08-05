@@ -1,8 +1,8 @@
 // 应用配置常量
 export const CONFIG = {
   // 对话相关
-  MAX_HISTORY_MESSAGES: 6, // 传给openai api的消息最大上下文条数
-  MAX_HISTORY_COUNT: 50,  // 保留最近的多少次历史会话
+  MAX_HISTORY_MESSAGES: 9, // 传给openai api的消息最大上下文条数
+  MAX_HISTORY_COUNT: 25,  // 保留最近的多少次历史会话
   
   // 时间相关
   AUTH_TIMEOUT: 1000 * 60 * 5, // 5分钟

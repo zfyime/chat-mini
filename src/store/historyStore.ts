@@ -28,7 +28,7 @@ createEffect(() => {
 const generateTitle = (messages: ChatMessage[]) => {
   const firstUserMessage = messages.find(msg => msg.role === 'user')
   if (firstUserMessage) {
-    return firstUserMessage.content.slice(0, 20) + (firstUserMessage.content.length > 20 ? '...' : '')
+    return firstUserMessage.content.slice(0, 25) + (firstUserMessage.content.length > 25 ? '...' : '')
   }
   return '新对话'
 }
