@@ -10,15 +10,16 @@ export const CONFIG = {
   
   // UI相关
   SCROLL_THRESHOLD: 25, // 滚动阈值
-  SMOOTH_SCROLL_DELAY: 300,
+  SMOOTH_SCROLL_DELAY: 300, // 平滑滚动延迟
   
   // 模型和温度默认值
-  DEFAULT_TEMPERATURE: 0.6,
-  DEFAULT_MODEL: 'gpt-5',
+  DEFAULT_TEMPERATURE: 0.6, // 默认温度
+  DEFAULT_MODEL: 'gpt-4.1', // 默认模型
 } as const
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
+  { id: 'gpt-4.1', name: 'OpenAI-4.1' },
   { id: 'gpt-5', name: 'OpenAI-5' },
   { id: 'gpt-4o', name: 'OpenAI-4o' },
   { id: 'o3', name: 'OpenAI-o3' },
