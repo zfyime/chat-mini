@@ -14,13 +14,14 @@ export const CONFIG = {
   
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6,
-  DEFAULT_MODEL: 'gpt-4.1',
+  DEFAULT_MODEL: 'gpt-5',
 } as const
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-4.1', name: 'OpenAI-4.1' },
+  { id: 'gpt-5', name: 'OpenAI-5' },
   { id: 'gpt-4o', name: 'OpenAI-4o' },
+  { id: 'o3', name: 'OpenAI-o3' },
   { id: 'DeepSeek-V3-0324', name: 'DeepSeek-V3' },
   { id: 'DeepSeek-R1-0528', name: 'DeepSeek-R1' },
   { id: 'grok-3', name: 'Grok-3' },
