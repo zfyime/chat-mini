@@ -1,0 +1,46 @@
+# 多平台部署配置
+
+## 支持的部署平台
+1. **Vercel** - Edge Functions 部署
+2. **Netlify** - Edge Functions 部署  
+3. **Docker** - 容器化部署
+
+## Vercel 部署
+- 配置文件: [vercel.json](mdc:vercel.json)
+- 构建命令: `pnpm build:vercel`
+- 输出模式: `OUTPUT=vercel`
+- 适配器: `@astrojs/vercel/edge`
+
+## Netlify 部署
+- 配置文件: [netlify.toml](mdc:netlify.toml)
+- 构建命令: `pnpm build:netlify`
+- 输出模式: `OUTPUT=netlify`
+- 适配器: `@astrojs/netlify/edge-functions`
+
+## Docker 部署
+- 生产镜像: [Dockerfile](mdc:Dockerfile)
+- 开发镜像: [Dockerfile.dev](mdc:Dockerfile.dev)
+- 编排文件: [docker-compose.yml](mdc:docker-compose.yml)
+- 开发编排: [docker-compose.dev.yml](mdc:docker-compose.dev.yml)
+- 辅助脚本: [hack/](mdc:hack/) 目录
+
+## 构建配置
+- Astro 配置: [astro.config.mjs](mdc:astro.config.mjs) 包含多平台适配器
+- 插件配置: [plugins/disableBlocks.ts](mdc:plugins/disableBlocks.ts) 用于特定平台
+- PWA 配置: 在 Astro 配置中集成 `@vite-pwa/astro`
+
+## 环境变量配置
+部署时需要设置的环境变量参考 [README.md](mdc:README.md) 中的环境变量部分。
+
+## 部署命令
+```bash
+# Vercel
+pnpm build:vercel
+
+# Netlify  
+pnpm build:netlify
+
+# Docker
+docker-compose up -d --build
+```
+

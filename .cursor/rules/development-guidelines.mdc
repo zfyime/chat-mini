@@ -1,0 +1,35 @@
+# 开发指南
+
+## 代码规范
+- 使用 TypeScript 进行类型安全开发
+- 遵循 ESLint 配置 ([.eslintrc.js](mdc:.eslintrc.js))
+- 使用 pnpm 作为包管理器
+- 组件使用 Solid.js 语法
+- 样式使用 UnoCSS 原子化类名
+
+## 项目脚本
+参考 [package.json](mdc:package.json) 中的脚本：
+- `pnpm dev` - 启动开发服务器
+- `pnpm build` - 构建生产版本
+- `pnpm build:vercel` - 为 Vercel 构建
+- `pnpm build:netlify` - 为 Netlify 构建
+- `pnpm lint` - 代码检查
+- `pnpm lint:fix` - 自动修复代码风格
+
+## 配置管理
+- 环境变量配置参考 [README.md](mdc:README.md) 中的环境变量部分
+- 应用内常量在 [src/config/constants.ts](mdc:src/config/constants.ts) 中定义
+- Astro 配置在 [astro.config.mjs](mdc:astro.config.mjs) 中
+
+## 部署配置
+- Vercel: [vercel.json](mdc:vercel.json)
+- Netlify: [netlify.toml](mdc:netlify.toml)
+- Docker: [Dockerfile](mdc:Dockerfile), [docker-compose.yml](mdc:docker-compose.yml)
+
+## 开发注意事项
+- 使用中文注释和文档
+- 遵循组件化开发原则
+- 注意 API 安全性 (参考 [src/utils/auth.ts](mdc:src/utils/auth.ts))
+- 支持 PWA 功能
+- 考虑多平台部署兼容性
+
