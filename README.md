@@ -71,11 +71,11 @@
 
 | 常量名 | 说明 | 当前值 |
 | :--- | :--- | :--- |
-| `MAX_HISTORY_MESSAGES` | 发送给 API 的最大上下文消息数量。 | `6` |
-| `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `50` |
+| `MAX_HISTORY_MESSAGES` | 发送给 API 的最大上下文消息数量。 | `9` |
+| `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
 | `DEFAULT_TEMPERATURE` | 默认的 `temperature` 参数值。 | `0.6` |
-| `DEFAULT_MODEL` | 默认模型 ID（若环境变量未设置）。 | `'gpt-5'` |
-| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | [...] |
+| `DEFAULT_MODEL` | 默认模型 ID（若环境变量未设置）。 | `'gpt-4.1'` |
+| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表（详见 `src/config/constants.ts`）。 | [...见源码] |
 
 ## 🚢 部署
 
@@ -111,6 +111,16 @@ docker-compose down
 - `pnpm preview`: 在本地预览构建后的产物。
 - `pnpm lint`: 检查代码风格。
 - `pnpm lint:fix`: 自动修复代码风格问题。
+
+## 🤝 开发与贡献
+
+请阅读仓库的贡献指引与编码规范：参见 AGENTS.md（仓库根目录）。
+
+如需运行最小化测试：
+
+```bash
+pnpm test
+```
 
 ## 📄 许可证
 
