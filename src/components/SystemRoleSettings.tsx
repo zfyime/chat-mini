@@ -1,8 +1,8 @@
-import { Show, createEffect, createSignal, For } from 'solid-js'
+import { For, Show, createEffect, createSignal } from 'solid-js'
 import { useStorage } from 'solidjs-use'
+import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import IconEnv from './icons/Env'
 import SettingsSlider from './SettingsSlider'
-import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import type { Accessor, Setter } from 'solid-js'
 
 interface Props {

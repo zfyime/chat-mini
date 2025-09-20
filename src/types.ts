@@ -1,7 +1,17 @@
+export interface FileAttachment {
+  id: string
+  name: string
+  type: string
+  size: number
+  content: string // Base64 content for images or text content for documents
+  url?: string // Optional preview URL
+}
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
   think?: string
+  attachments?: FileAttachment[]
 }
 
 export interface ErrorMessage {

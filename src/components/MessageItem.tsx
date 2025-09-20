@@ -1,9 +1,9 @@
-import { createSignal, onMount, onCleanup } from 'solid-js'
+import { Show, createSignal, onCleanup, onMount } from 'solid-js'
 import MarkdownIt from 'markdown-it'
 import mdKatex from 'markdown-it-katex'
 import mdHighlight from 'markdown-it-highlightjs'
-import { useClipboard } from 'solidjs-use'
 import IconRefresh from './icons/Refresh'
+import FileAttachments from './FileAttachments'
 import type { Accessor } from 'solid-js'
 import type { ChatMessage } from '@/types'
 
@@ -11,25 +11,37 @@ interface Props {
   role: ChatMessage['role']
   message: Accessor<string> | string
   thinkMessage: Accessor<string> | string
+  attachments?: ChatMessage['attachments']
   showRetry?: Accessor<boolean>
   onRetry?: () => void
 }
 
-export default ({ role, message, thinkMessage, showRetry, onRetry }: Props) => {
+export default ({ role, message, thinkMessage, attachments, showRetry, onRetry }: Props) => {
   const roleClass = {
     system: 'bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300',
     user: 'bg-gradient-to-r from-purple-400 to-yellow-400',
     assistant: 'bg-gradient-to-r from-yellow-200 via-green-200 to-green-300',
   }
   const [source, setSource] = createSignal('')
-  const { copy, copied } = useClipboard({ source, copiedDuring: 1000 })
+  const [copied, setCopied] = createSignal(false)
+
+  // Simple clipboard implementation
+  const copy = async() => {
+    try {
+      await navigator.clipboard.writeText(source())
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   const md = (() => {
     const instance = new MarkdownIt({
       linkify: true,
       breaks: true,
     }).use(mdKatex).use(mdHighlight)
-    
+
     const fence = instance.renderer.rules.fence!
     instance.renderer.rules.fence = (...args) => {
       const [tokens, idx] = args
@@ -50,11 +62,11 @@ export default ({ role, message, thinkMessage, showRetry, onRetry }: Props) => {
   })()
 
   const renderMarkdown = (content: Accessor<string> | string) => {
-    if (typeof content === 'function') {
+    if (typeof content === 'function')
       return md.render(content() || '')
-    } else if (typeof content === 'string') {
+    else if (typeof content === 'string')
       return md.render(content)
-    }
+
     return ''
   }
 
@@ -71,7 +83,7 @@ export default ({ role, message, thinkMessage, showRetry, onRetry }: Props) => {
       const btn = el.closest('div.copy-btn') as HTMLElement
       code = btn.dataset.code ? decodeURIComponent(btn.dataset.code) : null
     }
-    
+
     if (code) {
       setSource(code)
       copy()
@@ -81,14 +93,12 @@ export default ({ role, message, thinkMessage, showRetry, onRetry }: Props) => {
   // Attach event listener to the message container
   let messageRef: HTMLDivElement
   onMount(() => {
-    if (messageRef) {
+    if (messageRef)
       messageRef.addEventListener('click', handleCopyClick)
-    }
   })
   onCleanup(() => {
-    if (messageRef) {
+    if (messageRef)
       messageRef.removeEventListener('click', handleCopyClick)
-    }
   })
 
   return (
@@ -96,13 +106,18 @@ export default ({ role, message, thinkMessage, showRetry, onRetry }: Props) => {
       <div class="flex gap-3 rounded-lg" class:op-75={role === 'user'}>
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
         <div ref={messageRef!} class="message prose break-words overflow-hidden">
-          {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== "" : thinkMessage !== "") && (
+          {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
             <details open={!onRetry}>
-              <summary>{message && (typeof message === 'function' ? message() !== "" : message !== "") ? '思考过程' : '思考中...'}</summary>
+              <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
               <div innerHTML={thinkHtmlString()} />
             </details>
           )}
           <div innerHTML={htmlString()} />
+
+          {/* Show attachments if present */}
+          <Show when={attachments && attachments.length > 0}>
+            <FileAttachments attachments={attachments!} />
+          </Show>
         </div>
       </div>
       {showRetry?.() && onRetry && (

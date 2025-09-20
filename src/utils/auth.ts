@@ -27,9 +27,9 @@ export const generateSignature = async(payload: AuthPayload) => {
 
 export const verifySignature = async(payload: AuthPayload, sign: string) => {
   // 验证时间戳，防止重放攻击
-  if (Math.abs(payload.t - Date.now()) > CONFIG.AUTH_TIMEOUT) {
+  if (Math.abs(payload.t - Date.now()) > CONFIG.AUTH_TIMEOUT)
     return false
-  }
+
   const payloadSign = await generateSignature(payload)
   return payloadSign === sign
 }

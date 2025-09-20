@@ -2,19 +2,25 @@
 export const CONFIG = {
   // 对话相关
   MAX_HISTORY_MESSAGES: 9, // 传给openai api的消息最大上下文条数
-  MAX_HISTORY_COUNT: 25,  // 保留最近的多少次历史会话
-  
+  MAX_HISTORY_COUNT: 25, // 保留最近的多少次历史会话
+
   // 时间相关
   AUTH_TIMEOUT: 1000 * 60 * 5, // 5分钟
   SAVE_DEBOUNCE_TIME: 500, // 保存防抖时间
-  
+
   // UI相关
   SCROLL_THRESHOLD: 25, // 滚动阈值
   SMOOTH_SCROLL_DELAY: 300, // 平滑滚动延迟
-  
+
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6, // 默认温度
   DEFAULT_MODEL: 'gpt-4.1', // 默认模型
+
+  // 文件上传限制
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_IMAGE_SIZE: 10 * 1024 * 1024, // 10MB
+  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'text/plain', 'text/markdown', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
 } as const
 
 // 可选的模型列表
@@ -27,7 +33,6 @@ export const AVAILABLE_MODELS = [
   { id: 'DeepSeek-R1-0528', name: 'DeepSeek-R1' },
   { id: 'grok-3', name: 'Grok-3' },
 ] as const
-
 
 // 错误消息
 export const ERROR_MESSAGES = {

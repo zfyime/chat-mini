@@ -1,4 +1,4 @@
-import { createSignal, createEffect } from 'solid-js'
+import { createEffect, createSignal } from 'solid-js'
 import { useThrottleFn } from 'solidjs-use'
 import { CONFIG } from '@/config/constants'
 import type { ChatHistory, ChatMessage } from '@/types'
@@ -11,9 +11,8 @@ const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
 const loadHistoryFromStorage = () => {
   try {
     const saved = localStorage.getItem('chatHistoryList')
-    if (saved) {
+    if (saved)
       setHistoryList(JSON.parse(saved))
-    }
   } catch (e) {
     console.error('Failed to load chat history:', e)
   }
@@ -27,9 +26,9 @@ createEffect(() => {
 // --- Private Actions ---
 const generateTitle = (messages: ChatMessage[]) => {
   const firstUserMessage = messages.find(msg => msg.role === 'user')
-  if (firstUserMessage) {
+  if (firstUserMessage)
     return firstUserMessage.content.slice(0, 25) + (firstUserMessage.content.length > 25 ? '...' : '')
-  }
+
   return '新对话'
 }
 
@@ -39,7 +38,7 @@ const generateUniqueId = () => {
     try {
       return crypto.randomUUID()
     } catch (e) {
-      console.warn('crypto.randomUUID() failed, falling back to timestamp-based ID')
+      console.error('crypto.randomUUID() failed, falling back to timestamp-based ID')
     }
   }
   // Fallback: timestamp + random number for reasonable uniqueness
@@ -95,9 +94,8 @@ export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, ex
 
     const newList = [newHistory, ...historyList()]
     // Limit history count
-    if (newList.length > CONFIG.MAX_HISTORY_COUNT) {
+    if (newList.length > CONFIG.MAX_HISTORY_COUNT)
       newList.splice(CONFIG.MAX_HISTORY_COUNT)
-    }
 
     saveHistoryList(newList)
     return id

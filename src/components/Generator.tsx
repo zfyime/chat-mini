@@ -3,13 +3,16 @@ import { useThrottleFn } from 'solidjs-use'
 import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
 import { saveOrUpdateChat } from '@/store/historyStore'
+import { cleanupFileUrl } from '@/utils/fileUtils'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
 import ChatHistory from './ChatHistory'
-import type { ChatMessage, ErrorMessage } from '@/types'
+import FileUpload from './FileUpload'
+import FilePreview from './FilePreview'
+import type { ChatMessage, ErrorMessage, FileAttachment } from '@/types'
 
 export default () => {
   let inputRef: HTMLTextAreaElement
@@ -27,6 +30,8 @@ export default () => {
   // 新增：跟踪对话状态
   const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
   const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
+  // 新增：文件上传状态
+  const [pendingAttachments, setPendingAttachments] = createSignal<FileAttachment[]>([])
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
@@ -45,18 +50,17 @@ export default () => {
 
     const handleScroll = () => {
       const nowPosition = window.scrollY
-      
+
       // 用户向上滚动
       if (nowPosition < lastPosition) {
         userScrolling = true
         setStick(false)
-      } 
-      // 用户向下滚动到底部
-      else if (userScrolling && isAtBottom()) {
+      } else if (userScrolling && isAtBottom()) {
+        // 用户向下滚动到底部
         userScrolling = false
         setStick(true)
       }
-      
+
       lastPosition = nowPosition
     }
 
@@ -78,15 +82,16 @@ export default () => {
     onCleanup(() => {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      // 清理文件URL
+      pendingAttachments().forEach(file => cleanupFileUrl(file.url))
     })
   })
 
   const handleBeforeUnload = () => {
     // 如果有未保存的对话修改，自动保存
-    if (messageList().length > 0 && isCurrentChatModified()) {
+    if (messageList().length > 0 && isCurrentChatModified())
       saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-    }
-    
+
     sessionStorage.setItem('messageList', JSON.stringify(messageList()))
     sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
     // 不需要保存 stickToBottom 状态
@@ -94,24 +99,28 @@ export default () => {
 
   const handleButtonClick = async() => {
     const inputValue = inputRef.value
-    if (!inputValue)
+    if (!inputValue && pendingAttachments().length === 0)
       return
 
     inputRef.value = ''
+    const attachments = [...pendingAttachments()]
+    setPendingAttachments([]) // Clear pending attachments
+
     const newMessage: ChatMessage = {
       role: 'user',
-      content: inputValue,
+      content: inputValue || '', // Allow empty content if there are attachments
       think: '',
+      attachments: attachments.length > 0 ? attachments : undefined,
     }
-    
+
     setMessageList([
       ...messageList(),
       newMessage,
     ])
-    
+
     // 标记对话已修改
     setIsCurrentChatModified(true)
-    
+
     // 用户发送消息时自动开启自动滚动
     setStick(true)
     requestWithLatestMessage()
@@ -153,8 +162,8 @@ export default () => {
             t: timestamp,
             m: requestMessageList?.[requestMessageList.length - 1]?.content || '',
           }),
-            temperature: temperature(),
-            model: chatModel(),
+          temperature: temperature(),
+          model: chatModel(),
         }),
         signal: controller.signal,
       })
@@ -209,7 +218,7 @@ export default () => {
               }
             }
           }
-          
+
           isStick() && instantToBottom()
         }
         done = readerDone
@@ -231,27 +240,26 @@ export default () => {
         content: currentAssistantMessage(),
         think: currentAssistantThinkMessage(),
       }
-      
+
       const updatedMessages = [
         ...messageList(),
         newAssistantMessage,
       ]
-      
+
       setMessageList(updatedMessages)
       setCurrentAssistantMessage('')
       setCurrentAssistantThinkMessage('')
       setLoading(false)
       setController(null)
-      
+
       // 标记对话已修改并立即保存/更新历史
       setIsCurrentChatModified(true)
-      
+
       // 立即保存或更新历史记录
       const historyId = saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
-      if (historyId) {
+      if (historyId)
         setCurrentChatHistoryId(historyId)
-      }
-      
+
       // Disable auto-focus on touch devices
       if (!('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0))
         inputRef.focus()
@@ -260,16 +268,19 @@ export default () => {
 
   const clear = () => {
     // 只有当对话被修改且不是历史对话时才保存
-    if (messageList().length > 0 && isCurrentChatModified()) {
+    if (messageList().length > 0 && isCurrentChatModified())
       saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-    }
-    
+
     inputRef.value = ''
     inputRef.style.height = 'auto'
     setMessageList([])
     setCurrentAssistantMessage('')
     setCurrentAssistantThinkMessage('')
     setCurrentError(null)
+
+    // 清除文件
+    clearAllFiles()
+
     // 清空后关闭自动滚动
     setStick(false)
     // 重置对话状态
@@ -308,18 +319,41 @@ export default () => {
   // 加载历史对话
   const loadHistory = (messages: ChatMessage[], systemRole: string, historyId?: string) => {
     clear()
-    
+
     setMessageList(messages)
     setCurrentSystemRoleSettings(systemRole)
-    
+
     // 设置当前加载的历史对话状态
     setCurrentChatHistoryId(historyId)
     setIsCurrentChatModified(false) // 刚加载的历史对话未修改
-    
+
     // 滚动到底部
     setTimeout(() => {
       instantToBottom()
     }, 100)
+  }
+
+  // 处理文件上传
+  const handleFilesSelected = (files: FileAttachment[]) => {
+    setPendingAttachments(prev => [...prev, ...files])
+  }
+
+  // 移除单个文件
+  const removeFile = (fileId: string) => {
+    setPendingAttachments((prev) => {
+      const updated = prev.filter(file => file.id !== fileId)
+      const removed = prev.find(file => file.id === fileId)
+      if (removed?.url)
+        cleanupFileUrl(removed.url)
+
+      return updated
+    })
+  }
+
+  // 清除所有文件
+  const clearAllFiles = () => {
+    pendingAttachments().forEach(file => cleanupFileUrl(file.url))
+    setPendingAttachments([])
   }
 
   return (
@@ -339,6 +373,7 @@ export default () => {
             role={message().role}
             message={message().content}
             thinkMessage={message().think}
+            attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
           />
@@ -352,6 +387,19 @@ export default () => {
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
+
+      {/* File preview section - always shown when files are selected */}
+      {(() => {
+        const files = pendingAttachments()
+        return (
+          <FilePreview
+            files={files}
+            onRemoveFile={removeFile}
+            onClearAll={clearAllFiles}
+          />
+        )
+      })()}
+
       <Show
         when={!loading()}
         fallback={
@@ -363,26 +411,34 @@ export default () => {
         }
       >
         <div class="gen-text-wrapper" class:op-50={systemRoleEditing()}>
-          <textarea
-            ref={inputRef!}
-            disabled={systemRoleEditing()}
-            onKeyDown={handleKeydown}
-            placeholder="想问一些什么..."
-            autocomplete="off"
-            autofocus
-            onInput={() => {
-              inputRef.style.height = 'auto'
-              inputRef.style.height = `${inputRef.scrollHeight}px`
-            }}
-            rows="1"
-            class="gen-textarea rounded-lg"
-          />
-          <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="flex-shrink-0 rounded-lg" gen-slate-btn>
-            发送
-          </button>
-          <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="rounded-lg" gen-slate-btn>
-            <IconClear />
-          </button>
+          <div class="fi gap-2 w-full">
+            <FileUpload
+              onFilesSelected={handleFilesSelected}
+              disabled={() => systemRoleEditing()}
+            />
+            <textarea
+              ref={inputRef!}
+              disabled={systemRoleEditing()}
+              onKeyDown={handleKeydown}
+              placeholder="想问一些什么..."
+              autocomplete="off"
+              autofocus
+              onInput={() => {
+                inputRef.style.height = 'auto'
+                inputRef.style.height = `${inputRef.scrollHeight}px`
+              }}
+              rows="1"
+              class="gen-textarea flex-1 rounded-lg"
+            />
+            <div class="fi gap-2">
+              <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="gen-slate-btn rounded-lg">
+                发送
+              </button>
+              <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-slate-btn fcc rounded-lg">
+                <IconClear />
+              </button>
+            </div>
+          </div>
         </div>
       </Show>
       <ChatHistory onLoadHistory={loadHistory} />
