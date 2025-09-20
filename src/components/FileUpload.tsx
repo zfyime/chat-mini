@@ -8,7 +8,7 @@ interface Props {
   disabled?: boolean
 }
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,.md,.txt'
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.js,.html,.css,.php,.go,.log,.py,.java,.c,.cpp,.cs,.json,.xml,.yaml,.yml'
 
 export default ({ onFilesSelected, disabled }: Props) => {
   const [isDragOver, setIsDragOver] = createSignal(false)
@@ -98,7 +98,7 @@ export default ({ onFilesSelected, disabled }: Props) => {
           <div class="bg-$c-bg p-8 rounded-lg shadow-lg text-center border border-slate/20">
             <IconAttachment class="text-4xl mx-auto mb-4 text-slate" />
             <p class="text-lg font-medium">释放文件以上传</p>
-            <p class="text-sm op-70">支持图片、PDF、文本文件</p>
+            <p class="text-sm op-70">支持图片、PDF、文本文件和代码文件</p>
           </div>
         </div>
       )}

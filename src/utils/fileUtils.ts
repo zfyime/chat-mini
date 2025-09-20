@@ -84,21 +84,67 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
   }
 }
 
-export const getFileIcon = (fileType: string): string => {
+export const getFileIcon = (fileType: string, fileName?: string): string => {
   if (CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType))
     return '🖼️'
 
   if (fileType === 'application/pdf')
     return '📄'
 
-  if (fileType.startsWith('text/'))
-    return '📝'
+  // 根据文件扩展名判断代码文件类型
+  const extension = fileName?.split('.').pop()?.toLowerCase()
 
-  return '📎'
+  switch (extension) {
+    case 'js':
+    case 'jsx':
+    case 'ts':
+    case 'tsx':
+      return '📜'
+    case 'html':
+    case 'htm':
+      return '🌐'
+    case 'css':
+    case 'scss':
+    case 'sass':
+    case 'less':
+      return '🎨'
+    case 'php':
+      return '🐘'
+    case 'go':
+      return '🐹'
+    case 'py':
+    case 'python':
+      return '🐍'
+    case 'java':
+      return '☕'
+    case 'c':
+    case 'cpp':
+    case 'cc':
+    case 'cxx':
+      return '⚙️'
+    case 'cs':
+      return '🔷'
+    case 'json':
+      return '📋'
+    case 'xml':
+      return '📰'
+    case 'yaml':
+    case 'yml':
+      return '📝'
+    case 'log':
+      return '📊'
+    case 'md':
+    case 'markdown':
+      return '📖'
+    default:
+      if (fileType.startsWith('text/'))
+        return '📝'
+      return '📎'
+  }
 }
 
 export const isImageFile = (fileType: string): boolean => {
-  return CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType)
+  return CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number])
 }
 
 // Clean up preview URLs to prevent memory leaks

@@ -340,7 +340,7 @@ export default () => {
 
   // 移除单个文件
   const removeFile = (fileId: string) => {
-    setPendingAttachments(prev => {
+    setPendingAttachments((prev) => {
       const removed = prev.find(file => file.id === fileId)
       if (removed?.url) cleanupFileUrl(removed.url)
       return prev.filter(file => file.id !== fileId)
