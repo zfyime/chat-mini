@@ -29,44 +29,44 @@ export default ({ attachments }: Props) => {
   }
 
   return (
-    <div class="file-attachments mt-3">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+    <div class="file-attachments mt-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <For each={attachments}>
           {attachment => (
-            <div class="p-3 bg-slate/10 border border-slate/20 rounded-sm transition-colors hover:bg-slate/15">
+            <div class="p-3 bg-slate/8 border border-slate/15 rounded-lg transition-colors hover:bg-slate/12">
               <Show
                 when={isImageFile(attachment.type)}
                 fallback={
-                  <div class="fi gap-3">
+                  <div class="flex items-center gap-3">
                     <span class="text-2xl flex-shrink-0">{getFileIcon(attachment.type)}</span>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-medium truncate">{attachment.name}</p>
-                      <p class="text-xs op-70">{formatFileSize(attachment.size)}</p>
+                      <p class="text-xs text-slate/70">{formatFileSize(attachment.size)}</p>
                     </div>
                     <button
                       onClick={() => downloadFile(attachment)}
-                      class="text-sm text-slate hover:op-80 transition-opacity flex-shrink-0"
+                      class="text-xs text-slate hover:text-slate/80 transition-colors px-2 py-1 rounded hover:bg-slate/10 flex-shrink-0"
                     >
                       查看
                     </button>
                   </div>
                 }
               >
-                <div class="space-y-2">
+                <div class="space-y-3">
                   <img
                     src={attachment.url}
                     alt={attachment.name}
-                    class="w-full max-h-48 object-cover rounded-sm cursor-pointer border border-slate/20"
+                    class="w-full max-h-48 object-cover rounded-lg cursor-pointer border border-slate/20"
                     onClick={() => downloadFile(attachment)}
                   />
-                  <div class="fi gap-2">
+                  <div class="flex items-center gap-2">
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-medium truncate">{attachment.name}</p>
-                      <p class="text-xs op-70">{formatFileSize(attachment.size)}</p>
+                      <p class="text-xs text-slate/70">{formatFileSize(attachment.size)}</p>
                     </div>
                     <button
                       onClick={() => downloadFile(attachment)}
-                      class="text-sm text-slate hover:op-80 transition-opacity flex-shrink-0"
+                      class="text-xs text-slate hover:text-slate/80 transition-colors px-2 py-1 rounded hover:bg-slate/10 flex-shrink-0"
                     >
                       查看
                     </button>
