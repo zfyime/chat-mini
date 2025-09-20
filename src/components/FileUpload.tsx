@@ -8,6 +8,8 @@ interface Props {
   disabled?: boolean
 }
 
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,.md,.txt'
+
 export default ({ onFilesSelected, disabled }: Props) => {
   const [isDragOver, setIsDragOver] = createSignal(false)
   const [isUploading, setIsUploading] = createSignal(false)
@@ -27,17 +29,13 @@ export default ({ onFilesSelected, disabled }: Props) => {
           errors.push(`${file.name}: ${validation.error}`)
           continue
         }
-
-        const attachment = await createFileAttachment(file)
-        attachments.push(attachment)
+        attachments.push(await createFileAttachment(file))
       } catch (error) {
         errors.push(`${file.name}: ${error.message}`)
       }
     }
 
     if (errors.length > 0) {
-      // Replace alert with a more user-friendly notification
-      // For now, keep alert but consider implementing a toast notification system
       // eslint-disable-next-line no-alert
       alert(`文件处理失败:\n${errors.join('\n')}`)
     }
@@ -48,66 +46,40 @@ export default ({ onFilesSelected, disabled }: Props) => {
     setIsUploading(false)
   }
 
-  const handleDragOver = (e: DragEvent) => {
+  const handleDragEvent = (e: DragEvent, isDragging?: boolean) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!disabled())
-      setIsDragOver(true)
-  }
-
-  const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
+    if (isDragging !== undefined)
+      setIsDragOver(isDragging && !disabled())
   }
 
   const handleDrop = (e: DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragOver(false)
-
-    if (disabled() || !e.dataTransfer?.files) return
-    handleFiles(e.dataTransfer.files)
-  }
-
-  const handleFileSelect = () => {
-    if (disabled()) return
-    fileInputRef.click()
+    handleDragEvent(e, false)
+    if (!disabled() && e.dataTransfer?.files)
+      handleFiles(e.dataTransfer.files)
   }
 
   const handleInputChange = (e: Event) => {
     const target = e.target as HTMLInputElement
-    if (target.files && target.files.length > 0) {
+    if (target.files?.length) {
       handleFiles(target.files)
-      target.value = '' // Reset input
+      target.value = ''
     }
   }
 
   return (
     <div class="file-upload-container">
-      {/* Hidden file input */}
       <input
         ref={fileInputRef!}
         type="file"
         multiple
         class="hidden"
-        accept={[
-          'image/jpeg',
-          'image/png',
-          'image/gif',
-          'image/webp',
-          'application/pdf',
-          'text/plain',
-          'text/markdown',
-          '.md',
-          '.txt',
-        ].join(',')}
+        accept={ACCEPTED_TYPES}
         onChange={handleInputChange}
       />
 
-      {/* Upload button */}
       <button
-        onClick={handleFileSelect}
+        onClick={() => !disabled() && fileInputRef.click()}
         disabled={disabled() || isUploading()}
         class="gen-slate-btn fcc rounded-lg"
         title="上传文件"
@@ -116,12 +88,11 @@ export default ({ onFilesSelected, disabled }: Props) => {
         {isUploading() && <span class="ml-1 text-xs">上传中...</span>}
       </button>
 
-      {/* Drag and drop area (when files are being dragged) */}
       {isDragOver() && (
         <div
           class="fixed inset-0 bg-slate/20 backdrop-blur-sm fcc z-50 border-2 border-dashed border-slate"
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
+          onDragOver={e => handleDragEvent(e, true)}
+          onDragLeave={e => handleDragEvent(e, false)}
           onDrop={handleDrop}
         >
           <div class="bg-$c-bg p-8 rounded-lg shadow-lg text-center border border-slate/20">
@@ -132,11 +103,10 @@ export default ({ onFilesSelected, disabled }: Props) => {
         </div>
       )}
 
-      {/* Global drag listeners */}
       <div
         class="fixed inset-0 pointer-events-none"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
+        onDragOver={e => handleDragEvent(e, true)}
+        onDragLeave={e => handleDragEvent(e, false)}
         onDrop={handleDrop}
       />
     </div>

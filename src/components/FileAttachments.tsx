@@ -9,19 +9,14 @@ interface Props {
 export default ({ attachments }: Props) => {
   const downloadFile = (attachment: FileAttachment) => {
     if (isImageFile(attachment.type)) {
-      // For images, open in a new tab
-      if (attachment.url)
-        window.open(attachment.url, '_blank')
-
+      if (attachment.url) window.open(attachment.url, '_blank')
       return
     }
 
-    // For text files, create a download link
     const blob = new Blob([attachment.content], { type: attachment.type })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = attachment.name
+    Object.assign(a, { href: url, download: attachment.name })
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

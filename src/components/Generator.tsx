@@ -340,19 +340,17 @@ export default () => {
 
   // 移除单个文件
   const removeFile = (fileId: string) => {
-    setPendingAttachments((prev) => {
-      const updated = prev.filter(file => file.id !== fileId)
+    setPendingAttachments(prev => {
       const removed = prev.find(file => file.id === fileId)
-      if (removed?.url)
-        cleanupFileUrl(removed.url)
-
-      return updated
+      if (removed?.url) cleanupFileUrl(removed.url)
+      return prev.filter(file => file.id !== fileId)
     })
   }
 
   // 清除所有文件
   const clearAllFiles = () => {
-    pendingAttachments().forEach(file => cleanupFileUrl(file.url))
+    const files = pendingAttachments()
+    files.forEach(file => file.url && cleanupFileUrl(file.url))
     setPendingAttachments([])
   }
 
