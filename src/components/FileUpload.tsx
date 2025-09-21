@@ -1,4 +1,4 @@
-import { createSignal } from 'solid-js'
+import { createSignal, onMount, onCleanup } from 'solid-js'
 import { createFileAttachment, validateFile } from '@/utils/fileUtils'
 import IconAttachment from './icons/Attachment'
 import type { FileAttachment } from '@/types'
@@ -14,6 +14,52 @@ export default ({ onFilesSelected, disabled }: Props) => {
   const [isDragOver, setIsDragOver] = createSignal(false)
   const [isUploading, setIsUploading] = createSignal(false)
   let fileInputRef: HTMLInputElement
+
+  // 全局拖拽事件监听
+  onMount(() => {
+    const preventDefaults = (e: DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    const handleGlobalDragEnter = (e: DragEvent) => {
+      preventDefaults(e)
+      if (!disabled() && e.dataTransfer?.types.includes('Files'))
+        setIsDragOver(true)
+    }
+
+    const handleGlobalDragOver = (e: DragEvent) => {
+      preventDefaults(e)
+    }
+
+    const handleGlobalDragLeave = (e: DragEvent) => {
+      preventDefaults(e)
+      // 只有当鼠标离开整个文档时才关闭拖拽状态
+      if (!e.relatedTarget || !document.contains(e.relatedTarget as Node))
+        setIsDragOver(false)
+    }
+
+    const handleGlobalDrop = (e: DragEvent) => {
+      preventDefaults(e)
+      setIsDragOver(false)
+      if (!disabled() && e.dataTransfer?.files)
+        handleFiles(e.dataTransfer.files)
+    }
+
+    // 添加全局事件监听器
+    document.addEventListener('dragenter', handleGlobalDragEnter)
+    document.addEventListener('dragover', handleGlobalDragOver)
+    document.addEventListener('dragleave', handleGlobalDragLeave)
+    document.addEventListener('drop', handleGlobalDrop)
+
+    // 清理函数
+    onCleanup(() => {
+      document.removeEventListener('dragenter', handleGlobalDragEnter)
+      document.removeEventListener('dragover', handleGlobalDragOver)
+      document.removeEventListener('dragleave', handleGlobalDragLeave)
+      document.removeEventListener('drop', handleGlobalDrop)
+    })
+  })
 
   const handleFiles = async(files: FileList) => {
     if (disabled() || isUploading()) return
@@ -46,19 +92,6 @@ export default ({ onFilesSelected, disabled }: Props) => {
     setIsUploading(false)
   }
 
-  const handleDragEvent = (e: DragEvent, isDragging?: boolean) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (isDragging !== undefined)
-      setIsDragOver(isDragging && !disabled())
-  }
-
-  const handleDrop = (e: DragEvent) => {
-    handleDragEvent(e, false)
-    if (!disabled() && e.dataTransfer?.files)
-      handleFiles(e.dataTransfer.files)
-  }
-
   const handleInputChange = (e: Event) => {
     const target = e.target as HTMLInputElement
     if (target.files?.length) {
@@ -89,26 +122,16 @@ export default ({ onFilesSelected, disabled }: Props) => {
       </button>
 
       {isDragOver() && (
-        <div
-          class="fixed inset-0 bg-slate/20 backdrop-blur-sm fcc z-50 border-2 border-dashed border-slate"
-          onDragOver={e => handleDragEvent(e, true)}
-          onDragLeave={e => handleDragEvent(e, false)}
-          onDrop={handleDrop}
-        >
+        <div class="fixed inset-0 bg-slate/20 backdrop-blur-sm fcc z-50 border-2 border-dashed border-slate">
           <div class="bg-$c-bg p-8 rounded-lg shadow-lg text-center border border-slate/20">
-            <IconAttachment class="text-4xl mx-auto mb-4 text-slate" />
+            <div class="text-4xl mx-auto mb-4 text-slate">
+              <IconAttachment />
+            </div>
             <p class="text-lg font-medium">释放文件以上传</p>
             <p class="text-sm op-70">支持图片、PDF、文本文件和代码文件</p>
           </div>
         </div>
       )}
-
-      <div
-        class="fixed inset-0 pointer-events-none"
-        onDragOver={e => handleDragEvent(e, true)}
-        onDragLeave={e => handleDragEvent(e, false)}
-        onDrop={handleDrop}
-      />
     </div>
   )
 }
