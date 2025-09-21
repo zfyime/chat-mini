@@ -123,29 +123,23 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
     <div class="py-2 -mx-4 px-4 transition-colors md:hover:bg-slate/3 group">
       <div class="flex gap-3 rounded-lg" class:op-75={role === 'user'}>
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
-        <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative">
+        <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative pr-16">
           {/* Message action buttons - only visible on hover */}
-          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
+          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-md p-0.5 shadow-sm z-20">
             <button
               onClick={copyMessage}
               title={messageCopied() ? '已复制' : '复制消息'}
-              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group/message-copy"
+              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors"
             >
               <IconCopy />
-              <div class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/message-copy:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
-                {messageCopied() ? '已复制' : '复制消息'}
-              </div>
             </button>
             {onDeleteMessage && (
               <button
                 onClick={onDeleteMessage}
                 title="删除消息"
-                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group/message-delete"
+                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors"
               >
                 <IconDelete />
-                <div class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/message-delete:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
-                  删除消息
-                </div>
               </button>
             )}
           </div>
