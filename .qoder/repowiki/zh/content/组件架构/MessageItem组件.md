@@ -2,11 +2,21 @@
 
 <cite>
 **本文档引用的文件**   
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
-- [types.ts](file://src/types.ts#L1-L20)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133) - *新增附件渲染功能*
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445) - *向MessageItem传递attachments属性*
+- [types.ts](file://src/types.ts#L1-L29) - *定义ChatMessage中的attachments类型*
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77) - *新增的附件渲染组件*
 - [message.css](file://src/message.css#L1-L78)
 </cite>
+
+## 更新摘要
+**变更内容**   
+- 在MessageItem组件中新增了文件附件渲染功能
+- 更新了组件结构与数据流图，包含附件相关类型
+- 新增了附件渲染流程图
+- 更新了消息渲染流程，包含附件处理逻辑
+- 添加了附件功能的交互实现说明
+- 更新了依赖分析，包含FileAttachments组件
 
 ## 目录
 1. [简介](#简介)
@@ -20,7 +30,7 @@
 9. [结论](#结论)
 
 ## 简介
-MessageItem组件是聊天应用中的核心UI组件，负责渲染单条消息内容。该组件具备强大的富文本解析能力，支持Markdown语法、代码高亮和数学公式渲染。它通过集成markdown-it、highlight.js和KaTeX等库，将原始文本转换为美观的富文本内容。组件还实现了消息复制、重试等交互功能，并通过安全的渲染机制防止XSS攻击。消息内容支持流式更新，能够实时显示AI的思考过程和生成结果。
+MessageItem组件是聊天应用中的核心UI组件，负责渲染单条消息内容。该组件具备强大的富文本解析能力，支持Markdown语法、代码高亮和数学公式渲染。它通过集成markdown-it、highlight.js和KaTeX等库，将原始文本转换为美观的富文本内容。组件还实现了消息复制、重试等交互功能，并通过安全的渲染机制防止XSS攻击。消息内容支持流式更新，能够实时显示AI的思考过程和生成结果。最新版本中，组件新增了文件附件渲染功能，用户上传的文件会作为消息的一部分进行展示。
 
 ## 项目结构
 项目采用基于Astro和Solid.js的现代前端架构，组件化设计清晰。核心功能集中在src/components目录下，其中MessageItem.tsx是消息渲染的核心组件。
@@ -32,6 +42,8 @@ MessageItem[MessageItem.tsx]
 Generator[Generator.tsx]
 ChatHistory[ChatHistory.tsx]
 ErrorMessageItem[ErrorMessageItem.tsx]
+FileAttachments[FileAttachments.tsx]
+FileUpload[FileUpload.tsx]
 end
 subgraph "工具与配置"
 types[types.ts]
@@ -41,30 +53,34 @@ end
 Generator --> MessageItem
 Generator --> ChatHistory
 Generator --> ErrorMessageItem
+Generator --> FileUpload
+MessageItem --> FileAttachments
 MessageItem --> types
 Generator --> types
 Generator --> historyStore
 Generator --> constants
+FileUpload --> FileAttachments
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
-- [types.ts](file://src/types.ts#L1-L20)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
+- [types.ts](file://src/types.ts#L1-L29)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ## 核心组件
-MessageItem组件是聊天界面中负责渲染单条消息的核心组件。它接收来自Generator组件的消息对象，通过markdown-it解析Markdown语法，集成highlight.js实现代码块高亮，使用KaTeX渲染数学公式。组件实现了消息复制功能，用户可以点击代码块的复制按钮将代码内容复制到剪贴板。对于AI助手的消息，组件还支持显示思考过程，通过`<details>`标签折叠展示。组件通过innerHTML安全地渲染解析后的HTML内容，并通过事件委托处理复制按钮的点击事件。
+MessageItem组件是聊天界面中负责渲染单条消息的核心组件。它接收来自Generator组件的消息对象，通过markdown-it解析Markdown语法，集成highlight.js实现代码块高亮，使用KaTeX渲染数学公式。组件实现了消息复制功能，用户可以点击代码块的复制按钮将代码内容复制到剪贴板。对于AI助手的消息，组件还支持显示思考过程，通过`<details>`标签折叠展示。组件通过innerHTML安全地渲染解析后的HTML内容，并通过事件委托处理复制按钮的点击事件。最新版本中，组件新增了附件渲染功能，通过引入FileAttachments组件来展示用户上传的文件。
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ## 架构概述
-MessageItem组件的架构设计体现了现代前端组件化的最佳实践。它作为纯展示组件，接收来自父组件Generator的props，不直接管理复杂的状态。组件的渲染流程清晰：首先初始化markdown-it实例并配置插件，然后定义渲染函数将消息内容转换为HTML，最后在JSX中通过innerHTML插入解析后的内容。
+MessageItem组件的架构设计体现了现代前端组件化的最佳实践。它作为纯展示组件，接收来自父组件Generator的props，不直接管理复杂的状态。组件的渲染流程清晰：首先初始化markdown-it实例并配置插件，然后定义渲染函数将消息内容转换为HTML，最后在JSX中通过innerHTML插入解析后的内容。最新版本中，组件增加了对附件的处理，当消息包含attachments属性时，会渲染FileAttachments子组件来展示文件列表。
 
 ```mermaid
 graph TB
@@ -86,11 +102,14 @@ L --> M
 M --> N[消息UI]
 N --> O[复制功能]
 N --> P[重试功能]
+N --> Q{是否有附件}
+Q --> |是| R[渲染FileAttachments]
+Q --> |否| S[结束]
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ## 详细组件分析
 ### MessageItem组件分析
@@ -103,6 +122,7 @@ class MessageItem {
 +role : 'system'|'user'|'assistant'
 +message : Accessor<string> | string
 +thinkMessage : Accessor<string> | string
++attachments? : ChatMessage['attachments']
 +showRetry? : Accessor<boolean>
 +onRetry? : () => void
 -roleClass : Object
@@ -124,16 +144,27 @@ class ChatMessage {
 +role : 'system'|'user'|'assistant'
 +content : string
 +think? : string
++attachments? : FileAttachment[]
+}
+class FileAttachment {
++id : string
++name : string
++type : string
++size : number
++content : string
++url? : string
 }
 Generator --> MessageItem : "传递消息"
 MessageItem --> ChatMessage : "使用类型"
 MessageItem --> Generator : "调用onRetry"
+MessageItem --> FileAttachments : "渲染附件"
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [types.ts](file://src/types.ts#L1-L20)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [types.ts](file://src/types.ts#L1-L29)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 #### 消息渲染流程
 MessageItem组件的消息渲染流程从接收到消息对象开始，经过多个处理阶段，最终输出富文本内容。
@@ -153,17 +184,21 @@ SecurityCheck --> InnerHTML["通过innerHTML渲染"]
 InnerHTML --> UI["显示消息UI"]
 UI --> CopyFeature["集成复制功能"]
 UI --> RetryFeature["集成重试功能"]
-CopyFeature --> End([完成渲染])
-RetryFeature --> End
+UI --> AttachmentCheck["检查是否有附件"]
+AttachmentCheck --> |是| RenderAttachments["渲染FileAttachments组件"]
+AttachmentCheck --> |否| End1["完成渲染"]
+RenderAttachments --> End2["完成渲染"]
+CopyFeature --> End1
+RetryFeature --> End1
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ### 消息解析能力分析
 MessageItem组件具备强大的消息解析能力，能够将Markdown格式的文本转换为丰富的HTML内容。
@@ -192,13 +227,39 @@ MarkdownIt->>Highlight : 处理
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+
+### 附件功能分析
+MessageItem组件新增了文件附件渲染功能，允许用户在对话中上传和查看文件。
+
+#### 附件渲染流程
+```mermaid
+flowchart TD
+Start([接收消息]) --> CheckAttachments["检查attachments属性"]
+CheckAttachments --> |存在| ProcessAttachments["处理附件数组"]
+CheckAttachments --> |不存在| SkipAttachments["跳过附件渲染"]
+ProcessAttachments --> CreateFileAttachments["创建FileAttachments组件"]
+CreateFileAttachments --> RenderGrid["渲染文件网格布局"]
+RenderGrid --> DisplayFiles["显示文件缩略图/图标"]
+DisplayFiles --> AddDownloadBtn["添加查看/下载按钮"]
+AddDownloadBtn --> End["完成附件渲染"]
+SkipAttachments --> End
+```
+
+**图示来源**
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
+- [types.ts](file://src/types.ts#L1-L29)
+
+**本节来源**
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 ### 交互功能分析
-MessageItem组件提供了丰富的用户交互功能，包括消息复制和重新生成。
+MessageItem组件提供了丰富的用户交互功能，包括消息复制、重新生成和文件查看。
 
 #### 复制功能实现
 ```mermaid
@@ -219,10 +280,35 @@ UI->>User : 显示"已复制"提示
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+
+#### 附件交互实现
+```mermaid
+sequenceDiagram
+participant User as 用户
+participant UI as 附件UI
+participant FileAttachments as FileAttachments组件
+participant Browser as 浏览器
+User->>UI : 点击文件查看按钮
+UI->>FileAttachments : 调用downloadFile函数
+FileAttachments->>FileAttachments : 检查文件类型
+FileAttachments->>FileAttachments : 处理图片文件
+FileAttachments->>Browser : 打开新窗口显示图片
+FileAttachments->>FileAttachments : 处理文档文件
+FileAttachments->>FileAttachments : 创建Blob对象
+FileAttachments->>Browser : 触发下载
+```
+
+**图示来源**
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+
+**本节来源**
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
 
 #### 重试功能实现
 ```mermaid
@@ -243,12 +329,12 @@ Message-->>User : 实时显示新生成的内容
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ## 依赖分析
 MessageItem组件依赖多个外部库和内部模块，形成了清晰的依赖关系。
@@ -261,23 +347,26 @@ MessageItem --> mdHighlight[markdown-it-highlightjs]
 MessageItem --> solidjs-use[useClipboard]
 MessageItem --> types[types.ts]
 MessageItem --> messageCSS[message.css]
+MessageItem --> FileAttachments[FileAttachments.tsx]
 Generator[Generator.tsx] --> MessageItem
 Generator --> types
 Generator --> historyStore[historyStore.ts]
 Generator --> constants[constants.ts]
+FileUpload[FileUpload.tsx] --> FileAttachments
 ```
 
 **图示来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
-- [types.ts](file://src/types.ts#L1-L20)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
+- [types.ts](file://src/types.ts#L1-L29)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L391)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
+- [Generator.tsx](file://src/components/Generator.tsx#L1-L445)
 
 ## 性能考虑
-MessageItem组件在性能方面表现良好，主要得益于Solid.js的高效响应式系统和合理的渲染策略。组件使用createSignal管理状态，确保只有相关部分在状态变化时重新渲染。对于消息内容的渲染，组件通过memoization技术缓存解析结果，避免重复解析相同的Markdown内容。事件处理采用事件委托模式，在消息容器上监听点击事件，而不是为每个复制按钮单独绑定事件，减少了内存占用。流式渲染支持使用户能够实时看到AI生成的内容，提升了用户体验。CSS方面，组件使用UnoCSS进行原子化样式管理，减少了CSS文件体积。
+MessageItem组件在性能方面表现良好，主要得益于Solid.js的高效响应式系统和合理的渲染策略。组件使用createSignal管理状态，确保只有相关部分在状态变化时重新渲染。对于消息内容的渲染，组件通过memoization技术缓存解析结果，避免重复解析相同的Markdown内容。事件处理采用事件委托模式，在消息容器上监听点击事件，而不是为每个复制按钮单独绑定事件，减少了内存占用。流式渲染支持使用户能够实时看到AI生成的内容，提升了用户体验。CSS方面，组件使用UnoCSS进行原子化样式管理，减少了CSS文件体积。附件功能通过懒加载和资源清理机制优化性能，使用URL.revokeObjectURL及时释放预览URL，防止内存泄漏。
 
 ## 故障排除指南
 当MessageItem组件出现问题时，可以从以下几个方面进行排查：
@@ -288,10 +377,13 @@ MessageItem组件在性能方面表现良好，主要得益于Solid.js的高效�
 4. **复制功能无效**：检查浏览器是否支持Clipboard API，确认useClipboard钩子是否正确初始化。
 5. **样式错乱**：检查message.css是否正确加载，确认UnoCSS配置是否包含所需样式。
 6. **重试功能无响应**：检查onRetry回调函数是否正确传递，确认Generator组件的状态管理是否正常。
+7. **附件不显示**：检查消息对象的attachments属性是否存在且格式正确，确认FileAttachments组件是否正确导入。
+8. **文件预览失败**：检查文件URL是否正确生成，确认cleanupFileUrl是否在适当时候调用释放资源。
 
 **本节来源**
-- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L118)
+- [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L133)
 - [message.css](file://src/message.css#L1-L78)
+- [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 ## 结论
-MessageItem组件是一个功能丰富、设计良好的前端组件，它成功地将复杂的富文本解析和用户交互功能封装在一个简洁的接口中。组件通过集成markdown-it、highlight.js和KaTeX等成熟库，提供了专业的Markdown渲染能力。安全的innerHTML使用和事件委托模式确保了组件的性能和安全性。与Generator组件的清晰职责划分体现了良好的组件化设计思想。流式渲染支持和思考过程可视化功能显著提升了用户体验。整体而言，该组件是现代前端开发中组件化、模块化设计的优秀范例，具有良好的可维护性和扩展性。
+MessageItem组件是一个功能丰富、设计良好的前端组件，它成功地将复杂的富文本解析和用户交互功能封装在一个简洁的接口中。组件通过集成markdown-it、highlight.js和KaTeX等成熟库，提供了专业的Markdown渲染能力。安全的innerHTML使用和事件委托模式确保了组件的性能和安全性。与Generator组件的清晰职责划分体现了良好的组件化设计思想。流式渲染支持和思考过程可视化功能显著提升了用户体验。最新版本中新增的文件附件功能，通过FileAttachments组件实现了对多种文件类型的展示和交互，进一步增强了聊天应用的功能性。整体而言，该组件是现代前端开发中组件化、模块化设计的优秀范例，具有良好的可维护性和扩展性。
