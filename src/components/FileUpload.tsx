@@ -1,4 +1,4 @@
-import { createSignal, onMount, onCleanup } from 'solid-js'
+import { createSignal, onCleanup, onMount } from 'solid-js'
 import { createFileAttachment, validateFile } from '@/utils/fileUtils'
 import IconAttachment from './icons/Attachment'
 import type { FileAttachment } from '@/types'

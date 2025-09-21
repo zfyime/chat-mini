@@ -3,6 +3,8 @@ import MarkdownIt from 'markdown-it'
 import mdKatex from 'markdown-it-katex'
 import mdHighlight from 'markdown-it-highlightjs'
 import IconRefresh from './icons/Refresh'
+import IconCopy from './icons/Copy'
+import IconDelete from './icons/Delete'
 import FileAttachments from './FileAttachments'
 import type { Accessor } from 'solid-js'
 import type { ChatMessage } from '@/types'
@@ -14,25 +16,41 @@ interface Props {
   attachments?: ChatMessage['attachments']
   showRetry?: Accessor<boolean>
   onRetry?: () => void
+  onCopyMessage?: (content: string) => void
+  onDeleteMessage?: () => void
 }
 
-export default ({ role, message, thinkMessage, attachments, showRetry, onRetry }: Props) => {
+export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, onCopyMessage, onDeleteMessage }: Props) => {
   const roleClass = {
     system: 'bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300',
     user: 'bg-gradient-to-r from-purple-400 to-yellow-400',
     assistant: 'bg-gradient-to-r from-yellow-200 via-green-200 to-green-300',
   }
   const [source, setSource] = createSignal('')
-  const [copied, setCopied] = createSignal(false)
+  const [codeCopied, setCodeCopied] = createSignal(false)
+  const [messageCopied, setMessageCopied] = createSignal(false)
 
-  // Simple clipboard implementation
+  // Simple clipboard implementation for code blocks
   const copy = async() => {
     try {
       await navigator.clipboard.writeText(source())
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1000)
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 1000)
     } catch (err) {
       console.error('Failed to copy:', err)
+    }
+  }
+
+  // Copy entire message content
+  const copyMessage = async() => {
+    try {
+      const content = typeof message === 'function' ? message() : message
+      await navigator.clipboard.writeText(content || '')
+      setMessageCopied(true)
+      setTimeout(() => setMessageCopied(false), 1000)
+      onCopyMessage?.(content || '')
+    } catch (err) {
+      console.error('Failed to copy message:', err)
     }
   }
 
@@ -52,7 +70,7 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry }
         <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
           <div class="group-hover:op-100 gpt-copy-tips">
-            ${copied() ? '已复制' : '复制'}
+            ${codeCopied() ? '已复制' : '复制'}
           </div>
         </div>
         ${rawCode}
@@ -102,10 +120,36 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry }
   })
 
   return (
-    <div class="py-2 -mx-4 px-4 transition-colors md:hover:bg-slate/3">
+    <div class="py-2 -mx-4 px-4 transition-colors md:hover:bg-slate/3 group">
       <div class="flex gap-3 rounded-lg" class:op-75={role === 'user'}>
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
-        <div ref={messageRef!} class="message prose break-words overflow-hidden">
+        <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative">
+          {/* Message action buttons - only visible on hover */}
+          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-md p-0.5 shadow-sm">
+            <button
+              onClick={copyMessage}
+              title={messageCopied() ? '已复制' : '复制消息'}
+              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group"
+            >
+              <IconCopy />
+              <span class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                {messageCopied() ? '已复制' : '复制消息'}
+              </span>
+            </button>
+            {onDeleteMessage && (
+              <button
+                onClick={onDeleteMessage}
+                title="删除消息"
+                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group"
+              >
+                <IconDelete />
+                <span class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                  删除消息
+                </span>
+              </button>
+            )}
+          </div>
+
           {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
             <details open={!onRetry}>
               <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>

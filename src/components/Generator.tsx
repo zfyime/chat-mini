@@ -87,6 +87,25 @@ export default () => {
     })
   })
 
+  // 删除单条消息
+  const deleteMessage = (index: number) => {
+    const updatedMessages = messageList().filter((_, i) => i !== index)
+    setMessageList(updatedMessages)
+
+    // 标记对话已修改并保存
+    setIsCurrentChatModified(true)
+    if (updatedMessages.length > 0) {
+      const historyId = saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
+      if (historyId) setCurrentChatHistoryId(historyId)
+    }
+  }
+
+  // 复制消息（可选，用于日志记录等）
+  const copyMessage = (_content: string) => {
+    // 这里可以添加复制相关的逻辑，如统计等
+    // console.log('Message copied:', content.slice(0, 50) + '...')
+  }
+
   const handleBeforeUnload = () => {
     // 如果有未保存的对话修改，自动保存
     if (messageList().length > 0 && isCurrentChatModified())
@@ -374,6 +393,8 @@ export default () => {
             attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
+            onCopyMessage={copyMessage}
+            onDeleteMessage={() => deleteMessage(index)}
           />
         )}
       </Index>
