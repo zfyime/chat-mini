@@ -67,9 +67,9 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
       const rawCode = fence(...args)
 
       return `<div class="relative">
-        <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group">
+        <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
-          <div class="group-hover:op-100 gpt-copy-tips">
+          <div class="group-hover/copy:op-100 gpt-copy-tips">
             ${codeCopied() ? '已复制' : '复制'}
           </div>
         </div>
@@ -129,23 +129,23 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
             <button
               onClick={copyMessage}
               title={messageCopied() ? '已复制' : '复制消息'}
-              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group"
+              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group/message-copy"
             >
               <IconCopy />
-              <span class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+              <div class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/message-copy:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                 {messageCopied() ? '已复制' : '复制消息'}
-              </span>
+              </div>
             </button>
             {onDeleteMessage && (
               <button
                 onClick={onDeleteMessage}
                 title="删除消息"
-                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group"
+                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors relative group/message-delete"
               >
                 <IconDelete />
-                <span class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                <div class="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 opacity-0 group-hover/message-delete:opacity-100 transition-opacity duration-200 pointer-events-none bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                   删除消息
-                </span>
+                </div>
               </button>
             )}
           </div>
