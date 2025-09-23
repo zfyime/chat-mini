@@ -4,8 +4,11 @@ import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
 import { saveOrUpdateChat } from '@/store/historyStore'
 import { cleanupFileUrl } from '@/utils/fileUtils'
+import { exportChat } from '@/utils/exportUtils'
+import { chatDB } from '@/utils/indexedDB'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
+import IconExport from './icons/Export'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
@@ -32,6 +35,8 @@ export default () => {
   const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
   // 新增：文件上传状态
   const [pendingAttachments, setPendingAttachments] = createSignal<FileAttachment[]>([])
+  // 新增：导出菜单状态
+  const [showExportMenu, setShowExportMenu] = createSignal(false)
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
@@ -66,22 +71,59 @@ export default () => {
 
     window.addEventListener('scroll', handleScroll)
 
-    try {
-      if (sessionStorage.getItem('messageList'))
-        setMessageList(JSON.parse(sessionStorage.getItem('messageList')))
-
-      if (sessionStorage.getItem('systemRoleSettings'))
-        setCurrentSystemRoleSettings(sessionStorage.getItem('systemRoleSettings'))
-
-      // 不需要恢复 stickToBottom 状态，始终从默认状态开始
-    } catch (err) {
-      console.error(err)
+    // 点击外部关闭导出菜单
+    const handleClickOutside = (e: MouseEvent) => {
+      // 检查点击是否在导出按钮或菜单内
+      const target = e.target as HTMLElement
+      if (!target.closest('[title="导出对话"]') && !target.closest('.export-menu')) {
+        setShowExportMenu(false)
+      }
     }
+    document.addEventListener('click', handleClickOutside)
+
+    // 使用 IndexedDB 替代 sessionStorage
+    const loadSessionData = async () => {
+      try {
+        if (chatDB.isSupported()) {
+          await chatDB.init()
+          const savedMessages = await chatDB.getSession('messageList')
+          if (savedMessages) {
+            setMessageList(savedMessages)
+          }
+          const savedSystemRole = await chatDB.getSession('systemRoleSettings')
+          if (savedSystemRole) {
+            setCurrentSystemRoleSettings(savedSystemRole)
+          }
+        } else {
+          // 降级到 sessionStorage
+          if (sessionStorage.getItem('messageList'))
+            setMessageList(JSON.parse(sessionStorage.getItem('messageList')))
+
+          if (sessionStorage.getItem('systemRoleSettings'))
+            setCurrentSystemRoleSettings(sessionStorage.getItem('systemRoleSettings'))
+        }
+      } catch (err) {
+        console.error('Failed to load session data:', err)
+        // 降级到 sessionStorage
+        try {
+          if (sessionStorage.getItem('messageList'))
+            setMessageList(JSON.parse(sessionStorage.getItem('messageList')))
+
+          if (sessionStorage.getItem('systemRoleSettings'))
+            setCurrentSystemRoleSettings(sessionStorage.getItem('systemRoleSettings'))
+        } catch (e) {
+          console.error('Fallback to sessionStorage also failed:', e)
+        }
+      }
+    }
+
+    loadSessionData()
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     onCleanup(() => {
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('click', handleClickOutside)
       // 清理文件URL
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))
     })
@@ -95,8 +137,9 @@ export default () => {
     // 标记对话已修改并保存
     setIsCurrentChatModified(true)
     if (updatedMessages.length > 0) {
-      const historyId = saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
-      if (historyId) setCurrentChatHistoryId(historyId)
+      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then(historyId => {
+        if (historyId) setCurrentChatHistoryId(historyId)
+      })
     }
   }
 
@@ -106,14 +149,31 @@ export default () => {
     // console.log('Message copied:', content.slice(0, 50) + '...')
   }
 
-  const handleBeforeUnload = () => {
+  const handleBeforeUnload = async () => {
     // 如果有未保存的对话修改，自动保存
     if (messageList().length > 0 && isCurrentChatModified())
-      saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
+      await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
 
-    sessionStorage.setItem('messageList', JSON.stringify(messageList()))
-    sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
-    // 不需要保存 stickToBottom 状态
+    // 保存到 IndexedDB
+    try {
+      if (chatDB.isSupported()) {
+        await chatDB.saveSession('messageList', messageList())
+        await chatDB.saveSession('systemRoleSettings', currentSystemRoleSettings())
+      } else {
+        // 降级到 sessionStorage
+        sessionStorage.setItem('messageList', JSON.stringify(messageList()))
+        sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
+      }
+    } catch (e) {
+      console.error('Failed to save session:', e)
+      // 降级到 sessionStorage
+      try {
+        sessionStorage.setItem('messageList', JSON.stringify(messageList()))
+        sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
+      } catch (fallbackError) {
+        console.error('Fallback to sessionStorage also failed:', fallbackError)
+      }
+    }
   }
 
   const handleButtonClick = async() => {
@@ -275,9 +335,10 @@ export default () => {
       setIsCurrentChatModified(true)
 
       // 立即保存或更新历史记录
-      const historyId = saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId())
-      if (historyId)
-        setCurrentChatHistoryId(historyId)
+      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then(historyId => {
+        if (historyId)
+          setCurrentChatHistoryId(historyId)
+      })
 
       // Disable auto-focus on touch devices
       if (!('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0))
@@ -285,10 +346,10 @@ export default () => {
     }
   }
 
-  const clear = () => {
+  const clear = async () => {
     // 只有当对话被修改且不是历史对话时才保存
     if (messageList().length > 0 && isCurrentChatModified())
-      saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
+      await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
 
     inputRef.value = ''
     inputRef.style.height = 'auto'
@@ -350,6 +411,20 @@ export default () => {
     setTimeout(() => {
       instantToBottom()
     }, 100)
+  }
+
+  // 处理导出
+  const handleExport = (format: 'markdown' | 'json' | 'text') => {
+    try {
+      if (messageList().length === 0) {
+        return
+      }
+
+      const result = exportChat(messageList(), currentSystemRoleSettings(), format)
+      setShowExportMenu(false)
+    } catch (error) {
+      console.error('导出失败:', error)
+    }
   }
 
   // 处理文件上传
@@ -461,6 +536,61 @@ export default () => {
         </div>
       </Show>
       <ChatHistory onLoadHistory={loadHistory} />
+
+      {/* 导出按钮 */}
+      <Show when={messageList().length > 0}>
+        <div class="fixed bottom-5 left-14 sm:left-16 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90 z-50">
+          <div class="relative">
+            <button
+              class="p-2.5 text-base"
+              title="导出对话"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowExportMenu(!showExportMenu())
+              }}
+            >
+              <IconExport />
+            </button>
+
+            {/* 导出菜单 */}
+            <Show when={showExportMenu()}>
+              <div
+                class="export-menu absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[120px] z-50"
+                onClick={e => e.stopPropagation()}
+              >
+                <button
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors text-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleExport('markdown')
+                  }}
+                >
+                  Markdown
+                </button>
+                <button
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleExport('json')
+                  }}
+                >
+                  JSON
+                </button>
+                <button
+                  class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg transition-colors text-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleExport('text')
+                  }}
+                >
+                  纯文本
+                </button>
+              </div>
+            </Show>
+          </div>
+        </div>
+      </Show>
     </div>
   )
 }

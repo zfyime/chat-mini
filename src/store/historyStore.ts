@@ -1,27 +1,38 @@
-import { createEffect, createSignal } from 'solid-js'
+import { createSignal } from 'solid-js'
 import { useThrottleFn } from 'solidjs-use'
 import { CONFIG } from '@/config/constants'
+import { chatDB, fallbackStorage } from '@/utils/indexedDB'
 import type { ChatHistory, ChatMessage } from '@/types'
 
 // --- State ---
 const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
 
 // --- Effects ---
-// Load from localStorage on startup
-const loadHistoryFromStorage = () => {
+// Load from IndexedDB on startup
+const loadHistoryFromStorage = async () => {
   try {
-    const saved = localStorage.getItem('chatHistoryList')
-    if (saved)
-      setHistoryList(JSON.parse(saved))
+    // 尝试使用 IndexedDB
+    if (chatDB.isSupported()) {
+      await chatDB.init()
+      const histories = await chatDB.getAllHistory()
+      setHistoryList(histories)
+    } else {
+      // 降级到 localStorage
+      const saved = fallbackStorage.getItem('chatHistoryList')
+      if (saved)
+        setHistoryList(saved)
+    }
   } catch (e) {
     console.error('Failed to load chat history:', e)
+    // 降级到 localStorage
+    const saved = fallbackStorage.getItem('chatHistoryList')
+    if (saved)
+      setHistoryList(saved)
   }
 }
 
-// Initial load
-createEffect(() => {
-  loadHistoryFromStorage()
-})
+// Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
+loadHistoryFromStorage()
 
 // --- Private Actions ---
 const generateTitle = (messages: ChatMessage[]) => {
@@ -45,22 +56,53 @@ const generateUniqueId = () => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-const saveHistoryList = useThrottleFn((list: ChatHistory[]) => {
+const saveHistoryList = useThrottleFn(async (list: ChatHistory[]) => {
   try {
-    localStorage.setItem('chatHistoryList', JSON.stringify(list))
-    setHistoryList(list)
+    // 尝试使用 IndexedDB
+    if (chatDB.isSupported()) {
+      await chatDB.bulkSaveHistory(list)
+      setHistoryList(list)
+
+      // 定期清理（10%概率）
+      if (Math.random() < 0.1) {
+        chatDB.cleanup()
+      }
+    } else {
+      // 降级到 localStorage
+      fallbackStorage.setItem('chatHistoryList', list)
+      setHistoryList(list)
+    }
   } catch (e) {
     console.error('Failed to save chat history:', e)
+    // 降级到 localStorage
+    try {
+      fallbackStorage.setItem('chatHistoryList', list)
+      setHistoryList(list)
+    } catch (fallbackError) {
+      console.error('Fallback to localStorage also failed:', fallbackError)
+    }
   }
 }, CONFIG.SAVE_DEBOUNCE_TIME, false, true)
 
 // --- Public Actions ---
-export const deleteHistory = (id: string) => {
-  const newList = historyList().filter(item => item.id !== id)
-  saveHistoryList(newList)
+export const deleteHistory = async (id: string) => {
+  try {
+    // 从 IndexedDB 删除
+    if (chatDB.isSupported()) {
+      await chatDB.deleteHistory(id)
+    }
+    // 更新内存中的列表
+    const newList = historyList().filter(item => item.id !== id)
+    await saveHistoryList(newList)
+  } catch (e) {
+    console.error('Failed to delete history:', e)
+    // 降级处理
+    const newList = historyList().filter(item => item.id !== id)
+    saveHistoryList(newList)
+  }
 }
 
-export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, existingId?: string) => {
+export const saveOrUpdateChat = async (messages: ChatMessage[], systemRole: string, existingId?: string) => {
   if (messages.length === 0) return
 
   const now = Date.now()
@@ -78,7 +120,7 @@ export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, ex
           }
         : item,
     )
-    saveHistoryList(updatedList)
+    await saveHistoryList(updatedList)
     return existingId
   } else {
     // Create new history
@@ -97,7 +139,7 @@ export const saveOrUpdateChat = (messages: ChatMessage[], systemRole: string, ex
     if (newList.length > CONFIG.MAX_HISTORY_COUNT)
       newList.splice(CONFIG.MAX_HISTORY_COUNT)
 
-    saveHistoryList(newList)
+    await saveHistoryList(newList)
     return id
   }
 }
