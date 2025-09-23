@@ -12,7 +12,7 @@ export default ({ files, onRemoveFile, onClearAll }: Props) => {
   if (files.length === 0) return null
 
   return (
-    <div class="mb-4 p-3 bg-slate/10 rounded-lg border-slate/20">
+    <div class="mb-4 p-3 bg-slate/10 rounded-lg">
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm font-medium text-slate">已选择文件 ({files.length})</span>
         <button
