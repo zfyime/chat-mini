@@ -25,18 +25,18 @@ export default ({ attachments }: Props) => {
 
   return (
     <div class="file-attachments mt-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 gap-3">
         <For each={attachments}>
           {attachment => (
-            <div class="p-3 bg-slate/8 border border-slate/15 rounded-lg transition-colors hover:bg-slate/12">
+            <div class="p-3 bg-slate/10 border border-slate/15 rounded-lg transition-colors hover:bg-slate/12">
               <Show
                 when={isImageFile(attachment.type)}
                 fallback={
                   <div class="flex items-center gap-3">
                     <span class="text-2xl flex-shrink-0">{getFileIcon(attachment.type, attachment.name)}</span>
                     <div class="flex-1 min-w-0">
-                      <p class="text-sm font-medium truncate">{attachment.name}</p>
-                      <p class="text-xs text-slate/70">{formatFileSize(attachment.size)}</p>
+                      <div class="text-sm font-medium truncate">{attachment.name}</div>
+                      <div class="text-xs text-slate/70">{formatFileSize(attachment.size)}</div>
                     </div>
                     <button
                       onClick={() => downloadFile(attachment)}
