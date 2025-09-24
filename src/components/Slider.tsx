@@ -2,7 +2,7 @@ import * as slider from '@zag-js/slider'
 import { normalizeProps, useMachine } from '@zag-js/solid'
 import { createMemo, createUniqueId, mergeProps } from 'solid-js'
 import type { Accessor } from 'solid-js'
-import '../slider.css'
+import '../styles/slider.css'
 
 interface Props {
   name: string

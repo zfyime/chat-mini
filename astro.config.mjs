@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config'
+import { fileURLToPath } from 'node:url'
 import unocss from 'unocss/astro'
 import solidJs from '@astrojs/solid-js'
 
@@ -61,6 +62,11 @@ export default defineConfig({
   output: 'server',
   adapter: envAdapter(),
   vite: {
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      },
+    },
     plugins: [
       process.env.OUTPUT === 'vercel' && disableBlocks(),
       process.env.OUTPUT === 'netlify' && disableBlocks(),
