@@ -1,11 +1,12 @@
-import { Index, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
-import { useThrottleFn } from 'solidjs-use'
+import { Index, Show, createSignal, onCleanup, onMount } from 'solid-js'
 import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
 import { saveOrUpdateChat } from '@/store/historyStore'
 import { cleanupFileUrl } from '@/utils/fileUtils'
 import { exportChat } from '@/utils/exportUtils'
-import { chatDB } from '@/utils/indexedDB'
+import { loadChatSession, saveChatSession } from '@/utils/chatSession'
+import { createThinkTagParser } from '@/utils/thinkTagParser'
+import { useStickToBottom } from '@/hooks/useStickToBottom'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
 import IconExport from './icons/Export'
@@ -27,7 +28,10 @@ export default () => {
   const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController>(null)
-  const [isStick, setStick] = createSignal(false) // 默认关闭
+  const { isStick, setStick, instantToBottom } = useStickToBottom({
+    threshold: CONFIG.SCROLL_THRESHOLD,
+    smoothDelay: CONFIG.SMOOTH_SCROLL_DELAY,
+  })
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
   const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
   // 新增：跟踪对话状态
@@ -41,87 +45,34 @@ export default () => {
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
 
-  // 检查是否已经在底部的函数
-  const isAtBottom = () => {
-    const threshold = CONFIG.SCROLL_THRESHOLD // 允许的误差 px
-    return window.innerHeight + window.scrollY >= document.body.scrollHeight - threshold
-  }
-
-  createEffect(() => (isStick() && smoothToBottom()))
+  const thinkParser = createThinkTagParser({
+    onMessage: chunk => setCurrentAssistantMessage(prev => prev + chunk),
+    onThink: chunk => setCurrentAssistantThinkMessage(prev => prev + chunk),
+  })
 
   onMount(() => {
-    let lastPosition = window.scrollY
-    let userScrolling = false
-
-    const handleScroll = () => {
-      const nowPosition = window.scrollY
-
-      // 用户向上滚动
-      if (nowPosition < lastPosition) {
-        userScrolling = true
-        setStick(false)
-      } else if (userScrolling && isAtBottom()) {
-        // 用户向下滚动到底部
-        userScrolling = false
-        setStick(true)
-      }
-
-      lastPosition = nowPosition
-    }
-
-    window.addEventListener('scroll', handleScroll)
-
     // 点击外部关闭导出菜单
     const handleClickOutside = (e: MouseEvent) => {
       // 检查点击是否在导出按钮或菜单内
       const target = e.target as HTMLElement
-      if (!target.closest('[title="导出对话"]') && !target.closest('.export-menu')) {
+      if (!target.closest('[title="导出对话"]') && !target.closest('.export-menu'))
         setShowExportMenu(false)
-      }
     }
     document.addEventListener('click', handleClickOutside)
 
     // 使用 IndexedDB 替代 sessionStorage
-    const loadSessionData = async () => {
-      try {
-        if (chatDB.isSupported()) {
-          await chatDB.init()
-          const savedMessages = await chatDB.getSession('messageList')
-          if (savedMessages) {
-            setMessageList(savedMessages)
-          }
-          const savedSystemRole = await chatDB.getSession('systemRoleSettings')
-          if (savedSystemRole) {
-            setCurrentSystemRoleSettings(savedSystemRole)
-          }
-        } else {
-          // 降级到 sessionStorage
-          if (sessionStorage.getItem('messageList'))
-            setMessageList(JSON.parse(sessionStorage.getItem('messageList')))
-
-          if (sessionStorage.getItem('systemRoleSettings'))
-            setCurrentSystemRoleSettings(sessionStorage.getItem('systemRoleSettings'))
-        }
-      } catch (err) {
-        console.error('Failed to load session data:', err)
-        // 降级到 sessionStorage
-        try {
-          if (sessionStorage.getItem('messageList'))
-            setMessageList(JSON.parse(sessionStorage.getItem('messageList')))
-
-          if (sessionStorage.getItem('systemRoleSettings'))
-            setCurrentSystemRoleSettings(sessionStorage.getItem('systemRoleSettings'))
-        } catch (e) {
-          console.error('Fallback to sessionStorage also failed:', e)
-        }
-      }
+    const loadSessionData = async() => {
+      const session = await loadChatSession()
+      if (session.messageList?.length)
+        setMessageList(session.messageList)
+      if (session.systemRole)
+        setCurrentSystemRoleSettings(session.systemRole)
     }
 
     loadSessionData()
 
     window.addEventListener('beforeunload', handleBeforeUnload)
     onCleanup(() => {
-      window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('click', handleClickOutside)
       // 清理文件URL
@@ -137,7 +88,7 @@ export default () => {
     // 标记对话已修改并保存
     setIsCurrentChatModified(true)
     if (updatedMessages.length > 0) {
-      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then(historyId => {
+      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then((historyId) => {
         if (historyId) setCurrentChatHistoryId(historyId)
       })
     }
@@ -149,30 +100,18 @@ export default () => {
     // console.log('Message copied:', content.slice(0, 50) + '...')
   }
 
-  const handleBeforeUnload = async () => {
+  const handleBeforeUnload = async() => {
     // 如果有未保存的对话修改，自动保存
     if (messageList().length > 0 && isCurrentChatModified())
       await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
 
-    // 保存到 IndexedDB
     try {
-      if (chatDB.isSupported()) {
-        await chatDB.saveSession('messageList', messageList())
-        await chatDB.saveSession('systemRoleSettings', currentSystemRoleSettings())
-      } else {
-        // 降级到 sessionStorage
-        sessionStorage.setItem('messageList', JSON.stringify(messageList()))
-        sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
-      }
-    } catch (e) {
-      console.error('Failed to save session:', e)
-      // 降级到 sessionStorage
-      try {
-        sessionStorage.setItem('messageList', JSON.stringify(messageList()))
-        sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
-      } catch (fallbackError) {
-        console.error('Fallback to sessionStorage also failed:', fallbackError)
-      }
+      await saveChatSession({
+        messageList: messageList(),
+        systemRole: currentSystemRoleSettings(),
+      })
+    } catch (error) {
+      console.error('Failed to persist chat session:', error)
     }
   }
 
@@ -206,19 +145,12 @@ export default () => {
     instantToBottom()
   }
 
-  const smoothToBottom = useThrottleFn(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-  }, CONFIG.SMOOTH_SCROLL_DELAY, false, true)
-
-  const instantToBottom = () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })
-  }
-
   const requestWithLatestMessage = async() => {
     setLoading(true)
     setCurrentAssistantMessage('')
     setCurrentAssistantThinkMessage('')
     setCurrentError(null)
+    thinkParser.reset()
     const storagePassword = localStorage.getItem('pass')
     try {
       const controller = new AbortController()
@@ -259,44 +191,12 @@ export default () => {
       const reader = data.getReader()
       const decoder = new TextDecoder('utf-8')
       let done = false
-      let buffer = ''
-      let inThinkTag = false
 
       while (!done) {
         const { value, done: readerDone } = await reader.read()
         if (value) {
-          buffer += decoder.decode(value, { stream: true })
-
-          // Process buffer for think tags
-          while (true) {
-            if (inThinkTag) {
-              const endTagIndex = buffer.indexOf('</think>')
-              if (endTagIndex !== -1) {
-                const thinkContent = buffer.substring(0, endTagIndex)
-                setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + thinkContent)
-                buffer = buffer.substring(endTagIndex + 8) // 8 is length of '</think>'
-                inThinkTag = false
-              } else {
-                // Incomplete think tag, wait for more data
-                setCurrentAssistantThinkMessage(currentAssistantThinkMessage() + buffer)
-                buffer = ''
-                break
-              }
-            } else {
-              const startTagIndex = buffer.indexOf('<think>')
-              if (startTagIndex !== -1) {
-                const regularContent = buffer.substring(0, startTagIndex)
-                setCurrentAssistantMessage(currentAssistantMessage() + regularContent)
-                buffer = buffer.substring(startTagIndex + 7) // 7 is length of '<think>'
-                inThinkTag = true
-              } else {
-                // No think tag found, treat all as regular content
-                setCurrentAssistantMessage(currentAssistantMessage() + buffer)
-                buffer = ''
-                break
-              }
-            }
-          }
+          const chunk = decoder.decode(value, { stream: true })
+          thinkParser.process(chunk)
 
           isStick() && instantToBottom()
         }
@@ -335,7 +235,7 @@ export default () => {
       setIsCurrentChatModified(true)
 
       // 立即保存或更新历史记录
-      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then(historyId => {
+      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then((historyId) => {
         if (historyId)
           setCurrentChatHistoryId(historyId)
       })
@@ -346,7 +246,7 @@ export default () => {
     }
   }
 
-  const clear = async () => {
+  const clear = async() => {
     // 只有当对话被修改且不是历史对话时才保存
     if (messageList().length > 0 && isCurrentChatModified())
       await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
@@ -416,11 +316,10 @@ export default () => {
   // 处理导出
   const handleExport = (format: 'markdown' | 'json' | 'text') => {
     try {
-      if (messageList().length === 0) {
+      if (messageList().length === 0)
         return
-      }
 
-      const result = exportChat(messageList(), currentSystemRoleSettings(), format)
+      exportChat(messageList(), currentSystemRoleSettings(), format)
       setShowExportMenu(false)
     } catch (error) {
       console.error('导出失败:', error)
