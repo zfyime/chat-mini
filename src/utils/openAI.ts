@@ -87,7 +87,6 @@ export const generatePayload = (
       messages: transformedMessages,
       temperature,
       stream: true,
-      max_tokens: model.includes('gpt-4') ? 4096 : 2048, // Adjust based on model
     }),
   }
 }

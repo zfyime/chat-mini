@@ -18,26 +18,36 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 ## ✨ 功能特性
 
 - **多平台部署**: 支持通过 Docker、Vercel 和 Netlify 进行一键部署。
-- **模型动态切换**: 无需修改环境变量，直接在 UI 上选择并切换对话模型。
-- **思维过程可视化**: 支持渲染特殊的 `<think>` 标签，直观展示模型的思考步骤。
+- **模型动态切换**: 无需修改环境变量，直接在 UI 上选择并切换对话模型，支持 OpenAI GPT-4.1/5/4o、o3、DeepSeek-V3/R1、Grok-3 等主流模型。
+- **思维过程可视化**: 支持渲染特殊的 `<think>` 标签，直观展示模型的思考步骤，内容可折叠显示。
 - **文件上传与分析**: 支持上传图片、PDF、文档、代码文件等多种类型，AI 可对文件内容进行分析和回答。
+- **拖拽上传体验**: 支持全局拖拽上传，可将文件直接拖拽到浏览器任意位置进行上传。
 - **丰富的对话历史**: 自动在本地保存对话历史，方便随时回顾和恢复会话。
 - **对话导出**: 支持将对话导出为 Markdown、JSON、纯文本格式，方便分享和存档。
-- **IndexedDB 存储**: 使用 IndexedDB 替代 localStorage，支持更大的存储容量。
+- **IndexedDB 存储**: 使用 IndexedDB 替代 localStorage，支持更大的存储容量，带有 localStorage 降级机制。
 - **消息操作**: 支持复制单条消息和删除单条消息，方便管理对话内容。
 - **Markdown 与 LaTeX**: 使用 `markdown-it` 进行渲染，支持表格、代码高亮 (`highlight.js`) 和数学公式 (`KaTeX`)。
 - **PWA 支持**: 可作为渐进式网络应用安装到桌面或移动设备，提供接近原生的体验。
 - **安全防护**: 支持设置访问密码，并使用签名机制保护 API 调用。
 - **可调节的对话参数**: 支持在 UI 上实时调整 `temperature` 参数。
+- **文件大小限制**: 支持最大 50MB 的常规文件和最大 10MB 的图片文件。
 
 ## 🛠️ 技术栈
 
-- **核心框架**: [Astro](https://astro.build/)
-- **UI 框架**: [Solid.js](https://www.solidjs.com/)
-- **CSS 方案**: [UnoCSS](https://unocss.dev/)
+- **核心框架**: [Astro](https://astro.build/) v2.7.0
+- **UI 框架**: [Solid.js](https://www.solidjs.com/) v1.7.6
+- **CSS 方案**: [UnoCSS](https://unocss.dev/) v0.50.8
+- **UI 组件**: [@zag-js/slider](https://zagjs.com/) v0.16.0 (滑块组件)
+- **Markdown 渲染**: [markdown-it](https://github.com/markdown-it/markdown-it) v13.0.1
+- **代码高亮**: [highlight.js](https://highlightjs.org/) v11.8.0
+- **数学公式**: [KaTeX](https://katex.org/) v0.16.7
+- **工具库**: [solidjs-use](https://github.com/solidjs-use/solidjs-use) v2.1.0
 - **文件处理**: 原生 File API + Base64 编码
 - **存储方案**: IndexedDB (带 localStorage 降级)
-- **包管理器**: [pnpm](https://pnpm.io/)
+- **流解析**: [eventsource-parser](https://github.com/rexxars/eventsource-parser) v1.0.0
+- **加密签名**: [js-sha256](https://github.com/emn178/js-sha256) v0.9.0
+- **包管理器**: [pnpm](https://pnpm.io/) v7.28.0
+- **PWA 支持**: [@vite-pwa/astro](https://vite-pwa-org.netlify.app/frameworks/astro.html) v0.1.1
 
 ## 🚀 快速开始
 
@@ -107,24 +117,31 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 
 ### 支持的格式
 
-- **Markdown (.md)**: 包含完整格式的对话记录，支持思考过程折叠显示
-- **JSON (.json)**: 结构化的对话数据，适合程序处理和分析
-- **纯文本 (.txt)**: 简洁的纯文本格式，适合快速阅读
+- **Markdown (.md)**: 包含完整格式的对话记录，支持思考过程折叠显示，带有导出时间戳
+- **JSON (.json)**: 结构化的对话数据，适合程序处理和分析，包含附件元数据但不包含Base64内容以减小文件大小
+- **纯文本 (.txt)**: 简洁的纯文本格式，适合快速阅读，包含思考过程和附件信息
 
 ### 导出内容
 
 - 完整的对话历史
 - 系统角色设定
 - 思考过程（如果有）
-- 附件信息列表
-- 导出时间戳
+- 附件信息列表（文件名、大小、类型）
+- 导出时间戳（本地时间和ISO格式）
+- 消息统计信息
 
 ### 使用方式
 
 1. 在对话界面进行对话
 2. 点击左下角的导出按钮（下载图标）
 3. 选择导出格式
-4. 文件将自动下载到本地
+4. 文件将自动下载到本地，文件名格式为 `chat-export-YYYY-MM-DD-HH-mm-ss.ext`
+
+### 文件处理机制
+
+- 智能文件名生成：基于导出时间自动生成唯一文件名
+- 安全下载：支持现代浏览器的下载API，带有降级处理
+- 内容优化：JSON格式会移除Base64内容以减小文件大小，但保留附件元信息
 
 ## ⚙️ 配置
 
@@ -154,7 +171,11 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
 | `DEFAULT_TEMPERATURE` | 默认的 `temperature` 参数值。 | `0.6` |
 | `DEFAULT_MODEL` | 默认模型 ID（若环境变量未设置）。 | `'gpt-4.1'` |
-| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | [...] |
+| `MAX_FILE_SIZE` | 常规文件的最大上传大小限制。 | `50MB` |
+| `MAX_IMAGE_SIZE` | 图片文件的最大上传大小限制。 | `10MB` |
+| `AUTH_TIMEOUT` | 身份验证超时时间。 | `5分钟` |
+| `SAVE_DEBOUNCE_TIME` | 保存操作的防抖时间。 | `500ms` |
+| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | `OpenAI-4.1、OpenAI-5、OpenAI-4o、o3、DeepSeek-V3、DeepSeek-R1、Grok-3` |
 
 ## 🚢 部署
 
