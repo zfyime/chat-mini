@@ -1,6 +1,39 @@
 import { CONFIG } from '@/config/constants'
 import type { FileAttachment } from '@/types'
 
+const EXTENSION_TYPE_MAP: Record<string, string> = {
+  md: 'text/markdown',
+  markdown: 'text/markdown',
+  txt: 'text/plain',
+  log: 'text/plain',
+  js: 'text/javascript',
+  html: 'text/html',
+  css: 'text/css',
+  php: 'text/x-php',
+  go: 'text/x-go',
+  py: 'text/x-python',
+  java: 'text/x-java',
+  c: 'text/x-c',
+  cpp: 'text/x-c++',
+  cs: 'text/x-csharp',
+  json: 'application/json',
+  xml: 'application/xml',
+  yaml: 'application/yaml',
+  yml: 'application/yaml',
+}
+
+// 某些浏览器不会为部分文本文件提供 MIME 类型，按扩展名兜底
+const resolveFileType = (file: File): string => {
+  if (file.type)
+    return file.type
+
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  if (!extension)
+    return ''
+
+  return EXTENSION_TYPE_MAP[extension] ?? ''
+}
+
 export const generateFileId = (): string => {
   return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
@@ -14,13 +47,15 @@ export const formatFileSize = (bytes: number): string => {
 }
 
 export const validateFile = (file: File): { valid: boolean, error?: string } => {
-  const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(file.type)
-  const isDocument = CONFIG.ALLOWED_DOCUMENT_TYPES.includes(file.type)
+  const fileType = resolveFileType(file)
+  const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number])
+  const isDocument = CONFIG.ALLOWED_DOCUMENT_TYPES.includes(fileType as typeof CONFIG.ALLOWED_DOCUMENT_TYPES[number])
 
   if (!isImage && !isDocument) {
+    const extension = file.name.split('.').pop()
     return {
       valid: false,
-      error: `不支持的文件类型: ${file.type}`,
+      error: `不支持的文件类型: ${fileType || `.${extension ?? 'unknown'}`}`,
     }
   }
 
@@ -63,7 +98,8 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
   if (!validation.valid)
     throw new Error(validation.error)
 
-  const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(file.type)
+  const fileType = resolveFileType(file)
+  const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number])
   let content: string
   let url: string | undefined
 
@@ -77,7 +113,7 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
   return {
     id: generateFileId(),
     name: file.name,
-    type: file.type,
+    type: fileType,
     size: file.size,
     content,
     url,
