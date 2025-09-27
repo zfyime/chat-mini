@@ -40,7 +40,8 @@ export const exportToMarkdown = (messages: ChatMessage[], systemRole: string = '
       markdown += '📎 **附件:**\n'
       msg.attachments.forEach((att) => {
         const sizeInKB = (att.size / 1024).toFixed(2)
-        markdown += `- ${att.name} (${sizeInKB} KB)\n`
+        const encodingLabel = att.encoding === 'base64' ? '，Base64' : ''
+        markdown += `- ${att.name} (${sizeInKB} KB${encodingLabel})\n`
       })
       markdown += '\n'
     }
@@ -71,6 +72,7 @@ export const exportToJSON = (messages: ChatMessage[], systemRole: string = '') =
         name: att.name,
         type: att.type,
         size: att.size,
+        encoding: att.encoding,
         // 不导出 content 和 url，以减小文件大小
         hasContent: !!att.content,
       })),
@@ -107,7 +109,7 @@ export const exportToText = (messages: ChatMessage[], systemRole: string = '') =
 
     if (msg.attachments && msg.attachments.length > 0) {
       text += '\n[附件]: '
-      text += msg.attachments.map(att => att.name).join(', ')
+      text += msg.attachments.map(att => att.encoding === 'base64' ? `${att.name}(Base64)` : att.name).join(', ')
       text += '\n'
     }
 

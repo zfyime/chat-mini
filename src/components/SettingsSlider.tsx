@@ -19,24 +19,27 @@ export default ({ settings, editing, value, setValue }: Props) => {
   if (!settings.name || !settings.type) return null
   const sliderSettings = settings as SettingsUISlider
 
+  const renderValue = () => {
+    const currentValue = value()
+    if (currentValue === undefined || currentValue === null)
+      return <SettingsNotDefined />
+    return <div>{currentValue}</div>
+  }
+
   return (
     <div>
-      {editing() && (
-        <Slider
-          name={sliderSettings.name}
-          setValue={setValue}
-          max={sliderSettings.max}
-          value={value}
-          min={sliderSettings.min}
-          step={sliderSettings.step}
-        />
-      )}
-      {!editing() && value() && (
-        <div>{value()}</div>
-      )}
-      {!editing() && !value() && (
-        <SettingsNotDefined />
-      )}
+      {editing()
+        ? (
+          <Slider
+            name={sliderSettings.name}
+            setValue={setValue}
+            max={sliderSettings.max}
+            value={value}
+            min={sliderSettings.min}
+            step={sliderSettings.step}
+          />
+          )
+        : renderValue()}
     </div>
   )
 }

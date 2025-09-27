@@ -1,11 +1,11 @@
-import { createSignal, onCleanup, onMount } from 'solid-js'
+import { createSignal, onCleanup, onMount, type Accessor } from 'solid-js'
 import { createFileAttachment, validateFile } from '@/utils/fileUtils'
 import IconAttachment from './icons/Attachment'
 import type { FileAttachment } from '@/types'
 
 interface Props {
   onFilesSelected: (files: FileAttachment[]) => void
-  disabled?: boolean
+  disabled?: boolean | Accessor<boolean>
 }
 
 const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.js,.html,.css,.php,.go,.log,.py,.java,.c,.cpp,.cs,.json,.xml,.yaml,.yml'
@@ -14,6 +14,8 @@ export default ({ onFilesSelected, disabled }: Props) => {
   const [isDragOver, setIsDragOver] = createSignal(false)
   const [isUploading, setIsUploading] = createSignal(false)
   let fileInputRef: HTMLInputElement
+
+  const isDisabled = () => (typeof disabled === 'function' ? (disabled as Accessor<boolean>)() : !!disabled)
 
   // 全局拖拽事件监听
   onMount(() => {
@@ -24,7 +26,7 @@ export default ({ onFilesSelected, disabled }: Props) => {
 
     const handleGlobalDragEnter = (e: DragEvent) => {
       preventDefaults(e)
-      if (!disabled() && e.dataTransfer?.types.includes('Files'))
+      if (!isDisabled() && e.dataTransfer?.types.includes('Files'))
         setIsDragOver(true)
     }
 
@@ -42,7 +44,7 @@ export default ({ onFilesSelected, disabled }: Props) => {
     const handleGlobalDrop = (e: DragEvent) => {
       preventDefaults(e)
       setIsDragOver(false)
-      if (!disabled() && e.dataTransfer?.files)
+      if (!isDisabled() && e.dataTransfer?.files)
         handleFiles(e.dataTransfer.files)
     }
 
@@ -62,7 +64,7 @@ export default ({ onFilesSelected, disabled }: Props) => {
   })
 
   const handleFiles = async(files: FileList) => {
-    if (disabled() || isUploading()) return
+    if (isDisabled() || isUploading()) return
 
     setIsUploading(true)
     const attachments: FileAttachment[] = []
@@ -112,8 +114,8 @@ export default ({ onFilesSelected, disabled }: Props) => {
       />
 
       <button
-        onClick={() => !disabled() && fileInputRef.click()}
-        disabled={disabled() || isUploading()}
+        onClick={() => !isDisabled() && fileInputRef.click()}
+        disabled={isDisabled() || isUploading()}
         class="gen-slate-btn fcc rounded-lg"
         title="上传文件"
       >

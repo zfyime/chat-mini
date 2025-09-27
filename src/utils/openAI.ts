@@ -37,9 +37,13 @@ const transformMessagesForAPI = (messages: ChatMessage[]) => {
             })
           } else {
             // For non-image files, append content as text
+            const attachmentHeader = `[文件: ${att.name}]`
+            const attachmentBody = att.encoding === 'base64'
+              ? `${attachmentHeader} (Base64)\n${att.content}`
+              : `${attachmentHeader}\n${att.content}`
             content.push({
               type: 'text',
-              text: `\n\n[文件: ${att.name}]\n${att.content}`,
+              text: `\n\n${attachmentBody}`,
             })
           }
         })
@@ -52,8 +56,13 @@ const transformMessagesForAPI = (messages: ChatMessage[]) => {
         // For non-vision models or assistant messages, append file content as text
         let enhancedContent = msg.content
         msg.attachments.forEach((att) => {
-          if (!isImageFile(att.type))
-            enhancedContent += `\n\n[文件: ${att.name}]\n${att.content}`
+          if (!isImageFile(att.type)) {
+            const attachmentHeader = `[文件: ${att.name}]`
+            const attachmentBody = att.encoding === 'base64'
+              ? `${attachmentHeader} (Base64)\n${att.content}`
+              : `${attachmentHeader}\n${att.content}`
+            enhancedContent += `\n\n${attachmentBody}`
+          }
         })
         return {
           ...baseMessage,

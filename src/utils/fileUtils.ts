@@ -22,6 +22,26 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
   yml: 'application/yaml',
 }
 
+const TEXTUAL_MIME_TYPES = new Set([
+  'application/json',
+  'application/xml',
+  'text/xml',
+  'application/yaml',
+  'application/x-yaml',
+  'text/yaml',
+  'text/x-yaml',
+  'application/javascript',
+  'application/php',
+  'application/x-httpd-php',
+  'application/x-go',
+  'application/x-python',
+  'application/x-java',
+  'application/x-c',
+  'application/x-c++',
+  'application/x-csharp',
+  'application/x-log',
+])
+
 // 某些浏览器不会为部分文本文件提供 MIME 类型，按扩展名兜底
 const resolveFileType = (file: File): string => {
   if (file.type)
@@ -32,6 +52,14 @@ const resolveFileType = (file: File): string => {
     return ''
 
   return EXTENSION_TYPE_MAP[extension] ?? ''
+}
+
+const isTextFileType = (fileType: string): boolean => {
+  if (!fileType)
+    return false
+  if (fileType.startsWith('text/'))
+    return true
+  return TEXTUAL_MIME_TYPES.has(fileType)
 }
 
 export const generateFileId = (): string => {
@@ -100,14 +128,21 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
 
   const fileType = resolveFileType(file)
   const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number])
+  const isTextFile = isTextFileType(fileType)
   let content: string
   let url: string | undefined
+  let encoding: 'base64' | 'text'
 
   if (isImage) {
     content = await readFileAsBase64(file)
     url = URL.createObjectURL(file) // For preview
-  } else {
+    encoding = 'base64'
+  } else if (isTextFile) {
     content = await readFileAsText(file)
+    encoding = 'text'
+  } else {
+    content = await readFileAsBase64(file)
+    encoding = 'base64'
   }
 
   return {
@@ -117,6 +152,7 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
     size: file.size,
     content,
     url,
+    encoding,
   }
 }
 

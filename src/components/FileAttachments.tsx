@@ -7,13 +7,28 @@ interface Props {
 }
 
 export default ({ attachments }: Props) => {
+  const toBlob = (attachment: FileAttachment) => {
+    const mimeType = attachment.type || 'application/octet-stream'
+
+    if (attachment.encoding === 'base64' && typeof atob === 'function') {
+      const binary = atob(attachment.content)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++)
+        bytes[i] = binary.charCodeAt(i)
+      return new Blob([bytes], { type: mimeType })
+    }
+
+    return new Blob([attachment.content], { type: mimeType })
+  }
+
   const downloadFile = (attachment: FileAttachment) => {
     if (isImageFile(attachment.type)) {
-      if (attachment.url) window.open(attachment.url, '_blank')
+      if (attachment.url)
+        window.open(attachment.url, '_blank')
       return
     }
 
-    const blob = new Blob([attachment.content], { type: attachment.type })
+    const blob = toBlob(attachment)
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     Object.assign(a, { href: url, download: attachment.name })

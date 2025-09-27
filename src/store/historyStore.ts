@@ -82,7 +82,7 @@ const saveHistoryList = useThrottleFn(async (list: ChatHistory[]) => {
       console.error('Fallback to localStorage also failed:', fallbackError)
     }
   }
-}, CONFIG.SAVE_DEBOUNCE_TIME, false, true)
+}, CONFIG.SAVE_DEBOUNCE_TIME, true, true)
 
 // --- Public Actions ---
 export const deleteHistory = async (id: string) => {

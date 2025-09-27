@@ -66,6 +66,7 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
+  { id: 'gpt-4.1', name: 'gpt-4.1' },
   { id: 'gpt-5', name: 'gpt-5' },
   { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
   { id: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
@@ -73,7 +74,7 @@ export const AVAILABLE_MODELS = [
   { id: 'deepseek-v3.1-250821', name: 'deepseek-v3.1' },
   { id: 'doubao-seed-1-6-250615', name: 'doubao-seed-1.6' },
   { id: 'glm-4.5', name: 'glm-4.5' },
-  { id: 'kimi-k2-0905-preview', name: 'kimi-k2' }
+  { id: 'kimi-k2-0905-preview', name: 'kimi-k2' },
 ] as const
 
 // 错误消息

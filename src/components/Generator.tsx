@@ -297,8 +297,8 @@ export default () => {
   }
 
   // 加载历史对话
-  const loadHistory = (messages: ChatMessage[], systemRole: string, historyId?: string) => {
-    clear()
+  const loadHistory = async(messages: ChatMessage[], systemRole: string, historyId?: string) => {
+    await clear()
 
     setMessageList(messages)
     setCurrentSystemRoleSettings(systemRole)

@@ -3,8 +3,9 @@ export interface FileAttachment {
   name: string
   type: string
   size: number
-  content: string // Base64 content for images or text content for documents
+  content: string // 原始文本或 Base64 字符串，视 encoding 而定
   url?: string // Optional preview URL
+  encoding?: 'base64' | 'text'
 }
 
 export interface ChatMessage {

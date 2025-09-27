@@ -23,8 +23,9 @@ export const Slider = (selectProps: Props) => {
     disabled: false,
   }, selectProps)
 
-  const formatSliderValue = (value: number) => {
-    if (!value) return 0
+  const formatSliderValue = (value: number | undefined) => {
+    if (value === undefined || value === null || Number.isNaN(value))
+      return 0
     return Number.isInteger(value) ? value : parseFloat(value.toFixed(2))
   }
 
@@ -36,7 +37,8 @@ export const Slider = (selectProps: Props) => {
     step: props.step,
     disabled: props.disabled,
     onChange: (details) => {
-      details && details.value && props.setValue(formatSliderValue(details.value))
+      if (details && typeof details.value === 'number')
+        props.setValue(formatSliderValue(details.value))
     },
   }))
   const api = createMemo(() => slider.connect(state, send, normalizeProps))

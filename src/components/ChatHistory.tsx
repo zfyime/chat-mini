@@ -5,7 +5,7 @@ import IconHistory from './icons/History'
 import type { ChatHistory, ChatMessage } from '@/types'
 
 interface Props {
-  onLoadHistory: (messages: ChatMessage[], systemRole: string, historyId?: string) => void
+  onLoadHistory: (messages: ChatMessage[], systemRole: string, historyId?: string) => void | Promise<void>
 }
 
 export default (props: Props) => {
