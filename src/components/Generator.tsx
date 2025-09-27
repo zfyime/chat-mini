@@ -50,6 +50,16 @@ export default () => {
     onThink: chunk => setCurrentAssistantThinkMessage(prev => prev + chunk),
   })
 
+  const cleanupMessageAttachments = (message: ChatMessage) => {
+    message.attachments?.forEach((attachment) => {
+      cleanupFileUrl(attachment.url)
+    })
+  }
+
+  const cleanupMessageListAttachments = (messages: ChatMessage[]) => {
+    messages.forEach(cleanupMessageAttachments)
+  }
+
   onMount(() => {
     // 点击外部关闭导出菜单
     const handleClickOutside = (e: MouseEvent) => {
@@ -82,7 +92,12 @@ export default () => {
 
   // 删除单条消息
   const deleteMessage = (index: number) => {
-    const updatedMessages = messageList().filter((_, i) => i !== index)
+    const messages = messageList()
+    const targetMessage = messages[index]
+    if (targetMessage)
+      cleanupMessageAttachments(targetMessage)
+
+    const updatedMessages = messages.filter((_, i) => i !== index)
     setMessageList(updatedMessages)
 
     // 标记对话已修改并保存
@@ -247,9 +262,12 @@ export default () => {
   }
 
   const clear = async() => {
+    const currentMessages = messageList()
     // 只有当对话被修改且不是历史对话时才保存
-    if (messageList().length > 0 && isCurrentChatModified())
-      await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
+    if (currentMessages.length > 0 && isCurrentChatModified())
+      await saveOrUpdateChat(currentMessages, currentSystemRoleSettings(), currentChatHistoryId())
+
+    cleanupMessageListAttachments(currentMessages)
 
     inputRef.value = ''
     inputRef.style.height = 'auto'
@@ -278,8 +296,10 @@ export default () => {
   const retryLastFetch = () => {
     if (messageList().length > 0) {
       const lastMessage = messageList()[messageList().length - 1]
-      if (lastMessage.role === 'assistant')
+      if (lastMessage.role === 'assistant') {
+        cleanupMessageAttachments(lastMessage)
         setMessageList(messageList().slice(0, -1))
+      }
       // 重试时开启自动滚动
       setStick(true)
       requestWithLatestMessage()

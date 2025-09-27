@@ -21,10 +21,21 @@ export default ({ attachments }: Props) => {
     return new Blob([attachment.content], { type: mimeType })
   }
 
+  const resolveImageUrl = (attachment: FileAttachment) => {
+    if (attachment.url && !attachment.url.startsWith('blob:'))
+      return attachment.url
+
+    if (attachment.encoding === 'base64')
+      return `data:${attachment.type};base64,${attachment.content}`
+
+    return attachment.url
+  }
+
   const downloadFile = (attachment: FileAttachment) => {
     if (isImageFile(attachment.type)) {
-      if (attachment.url)
-        window.open(attachment.url, '_blank')
+      const imageUrl = resolveImageUrl(attachment)
+      if (imageUrl)
+        window.open(imageUrl, '_blank')
       return
     }
 
@@ -64,7 +75,7 @@ export default ({ attachments }: Props) => {
               >
                 <div class="space-y-3">
                   <img
-                    src={attachment.url}
+                    src={resolveImageUrl(attachment)}
                     alt={attachment.name}
                     class="w-full max-h-48 object-cover rounded-lg cursor-pointer border border-slate/20"
                     onClick={() => downloadFile(attachment)}

@@ -4,35 +4,56 @@ import { CONFIG } from '@/config/constants'
 import { chatDB, fallbackStorage } from '@/utils/indexedDB'
 import type { ChatHistory, ChatMessage } from '@/types'
 
+// --- Helpers ---
+const sanitizeMessagesForStorage = (messages: ChatMessage[]) =>
+  messages.map(message => ({
+    ...message,
+    attachments: message.attachments?.map(attachment => ({
+      ...attachment,
+      url: attachment.url && attachment.url.startsWith('blob:') ? undefined : attachment.url,
+    })),
+  }))
+
 // --- State ---
 const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
 
 // --- Effects ---
 // Load from IndexedDB on startup
-const loadHistoryFromStorage = async () => {
+const loadHistoryFromStorage = async() => {
   try {
     // 尝试使用 IndexedDB
     if (chatDB.isSupported()) {
       await chatDB.init()
       const histories = await chatDB.getAllHistory()
-      setHistoryList(histories)
+      const sanitized = histories.map(history => ({
+        ...history,
+        messages: sanitizeMessagesForStorage(history.messages),
+      }))
+      setHistoryList(sanitized)
     } else {
       // 降级到 localStorage
       const saved = fallbackStorage.getItem('chatHistoryList')
-      if (saved)
-        setHistoryList(saved)
+      if (saved) {
+        const sanitized = saved.map((history: ChatHistory) => ({
+          ...history,
+          messages: sanitizeMessagesForStorage(history.messages),
+        }))
+        setHistoryList(sanitized)
+      }
     }
   } catch (e) {
     console.error('Failed to load chat history:', e)
     // 降级到 localStorage
     const saved = fallbackStorage.getItem('chatHistoryList')
-    if (saved)
-      setHistoryList(saved)
+    if (saved) {
+      const sanitized = saved.map((history: ChatHistory) => ({
+        ...history,
+        messages: sanitizeMessagesForStorage(history.messages),
+      }))
+      setHistoryList(sanitized)
+    }
   }
 }
-
-// Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
-loadHistoryFromStorage()
 
 // --- Private Actions ---
 const generateTitle = (messages: ChatMessage[]) => {
@@ -56,7 +77,10 @@ const generateUniqueId = () => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
-const saveHistoryList = useThrottleFn(async (list: ChatHistory[]) => {
+// Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
+loadHistoryFromStorage()
+
+const saveHistoryList = useThrottleFn(async(list: ChatHistory[]) => {
   try {
     // 尝试使用 IndexedDB
     if (chatDB.isSupported()) {
@@ -64,9 +88,8 @@ const saveHistoryList = useThrottleFn(async (list: ChatHistory[]) => {
       setHistoryList(list)
 
       // 定期清理（10%概率）
-      if (Math.random() < 0.1) {
+      if (Math.random() < 0.1)
         chatDB.cleanup()
-      }
     } else {
       // 降级到 localStorage
       fallbackStorage.setItem('chatHistoryList', list)
@@ -85,12 +108,11 @@ const saveHistoryList = useThrottleFn(async (list: ChatHistory[]) => {
 }, CONFIG.SAVE_DEBOUNCE_TIME, true, true)
 
 // --- Public Actions ---
-export const deleteHistory = async (id: string) => {
+export const deleteHistory = async(id: string) => {
   try {
     // 从 IndexedDB 删除
-    if (chatDB.isSupported()) {
+    if (chatDB.isSupported())
       await chatDB.deleteHistory(id)
-    }
     // 更新内存中的列表
     const newList = historyList().filter(item => item.id !== id)
     await saveHistoryList(newList)
@@ -102,19 +124,20 @@ export const deleteHistory = async (id: string) => {
   }
 }
 
-export const saveOrUpdateChat = async (messages: ChatMessage[], systemRole: string, existingId?: string) => {
+export const saveOrUpdateChat = async(messages: ChatMessage[], systemRole: string, existingId?: string) => {
   if (messages.length === 0) return
 
   const now = Date.now()
 
   if (existingId) {
     // Update existing history
+    const sanitizedMessages = sanitizeMessagesForStorage(messages)
     const updatedList = historyList().map(item =>
       item.id === existingId
         ? {
             ...item,
             title: generateTitle(messages),
-            messages: [...messages],
+            messages: sanitizedMessages,
             systemRole,
             updatedAt: now,
           }
@@ -125,10 +148,11 @@ export const saveOrUpdateChat = async (messages: ChatMessage[], systemRole: stri
   } else {
     // Create new history
     const id = generateUniqueId()
+    const sanitizedMessages = sanitizeMessagesForStorage(messages)
     const newHistory: ChatHistory = {
       id,
       title: generateTitle(messages),
-      messages: [...messages],
+      messages: sanitizedMessages,
       systemRole,
       createdAt: now,
       updatedAt: now,

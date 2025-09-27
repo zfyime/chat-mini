@@ -1,5 +1,5 @@
-import type { ChatHistory, ChatMessage } from '@/types'
 import { CONFIG } from '@/config/constants'
+import type { ChatHistory } from '@/types'
 
 class ChatDatabase {
   private dbName = 'ChatMiniDB'
@@ -22,7 +22,6 @@ class ChatDatabase {
 
       request.onsuccess = () => {
         this.db = request.result
-        console.log('IndexedDB initialized successfully')
         resolve()
       }
 
@@ -39,14 +38,12 @@ class ChatDatabase {
         }
 
         // 创建临时会话存储（替代 sessionStorage）
-        if (!db.objectStoreNames.contains('tempSession')) {
+        if (!db.objectStoreNames.contains('tempSession'))
           db.createObjectStore('tempSession', { keyPath: 'key' })
-        }
 
         // 创建设置存储
-        if (!db.objectStoreNames.contains('settings')) {
+        if (!db.objectStoreNames.contains('settings'))
           db.createObjectStore('settings', { keyPath: 'key' })
-        }
       }
     })
 
@@ -55,12 +52,10 @@ class ChatDatabase {
 
   // 确保数据库已初始化
   private async ensureDb(): Promise<IDBDatabase> {
-    if (!this.db) {
+    if (!this.db)
       await this.init()
-    }
-    if (!this.db) {
+    if (!this.db)
       throw new Error('Failed to initialize database')
-    }
     return this.db
   }
 
@@ -130,13 +125,12 @@ class ChatDatabase {
     const tx = db.transaction(['chatHistory'], 'readwrite')
     const store = tx.objectStore('chatHistory')
 
-    const promises = histories.map(
-      (history) =>
-        new Promise<void>((resolve, reject) => {
-          const request = store.put(history)
-          request.onsuccess = () => resolve()
-          request.onerror = () => reject(request.error)
-        }),
+    const promises = histories.map(history =>
+      new Promise<void>((resolve, reject) => {
+        const request = store.put(history)
+        request.onsuccess = () => resolve()
+        request.onerror = () => reject(request.error)
+      }),
     )
 
     await Promise.all(promises)
@@ -231,13 +225,12 @@ class ChatDatabase {
   // 清理过期数据
   async cleanup(): Promise<void> {
     try {
-      const histories = await this.getAllHistory()
+      const histories = await this.getAllHistory(Number.POSITIVE_INFINITY)
       // 只保留配置的最大数量
       if (histories.length > CONFIG.MAX_HISTORY_COUNT) {
         const toDelete = histories.slice(CONFIG.MAX_HISTORY_COUNT)
-        for (const history of toDelete) {
+        for (const history of toDelete)
           await this.deleteHistory(history.id)
-        }
       }
 
       // 清理过期的临时会话（超过24小时）
@@ -251,9 +244,8 @@ class ChatDatabase {
       request.onsuccess = (event) => {
         const cursor = (event.target as IDBRequest).result
         if (cursor) {
-          if (cursor.value.timestamp < dayAgo) {
+          if (cursor.value.timestamp < dayAgo)
             cursor.delete()
-          }
           cursor.continue()
         }
       }
