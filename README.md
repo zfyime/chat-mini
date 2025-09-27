@@ -94,7 +94,6 @@
 | 变量名 | 说明 |
 | :--- | :--- |
 | `OPENAI_API_KEY` | **必需**，你的 OpenAI API 密钥。 |
-| `OPENAI_API_MODEL` | 默认使用的模型 ID。 |
 | `SITE_PASSWORD` | 网站访问密码，多个密码用英文逗号 `,` 分隔。留空则公开访问。 |
 | `PUBLIC_SECRET_KEY` | 用于 API 调用的签名密钥，请设置为一个复杂的随机字符串。 |
 | `HTTPS_PROXY` | OpenAI API 的代理地址，例如 `http://127.0.0.1:7890`。 |
@@ -110,7 +109,7 @@
 | `MAX_HISTORY_MESSAGES` | 发送给 API 的最大上下文消息数量。 | `9` |
 | `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
 | `DEFAULT_TEMPERATURE` | 默认的 `temperature` 参数值。 | `0.6` |
-| `DEFAULT_MODEL` | 默认模型 ID（若环境变量未设置）。 | `'gpt-4.1'` |
+| `DEFAULT_MODEL` | 默认模型 ID（由应用配置决定）。 | `'gpt-5-chat'` |
 | `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表（详见 `src/config/constants.ts`）。 | [...见源码] |
 
 ## 🚢 部署

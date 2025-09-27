@@ -15,7 +15,7 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 ## ✨ 功能特性
 
 - **多平台部署**: 支持通过 Docker、Vercel 和 Netlify 进行一键部署。
-- **模型动态切换**: 无需修改环境变量，直接在 UI 上选择并切换对话模型，支持 OpenAI GPT-4.1/5/4o、o3、DeepSeek-V3/R1、Grok-3 等主流模型。
+- **模型动态切换**: 无需修改环境变量，直接在 UI 上选择并切换对话模型，支持 GPT-4.1、GPT-5、Claude-4-Sonnet、Gemini-2.5-Pro、Grok-4、DeepSeek-V3.1、豆包-Seed-1.6、GLM-4.5、Kimi-K2 等主流模型。
 - **思维过程可视化**: 支持渲染特殊的 `<think>` 标签，直观展示模型的思考步骤，内容可折叠显示。
 - **文件上传与分析**: 支持上传图片、PDF、文档、代码文件等多种类型，AI 可对文件内容进行分析和回答。
 - **拖拽上传体验**: 支持全局拖拽上传，可将文件直接拖拽到浏览器任意位置进行上传。
@@ -151,7 +151,6 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | 变量名 | 说明 |
 | :--- | :--- |
 | `OPENAI_API_KEY` | **必需**，你的 OpenAI API 密钥。 |
-| `OPENAI_API_MODEL` | 默认使用的模型 ID。 |
 | `SITE_PASSWORD` | 网站访问密码，多个密码用英文逗号 `,` 分隔。留空则公开访问。 |
 | `PUBLIC_SECRET_KEY` | 用于 API 调用的签名密钥，请设置为一个复杂的随机字符串。 |
 | `HTTPS_PROXY` | OpenAI API 的代理地址，例如 `http://127.0.0.1:7890`。 |
@@ -167,12 +166,12 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | `MAX_HISTORY_MESSAGES` | 发送给 API 的最大上下文消息数量。 | `9` |
 | `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
 | `DEFAULT_TEMPERATURE` | 默认的 `temperature` 参数值。 | `0.6` |
-| `DEFAULT_MODEL` | 默认模型 ID（若环境变量未设置）。 | `'gpt-4.1'` |
+| `DEFAULT_MODEL` | 默认模型 ID（由应用配置决定）。 | `'gpt-5-chat'` |
 | `MAX_FILE_SIZE` | 常规文件的最大上传大小限制。 | `50MB` |
 | `MAX_IMAGE_SIZE` | 图片文件的最大上传大小限制。 | `10MB` |
 | `AUTH_TIMEOUT` | 身份验证超时时间。 | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | 保存操作的防抖时间。 | `500ms` |
-| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | `OpenAI-4.1、OpenAI-5、OpenAI-4o、o3、DeepSeek-V3、DeepSeek-R1、Grok-3` |
+| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | `GPT-4.1、GPT-5、Claude-4-Sonnet、Gemini-2.5-Pro、Grok-4、DeepSeek-V3.1、豆包-Seed-1.6、GLM-4.5、Kimi-K2` |
 
 ## 🚢 部署
 
