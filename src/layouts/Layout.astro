@@ -68,8 +68,8 @@ const { title } = Astro.props;
     max-width: 85ch;
     margin: 0 auto;
     padding: 6rem 2rem 4rem;
-    min-height: 100dvh; /* 使用动态视口高度适配键盘 */
     min-height: 100vh; /* 回退方案 */
+    min-height: 100dvh; /* 使用动态视口高度适配键盘 */
   }
 
   ::-webkit-scrollbar {
