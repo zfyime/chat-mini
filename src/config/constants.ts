@@ -14,7 +14,7 @@ export const CONFIG = {
 
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6, // 默认温度
-  DEFAULT_MODEL: 'gpt-4.1', // 默认模型
+  DEFAULT_MODEL: 'gpt-5', // 默认模型
 
   // 文件上传限制
   MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
@@ -66,12 +66,14 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-4.1', name: 'OpenAI-4.1' },
-  { id: 'gpt-4o', name: 'OpenAI-4o' },
-  { id: 'o3', name: 'OpenAI-o3' },
-  { id: 'DeepSeek-V3-0324', name: 'DeepSeek-V3' },
-  { id: 'DeepSeek-R1-0528', name: 'DeepSeek-R1' },
-  { id: 'grok-3', name: 'Grok-3' },
+  { id: 'gpt-5', name: 'gpt-5' },
+  { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
+  { id: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
+  { id: 'grok-4', name: 'grok-4' },
+  { id: 'deepseek-v3.1-250821', name: 'deepseek-v3.1' },
+  { id: 'doubao-seed-1-6-250615', name: 'doubao-seed-1.6' },
+  { id: 'glm-4.5', name: 'glm-4.5' },
+  { id: 'kimi-k2-0905-preview', name: 'kimi-k2' }
 ] as const
 
 // 错误消息
