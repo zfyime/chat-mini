@@ -67,7 +67,6 @@ export const CONFIG = {
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
   { id: 'gpt-4.1', name: 'OpenAI-4.1' },
-  { id: 'gpt-5', name: 'OpenAI-5' },
   { id: 'gpt-4o', name: 'OpenAI-4o' },
   { id: 'o3', name: 'OpenAI-o3' },
   { id: 'DeepSeek-V3-0324', name: 'DeepSeek-V3' },
