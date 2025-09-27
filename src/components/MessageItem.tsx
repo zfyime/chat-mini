@@ -28,7 +28,6 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
   }
   const [source, setSource] = createSignal('')
   const [codeCopied, setCodeCopied] = createSignal(false)
-  const [messageCopied, setMessageCopied] = createSignal(false)
 
   // Simple clipboard implementation for code blocks
   const copy = async() => {
@@ -46,8 +45,6 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
     try {
       const content = typeof message === 'function' ? message() : message
       await navigator.clipboard.writeText(content || '')
-      setMessageCopied(true)
-      setTimeout(() => setMessageCopied(false), 1000)
       onCopyMessage?.(content || '')
     } catch (err) {
       console.error('Failed to copy message:', err)
@@ -67,7 +64,7 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
       const rawCode = fence(...args)
 
       return `<div class="relative">
-        <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy">
+        <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy rounded-md">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
           <div class="group-hover/copy:op-100 gpt-copy-tips">
             ${codeCopied() ? '已复制' : '复制'}
@@ -125,11 +122,11 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
         <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative pr-16">
           {/* Message action buttons - only visible on hover */}
-          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-md p-0.5 shadow-sm z-20">
+          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 p-0.5 bg-slate/10 dark:bg-slate/20 rounded-lg shadow-sm z-20">
             <button
               onClick={copyMessage}
-              title={messageCopied() ? '已复制' : '复制消息'}
-              class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors"
+              title="复制消息"
+              class="inline-fcc w-6 h-6 rounded text-sm text-gray-600 hover:text-gray-800 dark:text-slate-200 dark:hover:text-white hover:bg-slate/12 active:bg-slate/20 transition-colors"
             >
               <IconCopy />
             </button>
@@ -137,7 +134,7 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
               <button
                 onClick={onDeleteMessage}
                 title="删除消息"
-                class="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm transition-colors"
+                class="inline-fcc w-6 h-6 rounded text-sm text-gray-600 hover:text-red-600 dark:text-slate-200 dark:hover:text-red-400 hover:bg-red/10 active:bg-red/15 transition-colors"
               >
                 <IconDelete />
               </button>
