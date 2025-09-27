@@ -14,7 +14,7 @@ export const CONFIG = {
 
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6, // 默认温度
-  DEFAULT_MODEL: 'gpt-5', // 默认模型
+  DEFAULT_MODEL: 'gpt-5-chat', // 默认模型
 
   // 文件上传限制
   MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
@@ -67,7 +67,7 @@ export const CONFIG = {
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
   { id: 'gpt-4.1', name: 'gpt-4.1' },
-  { id: 'gpt-5', name: 'gpt-5' },
+  { id: 'gpt-5-chat', name: 'gpt-5' },
   { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
   { id: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
   { id: 'grok-4', name: 'grok-4' },
