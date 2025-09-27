@@ -18,7 +18,7 @@ interface Props {
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
-  const [chatModel, setChatModel] = useStorage('selected_model', AVAILABLE_MODELS[0].id)
+  const [chatModel, setChatModel] = useStorage('selected_model', CONFIG.DEFAULT_MODEL)
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
