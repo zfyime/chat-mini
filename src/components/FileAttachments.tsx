@@ -133,11 +133,13 @@ export default ({ attachments }: Props) => {
             </button>
             <Show when={previewImageUrl()}>
               {url => (
-                <img
-                  src={url()}
-                  alt={previewAttachment()!.name}
-                  class="w-full max-h-[75vh] object-contain rounded-lg border border-white/20"
-                />
+                <figure class="rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-2xl">
+                  <img
+                    src={url()}
+                    alt={previewAttachment()!.name}
+                    class="block w-full max-h-[75vh] object-contain"
+                  />
+                </figure>
               )}
             </Show>
             <div class="mt-3 flex items-center justify-between text-xs text-white/80">
