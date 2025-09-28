@@ -113,19 +113,72 @@ export const parseOpenAIStream = (rawResponse: Response) => {
       const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
       if (!reader) return
 
+      let isInReasoningMode = false
+      let hasStartedThinkTag = false
+
+      // 辅助函数：提取文本内容
+      const extractTextContent = (content: unknown): string => {
+        if (!content) return ''
+        if (typeof content === 'string') return content
+        if (Array.isArray(content))
+          return content.map(item => extractTextContent(item)).join('')
+
+        if (typeof content === 'object') {
+          const maybeText = (content as { text?: unknown }).text
+          if (typeof maybeText === 'string') return maybeText
+
+          const maybeContent = (content as { content?: unknown }).content
+          if (maybeContent !== undefined) return extractTextContent(maybeContent)
+        }
+
+        return ''
+      }
+
       const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
         if (event.type === 'event') {
           const data = event.data
           if (data === '[DONE]') {
+            // 如果还在思考模式中，需要关闭 think 标签
+            if (isInReasoningMode && hasStartedThinkTag) {
+              controller.enqueue(new TextEncoder().encode('</think>'))
+            }
             controller.close()
             return
           }
           try {
             const json = JSON.parse(data)
             const choice = json.choices && json.choices[0]
-            const text = choice && choice.delta?.content ? choice.delta.content : ''
-            if (text)
+
+            // 处理 reasoning_content 字段（与 delta 同级）
+            const rawReasoningContent = choice && choice.delta?.reasoning_content ? choice.delta.reasoning_content : null
+            const rawTextContent = choice && choice.delta?.content ? choice.delta.content : null
+
+            // 提取实际的文本内容
+            const reasoningContent = rawReasoningContent ? extractTextContent(rawReasoningContent) : ''
+            const text = rawTextContent ? extractTextContent(rawTextContent) : ''
+
+            // 处理流式的 reasoning_content
+            if (reasoningContent) {
+              // 如果是第一次遇到 reasoning_content，发送 <think> 开始标签
+              if (!isInReasoningMode) {
+                isInReasoningMode = true
+                hasStartedThinkTag = true
+                controller.enqueue(new TextEncoder().encode('<think>'))
+              }
+              // 发送思考内容
+              controller.enqueue(new TextEncoder().encode(reasoningContent))
+            }
+
+            // 如果有正常内容，且之前在思考模式，先关闭 think 标签
+            if (text) {
+              if (isInReasoningMode && hasStartedThinkTag) {
+                controller.enqueue(new TextEncoder().encode('</think>'))
+                isInReasoningMode = false
+                hasStartedThinkTag = false
+              }
+              // 发送正常的内容
               controller.enqueue(new TextEncoder().encode(text))
+            }
           } catch (e) {
             controller.error(e)
           }
