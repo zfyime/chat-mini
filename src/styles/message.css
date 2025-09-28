@@ -251,5 +251,5 @@ html.dark .message table tbody tr:hover {
 
 /* Prose 容器最大宽度限制 */
 .prose {
-  max-width: 80ch !important;
+  max-width: 85ch !important;
 }

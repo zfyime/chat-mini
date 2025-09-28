@@ -117,12 +117,12 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
   })
 
   return (
-    <div class="py-2 -mx-4 px-4 transition-colors md:hover:bg-slate/3 group">
+    <div class="py-2 -mx-4 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class="flex gap-3 rounded-lg" 
       // class:op-75={role === 'user'}
       >
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
-        <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative pr-16">
+        <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative md:pr-12">
           {/* Message action buttons - only visible on hover */}
           <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 p-0.5 bg-slate/10 dark:bg-slate/20 rounded-lg shadow-sm z-20">
             <button
