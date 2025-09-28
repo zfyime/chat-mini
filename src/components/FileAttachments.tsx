@@ -136,7 +136,7 @@ export default ({ attachments }: Props) => {
                 <img
                   src={url()}
                   alt={previewAttachment()!.name}
-                  class="w-full max-h-[75vh] object-contain rounded-lg border border-white/20"
+                  class="w-full max-h-[75vh] object-contain"
                 />
               )}
             </Show>
