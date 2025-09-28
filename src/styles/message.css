@@ -223,6 +223,12 @@ html.dark .message table tbody tr:hover {
    ---------------------------------------- */
 
 @media (max-width: 640px) {
+  /* 移动端：减小列表左边距 */
+  .message.prose ul,
+  .message.prose ol {
+    padding-left: 0.5em !important;
+  }
+
   /* 移动端：缩小表格字体 */
   .message table {
     font-size: 0.75em;

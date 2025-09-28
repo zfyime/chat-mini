@@ -19,7 +19,7 @@ export default defineConfig({
     presetTypography({
       cssExtend: {
         'ul,ol': {
-          'padding-left': '2.25em',
+          'padding-left': '1.8em',
           'position': 'relative',
         },
       },
