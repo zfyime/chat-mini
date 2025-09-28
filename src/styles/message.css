@@ -1,79 +1,255 @@
+/* ========================================
+   消息组件样式
+   ======================================== */
+
+/* ----------------------------------------
+   1. 代码块样式
+   ---------------------------------------- */
+
+/* 代码块容器 */
 .message pre {
   background-color: #64748b10;
   font-size: 0.85rem;
   padding: 0.5rem 1rem;
 }
 
+/* 代码高亮背景透明化（避免与 pre 背景冲突） */
 .message .hljs {
   background-color: transparent;
 }
 
-/* 覆盖 prose 插件的标题样式 */
+/* ----------------------------------------
+   2. 标题和分隔符样式
+   ---------------------------------------- */
+
+/* H1 标题样式 */
 .message.prose h1,
 .message h1 {
   margin-top: 0.8em !important;
   margin-bottom: 0.5em !important;
 }
 
+/* H2 标题样式 */
 .message.prose h2,
 .message h2 {
   margin-top: 0.6em !important;
   margin-bottom: 0.4em !important;
 }
 
+/* H3 标题样式 */
 .message.prose h3,
 .message h3 {
   margin-top: 0.5em !important;
   margin-bottom: 0.3em !important;
 }
 
+/* 水平分隔线样式 */
 .message.prose hr,
 .message hr {
   margin-top: 0.6em !important;
   margin-bottom: 0.4em !important;
 }
 
-/* 表格容器：添加水平滚动 */
+/* ----------------------------------------
+   3. 表格容器和滚动设置
+   ---------------------------------------- */
+
+/* 消息容器：启用横向滚动 */
 .message {
   overflow-x: auto;
   width: 100%;
 }
 
+/* 表格直接子元素和包装器的边距 */
+.message > table,
+.message .table-wrapper {
+  margin: 1em 0;
+}
+
+/* 表格包装器：提供流畅的横向滚动体验 */
+.message .table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* iOS 流畅滚动 */
+}
+
+/* 包装器内的表格：自适应宽度 */
+.message .table-wrapper > table {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* ----------------------------------------
+   4. 表格基础样式
+   ---------------------------------------- */
+
+/* 表格主体样式 */
 .message table {
+  /* 尺寸和布局 */
   font-size: 0.85em;
   width: 100%;
   table-layout: auto; /* 自动布局，基于内容调整列宽 */
-   /* 确保表格至少等于内容宽度 */
-  /* min-width: max-content; */
+
+  /* 边框和间距 */
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0 !important;
+
+  /* 其他 */
+  background-color: transparent;
+  transition: all 0.2s ease;
 }
 
-/* 针对列数较多的表格优化 */
+/* ----------------------------------------
+   5. 表格单元格样式
+   ---------------------------------------- */
+
+/* 表头和单元格通用样式 */
 .message table th,
 .message table td {
+  /* 尺寸和对齐 */
   min-width: 80px; /* 最小列宽，避免过窄 */
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+
+  /* 边框 */
+  border-right: 1px solid #64748b20;
+
+  /* 文本处理 */
   word-wrap: break-word; /* 长单词自动换行 */
-  vertical-align: top; /* 顶部对齐 */
-  padding: 0.6rem 1rem;
+
+  /* 动画 */
+  transition: background-color 0.2s ease;
 }
 
-/* 对于列数很多的情况，设置最小宽度确保需要滚动 */
+/* 移除最后一列的右边框 */
+.message table th:last-child,
+.message table td:last-child {
+  border-right: none;
+}
+
+/* ----------------------------------------
+   6. 多列表格的特殊处理
+   ---------------------------------------- */
+
+/* 当表格有 5 列或更多列时，调整列宽和文本换行 */
 .message table th:first-child:nth-last-child(n+5),
 .message table th:first-child:nth-last-child(n+5) ~ th,
 .message table td:first-child:nth-last-child(n+5),
 .message table td:first-child:nth-last-child(n+5) ~ td {
-  min-width: 120px; /* 增加最小宽度，确保需要滚动 */
-  white-space: nowrap; /* 5列以上不换行，保持紧凑 */
+  min-width: 120px;    /* 增加最小宽度，确保需要滚动 */
+  white-space: nowrap; /* 不换行，保持紧凑 */
 }
 
+/* ----------------------------------------
+   7. 表头样式
+   ---------------------------------------- */
+
+/* 表头行背景渐变 */
 .message table thead tr {
-  background-color: #64748b40;
-  /* text-align: left; */
+  background: linear-gradient(to bottom, #64748b25, #64748b20);
+  border-bottom: 2px solid #64748b30;
 }
 
+/* 表头单元格文本样式 */
+.message table thead th {
+  font-weight: 600;
+  color: var(--c-fg);
+  text-align: left;
+}
+
+/* ----------------------------------------
+   8. 表格内容样式
+   ---------------------------------------- */
+
+/* 表格行边框 */
+.message table tbody tr {
+  border-bottom: 1px solid #64748b15;
+  transition: background-color 0.15s ease;
+}
+
+/* 最后一行无底边框 */
 .message table tbody tr:last-of-type {
-  border-bottom: 2px solid #64748b40;
+  border-bottom: none;
 }
 
+/* 斑马纹效果：偶数行背景色 */
+.message table tbody tr:nth-child(even) {
+  background-color: #64748b08;
+}
+
+/* 鼠标悬停行高亮 */
+.message table tbody tr:hover {
+  background-color: #64748b15 !important;
+}
+
+/* ----------------------------------------
+   9. 暗色主题适配
+   ---------------------------------------- */
+
+/* 暗色模式：表格边框颜色调整 */
+html.dark .message table {
+  border-color: #64748b40;
+}
+
+/* 暗色模式：单元格边框颜色 */
+html.dark .message table th,
+html.dark .message table td {
+  border-color: #64748b30;
+}
+
+/* 暗色模式：表头背景和边框 */
+html.dark .message table thead tr {
+  background: linear-gradient(to bottom, #64748b30, #64748b25);
+  border-bottom-color: #64748b40;
+}
+
+/* 暗色模式：表格行边框 */
+html.dark .message table tbody tr {
+  border-bottom-color: #64748b20;
+}
+
+/* 暗色模式：偶数行背景 */
+html.dark .message table tbody tr:nth-child(even) {
+  background-color: #64748b10;
+}
+
+/* 暗色模式：鼠标悬停高亮 */
+html.dark .message table tbody tr:hover {
+  background-color: #64748b20 !important;
+}
+
+/* ----------------------------------------
+   10. 移动端响应式
+   ---------------------------------------- */
+
+@media (max-width: 640px) {
+  /* 移动端：缩小表格字体 */
+  .message table {
+    font-size: 0.75em;
+  }
+
+  /* 移动端：减小单元格内边距和最小宽度 */
+  .message table th,
+  .message table td {
+    padding: 0.5rem 0.75rem;
+    min-width: 60px;
+  }
+
+  /* 移动端：3列以上就启用横向滚动 */
+  .message table th:first-child:nth-last-child(n+3),
+  .message table th:first-child:nth-last-child(n+3) ~ th,
+  .message table td:first-child:nth-last-child(n+3),
+  .message table td:first-child:nth-last-child(n+3) ~ td {
+    min-width: 100px;
+    white-space: nowrap;
+  }
+}
+
+/* ----------------------------------------
+   11. 其他样式
+   ---------------------------------------- */
+
+/* Prose 容器最大宽度限制 */
 .prose {
   max-width: 80ch !important;
 }
