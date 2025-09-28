@@ -68,8 +68,8 @@ export const CONFIG = {
 export const AVAILABLE_MODELS = [
   { id: 'gpt-5-chat-latest', name: 'gpt-5-chat' },
   { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
-  { id: 'gemini-pro-latest', name: 'gemini-2.5-pro' },
-  { id: 'gemini-pro-latest-search', name: 'gemini-pro-search' },
+  { id: 'gemini-2.5-pro-thinking', name: 'gemini-2.5-pro' },
+  { id: 'gemini-2.5-pro-search', name: 'gemini-2.5-pro-search' },
   { id: 'grok-4', name: 'grok-4' },
   { id: 'deepseek-v3.1-think-250821', name: 'deepseek-v3.1' },
   { id: 'doubao-seed-1-6-thinking-250615', name: 'doubao-seed-1.6' },

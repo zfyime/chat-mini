@@ -54,7 +54,7 @@ const transformMessagesForAPI = (messages: ChatMessage[]) => {
         }
       } else {
         // For non-vision models or assistant messages, append file content as text
-        let enhancedContent = msg.content
+        let enhancedContent = msg.content ?? ''
         msg.attachments.forEach((att) => {
           if (!isImageFile(att.type)) {
             const attachmentHeader = `[文件: ${att.name}]`
@@ -113,8 +113,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
       const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
       if (!reader) return
 
-      let isInReasoningMode = false
-      let hasStartedThinkTag = false
+      let isThinking = false
+      const encoder = new TextEncoder()
 
       // 辅助函数：提取文本内容
       const extractTextContent = (content: unknown): string => {
@@ -139,9 +139,8 @@ export const parseOpenAIStream = (rawResponse: Response) => {
           const data = event.data
           if (data === '[DONE]') {
             // 如果还在思考模式中，需要关闭 think 标签
-            if (isInReasoningMode && hasStartedThinkTag) {
-              controller.enqueue(new TextEncoder().encode('</think>'))
-            }
+            if (isThinking)
+              controller.enqueue(encoder.encode('</think>'))
             controller.close()
             return
           }
@@ -159,25 +158,19 @@ export const parseOpenAIStream = (rawResponse: Response) => {
 
             // 处理流式的 reasoning_content
             if (reasoningContent) {
-              // 如果是第一次遇到 reasoning_content，发送 <think> 开始标签
-              if (!isInReasoningMode) {
-                isInReasoningMode = true
-                hasStartedThinkTag = true
-                controller.enqueue(new TextEncoder().encode('<think>'))
-              }
-              // 发送思考内容
-              controller.enqueue(new TextEncoder().encode(reasoningContent))
+              if (!isThinking)
+                controller.enqueue(encoder.encode('<think>'))
+
+              isThinking = true
+              controller.enqueue(encoder.encode(reasoningContent))
             }
 
-            // 如果有正常内容，且之前在思考模式，先关闭 think 标签
             if (text) {
-              if (isInReasoningMode && hasStartedThinkTag) {
-                controller.enqueue(new TextEncoder().encode('</think>'))
-                isInReasoningMode = false
-                hasStartedThinkTag = false
-              }
-              // 发送正常的内容
-              controller.enqueue(new TextEncoder().encode(text))
+              if (isThinking)
+                controller.enqueue(encoder.encode('</think>'))
+
+              isThinking = false
+              controller.enqueue(encoder.encode(text))
             }
           } catch (e) {
             controller.error(e)
