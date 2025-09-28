@@ -117,7 +117,7 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
   })
 
   return (
-    <div class="py-2 -mx-4 md:px-4 transition-colors md:hover:bg-slate/3 group">
+    <div class="md:py-2 -mx-4 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class="flex gap-3 rounded-lg" 
       // class:op-75={role === 'user'}
       >
