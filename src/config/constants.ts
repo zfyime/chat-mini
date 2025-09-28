@@ -66,13 +66,13 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-4.1', name: 'gpt-4.1' },
   { id: 'gpt-5-chat-latest', name: 'gpt-5-chat' },
   { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
-  { id: 'gemini-2.5-pro', name: 'gemini-2.5-pro' },
+  { id: 'gemini-pro-latest', name: 'gemini-2.5-pro' },
+  { id: 'gemini-pro-latest-search', name: 'gemini-pro-search' },
   { id: 'grok-4', name: 'grok-4' },
-  { id: 'deepseek-v3.1-250821', name: 'deepseek-v3.1' },
-  { id: 'doubao-seed-1-6-250615', name: 'doubao-seed-1.6' },
+  { id: 'deepseek-v3.1-think-250821', name: 'deepseek-v3.1' },
+  { id: 'doubao-seed-1-6-thinking-250615', name: 'doubao-seed-1.6' },
   { id: 'glm-4.5', name: 'glm-4.5' },
   { id: 'kimi-k2-0905-preview', name: 'kimi-k2' },
 ] as const
