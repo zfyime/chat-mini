@@ -67,7 +67,7 @@ export const CONFIG = {
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
   { id: 'gpt-5-chat-latest', name: 'gpt-5-chat' },
-  { id: 'cc-sonnet-4-20250514', name: 'claude-4-sonnet' },
+  { id: 'cc-sonnet-4-5-20250929', name: 'claude-4.5-sonnet' },
   { id: 'gemini-2.5-pro-thinking', name: 'gemini-2.5-pro' },
   { id: 'gemini-2.5-pro-search', name: 'gemini-2.5-pro-search' },
   { id: 'grok-4', name: 'grok-4' },
