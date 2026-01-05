@@ -67,11 +67,13 @@ export const CONFIG = {
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
   { id: 'gpt-5.2-chat-latest', name: 'gpt-5.2-chat' },
+  { id: 'gpt-5-search-api', name: 'gpt-5-search' },
   { id: 'cc-sonnet-4-5-20250929', name: 'claude-4.5-sonnet' },
+  { id: 'cc-opus-4-5-20251101-thinking', name: 'claude-4.5-opus-thinking' },
   { id: 'gemini-3-pro-preview', name: 'gemini-3-pro' },
   { id: 'gemini-3-pro-preview-search', name: 'gemini-3-pro-search' },
   { id: 'grok-4', name: 'grok-4' },
-  { id: 'deepseek-v3.1-think-250821', name: 'deepseek-v3.1' },
+  { id: 'deepseek-v3.2-thinking', name: 'deepseek-v3.2-thinking' },
   { id: 'doubao-seed-1-6-251015', name: 'doubao-seed-1.6' },
 ] as const
 
