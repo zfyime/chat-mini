@@ -27,7 +27,7 @@ export default () => {
   const [currentAssistantMessage, setCurrentAssistantMessage] = createSignal('')
   const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
-  const [controller, setController] = createSignal<AbortController>(null)
+  const [controller, setController] = createSignal<AbortController | null>(null)
   const { isStick, setStick, instantToBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
     smoothDelay: CONFIG.SMOOTH_SCROLL_DELAY,

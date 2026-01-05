@@ -111,7 +111,10 @@ export const parseOpenAIStream = (rawResponse: Response) => {
   const stream = new ReadableStream({
     async start(controller) {
       const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
-      if (!reader) return
+      if (!reader) {
+        controller.close()
+        return
+      }
 
       let isThinking = false
       const encoder = new TextEncoder()
@@ -145,7 +148,10 @@ export const parseOpenAIStream = (rawResponse: Response) => {
             return
           }
           try {
-            const json = JSON.parse(data)
+            const trimmed = data?.trimStart()
+            if (!trimmed || trimmed[0] !== '{')
+              return
+            const json = JSON.parse(trimmed)
             const choice = json.choices && json.choices[0]
 
             // 处理 reasoning_content 字段（与 delta 同级）
@@ -173,7 +179,7 @@ export const parseOpenAIStream = (rawResponse: Response) => {
               controller.enqueue(encoder.encode(text))
             }
           } catch (e) {
-            controller.error(e)
+            // 某些上游会发送非 JSON 的 keep-alive/注释帧；跳过即可，避免中断整条流
           }
         }
       })

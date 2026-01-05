@@ -78,7 +78,8 @@ const generateUniqueId = () => {
 }
 
 // Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
-loadHistoryFromStorage()
+if (typeof window !== 'undefined')
+  loadHistoryFromStorage()
 
 const saveHistoryList = useThrottleFn(async(list: ChatHistory[]) => {
   try {

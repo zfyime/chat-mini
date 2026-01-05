@@ -49,11 +49,10 @@ export default ({ attachments }: Props) => {
   const handleViewAttachment = (attachment: FileAttachment) => {
     if (isImageFile(attachment.type)) {
       const imageUrl = getImagePreviewUrl(attachment)
-      if (imageUrl) {
+      if (imageUrl)
         setPreviewAttachment(attachment)
-      } else {
+      else
         triggerDownload(attachment)
-      }
       return
     }
 

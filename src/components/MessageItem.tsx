@@ -87,6 +87,14 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
 
   const htmlString = () => renderMarkdown(message)
   const thinkHtmlString = () => renderMarkdown(thinkMessage)
+  const htmlStringWithCopyState = () => {
+    codeCopied()
+    return htmlString()
+  }
+  const thinkHtmlStringWithCopyState = () => {
+    codeCopied()
+    return thinkHtmlString()
+  }
 
   const handleCopyClick = (e: MouseEvent) => {
     const el = e.target as HTMLElement
@@ -118,9 +126,7 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
 
   return (
     <div class="md:py-2 -mx-4 md:px-4 transition-colors md:hover:bg-slate/3 group">
-      <div class="flex gap-3 rounded-lg" 
-      // class:op-75={role === 'user'}
-      >
+      <div class="flex gap-3 rounded-lg">
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
         <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative md:pr-12">
           {/* Message action buttons - only visible on hover */}
@@ -146,10 +152,10 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
           {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
             <details open={!onRetry}>
               <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
-              <div innerHTML={thinkHtmlString()} />
+              <div innerHTML={thinkHtmlStringWithCopyState()} />
             </details>
           )}
-          <div innerHTML={htmlString()} />
+          <div innerHTML={htmlStringWithCopyState()} />
 
           {/* Show attachments if present */}
           <Show when={attachments && attachments.length > 0}>

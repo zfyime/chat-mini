@@ -24,7 +24,7 @@ export function useStickToBottom({ threshold, smoothDelay }: Options): StickToBo
   }, smoothDelay, false, true)
 
   const instantToBottom = () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' })
   }
 
   onMount(() => {

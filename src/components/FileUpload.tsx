@@ -8,7 +8,7 @@ interface Props {
   disabled?: boolean | Accessor<boolean>
 }
 
-const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,text/markdown,.md,.txt,.js,.html,.css,.php,.go,.log,.py,.java,.c,.cpp,.cs,.json,.xml,.yaml,.yml'
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,.md,.txt,.doc,.docx,.js,.html,.css,.php,.go,.log,.py,.java,.c,.cpp,.cs,.json,.xml,.yaml,.yml'
 
 export default ({ onFilesSelected, disabled }: Props) => {
   const [isDragOver, setIsDragOver] = createSignal(false)
