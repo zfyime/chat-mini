@@ -69,12 +69,13 @@ export const AVAILABLE_MODELS = [
   { id: 'gpt-5.2-chat-latest', name: 'gpt-5.2-chat' },
   { id: 'gpt-5-search-api', name: 'gpt-5-search' },
   { id: 'cc-sonnet-4-5-20250929', name: 'claude-4.5-sonnet' },
-  { id: 'cc-opus-4-5-20251101-thinking', name: 'claude-4.5-opus-thinking' },
-  { id: 'gemini-3-pro-preview', name: 'gemini-3-pro' },
-  { id: 'gemini-3-pro-preview-search', name: 'gemini-3-pro-search' },
-  { id: 'grok-4', name: 'grok-4' },
-  { id: 'deepseek-v3.2-thinking', name: 'deepseek-v3.2-thinking' },
-  { id: 'doubao-seed-1-6-251015', name: 'doubao-seed-1.6' },
+  { id: 'cc-opus-4-5-20251101', name: 'claude-4.5-opus' },
+  { id: 'gemini-3.1-pro-preview', name: 'gemini-3.1-pro' },
+  { id: 'gemini-3.1-pro-preview-search', name: 'gemini-3.1-pro-search' },
+  { id: 'grok-4.1', name: 'grok-4.1' },
+  { id: 'glm-5', name: 'glm-5' },
+  { id: 'deepseek-v3.2', name: 'deepseek-v3.2' },
+  { id: 'doubao-seed-1-8-251228', name: 'doubao-seed-1.8' },
 ] as const
 
 // 错误消息
