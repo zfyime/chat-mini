@@ -3,6 +3,7 @@ import MarkdownIt from 'markdown-it'
 import mdKatex from 'markdown-it-katex'
 import mdHighlight from 'markdown-it-highlightjs'
 import IconRefresh from './icons/Refresh'
+import IconExport from './icons/Export'
 import IconCopy from './icons/Copy'
 import IconDelete from './icons/Delete'
 import FileAttachments from './FileAttachments'
@@ -16,11 +17,26 @@ interface Props {
   attachments?: ChatMessage['attachments']
   showRetry?: Accessor<boolean>
   onRetry?: () => void
+  showExportMenu?: Accessor<boolean>
+  onToggleExportMenu?: (e: MouseEvent) => void
+  onExport?: (format: 'markdown' | 'json' | 'text') => void
   onCopyMessage?: (content: string) => void
   onDeleteMessage?: () => void
 }
 
-export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, onCopyMessage, onDeleteMessage }: Props) => {
+export default ({
+  role,
+  message,
+  thinkMessage,
+  attachments,
+  showRetry,
+  onRetry,
+  showExportMenu,
+  onToggleExportMenu,
+  onExport,
+  onCopyMessage,
+  onDeleteMessage,
+}: Props) => {
   const roleClass = {
     system: 'bg-gradient-to-r from-gray-300 via-gray-200 to-gray-300',
     user: 'bg-gradient-to-r from-purple-400 to-yellow-400',
@@ -163,12 +179,47 @@ export default ({ role, message, thinkMessage, attachments, showRetry, onRetry, 
           </Show>
         </div>
       </div>
-      {showRetry?.() && onRetry && (
-        <div class="fie px-3 mb-2">
-          <div onClick={onRetry} class="gpt-retry-btn">
-            <IconRefresh />
-            <span>重新生成</span>
-          </div>
+      {showRetry?.() && (
+        <div class="flex items-center justify-between px-3 mb-2">
+          <Show when={onExport && onToggleExportMenu && showExportMenu}>
+            <div class="relative">
+              <div onClick={onToggleExportMenu} class="gpt-retry-btn" title="导出对话">
+                <IconExport />
+                <span>导出</span>
+              </div>
+              <Show when={showExportMenu?.()}>
+                <div
+                  class="export-menu absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[120px] z-50"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <button
+                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors text-sm"
+                    onClick={() => onExport?.('markdown')}
+                  >
+                    Markdown
+                  </button>
+                  <button
+                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                    onClick={() => onExport?.('json')}
+                  >
+                    JSON
+                  </button>
+                  <button
+                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg transition-colors text-sm"
+                    onClick={() => onExport?.('text')}
+                  >
+                    纯文本
+                  </button>
+                </div>
+              </Show>
+            </div>
+          </Show>
+          <Show when={onRetry}>
+            <div onClick={onRetry} class="gpt-retry-btn">
+              <IconRefresh />
+              <span>重新生成</span>
+            </div>
+          </Show>
         </div>
       )}
     </div>

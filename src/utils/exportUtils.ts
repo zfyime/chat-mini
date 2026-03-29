@@ -17,11 +17,11 @@ export const exportToMarkdown = (messages: ChatMessage[], systemRole = '') => {
 
     markdown += `### ${role}\n\n`
 
-    if (msg.content)
-      markdown += `${msg.content}\n\n`
-
     if (msg.think)
       markdown += `<details>\n<summary>💭 思考过程</summary>\n\n${msg.think}\n\n</details>\n\n`
+
+    if (msg.content)
+      markdown += `${msg.content}\n\n`
 
     if (msg.attachments?.length) {
       markdown += `📎 **附件:**\n${msg.attachments
@@ -50,7 +50,9 @@ export const exportToJSON = (messages: ChatMessage[], systemRole = '') => {
     systemRole,
     messageCount: messages.length,
     messages: messages.map(msg => ({
-      ...msg,
+      role: msg.role,
+      think: msg.think,
+      content: msg.content,
       // 清理附件中的 Base64 内容以减小文件大小（可选）
       attachments: msg.attachments?.map(att => ({
         id: att.id,
@@ -81,11 +83,11 @@ export const exportToText = (messages: ChatMessage[], systemRole = '') => {
     const role = msg.role === 'user' ? '用户' : msg.role === 'assistant' ? '助手' : '系统'
 
     text += `[${role}]:\n`
-    if (msg.content)
-      text += `${msg.content}\n`
-
     if (msg.think)
       text += `\n[思考过程]:\n${msg.think}\n`
+
+    if (msg.content)
+      text += `${msg.content}\n`
 
     if (msg.attachments?.length)
       text += `\n[附件]: ${msg.attachments.map(att => (att.encoding === 'base64' ? `${att.name}(Base64)` : att.name)).join(', ')}\n`
