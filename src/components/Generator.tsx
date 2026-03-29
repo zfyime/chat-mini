@@ -9,6 +9,7 @@ import { createThinkTagParser } from '@/utils/thinkTagParser'
 import { useStickToBottom } from '@/hooks/useStickToBottom'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
+import IconArrowDown from './icons/ArrowDown'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
@@ -371,6 +372,11 @@ export default () => {
     setPendingAttachments([])
   }
 
+  const stickToBottom = () => {
+    instantToBottom()
+    setStick(true)
+  }
+
   return (
     <div my-4>
       <SystemRoleSettings
@@ -407,6 +413,20 @@ export default () => {
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
+      <Show when={loading() && !isStick()}>
+        <button
+          type="button"
+          title="回到底部"
+          aria-label="回到底部"
+          onClick={stickToBottom}
+          class="fixed left-1/2 z-50 h-11 w-11 -translate-x-1/2 rounded-full border border-slate/15 bg-[var(--c-bg)]/90 text-[var(--c-fg)] shadow-lg backdrop-blur-md transition-all duration-200 hover:scale-105 hover:bg-[var(--c-bg)] active:scale-95"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+        >
+          <span class="fcc text-lg leading-none">
+            <IconArrowDown />
+          </span>
+        </button>
+      </Show>
 
       <Show
         when={!loading()}
