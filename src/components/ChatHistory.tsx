@@ -51,7 +51,7 @@ export default (props: Props) => {
       <div
         class="fixed left-3 sm:left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50"
         classList={{
-          'bottom-16 sm:bottom-5': !!props.isFloating,
+          'bottom-22 sm:bottom-5': !!props.isFloating,
           'bottom-5': !props.isFloating,
         }}
       >
