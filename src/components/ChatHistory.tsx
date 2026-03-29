@@ -6,6 +6,7 @@ import type { ChatHistory, ChatMessage } from '@/types'
 
 interface Props {
   onLoadHistory: (messages: ChatMessage[], systemRole: string, historyId?: string) => void | Promise<void>
+  isFloating?: boolean
 }
 
 export default (props: Props) => {
@@ -47,7 +48,9 @@ export default (props: Props) => {
   return (
     <>
       {/* 历史对话按钮 */}
-      <div class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90">
+      <div
+        class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50"
+      >
         <button
           class="p-2.5 text-base"
           title="历史对话"

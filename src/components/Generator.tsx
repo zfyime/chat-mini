@@ -423,8 +423,14 @@ export default () => {
           </div>
         }
       >
-        <div class="gen-text-wrapper" class:op-50={systemRoleEditing()}>
-          <div class="fi gap-2 w-full">
+        <div
+          class="gen-text-wrapper"
+          classList={{
+            'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)]/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)] pt-2 px-4 transition-all duration-300': messageList().length > 0,
+            'op-50': systemRoleEditing(),
+          }}
+        >
+          <div class="fi gap-2 w-full max-w-[85ch] mx-auto">
             <FileUpload
               onFilesSelected={handleFilesSelected}
               disabled={() => systemRoleEditing()}
@@ -454,11 +460,11 @@ export default () => {
           </div>
         </div>
       </Show>
-      <ChatHistory onLoadHistory={loadHistory} />
+      <ChatHistory onLoadHistory={loadHistory} isFloating={messageList().length > 0} />
 
       {/* 导出按钮 */}
       <Show when={messageList().length > 0}>
-        <div class="fixed bottom-5 left-14 sm:left-16 rounded-md hover:bg-slate/10 w-fit h-fit transition-colors active:scale-90 z-50">
+        <div class="fixed bottom-5 left-14 sm:left-16 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50">
           <div class="relative">
             <button
               class="p-2.5 text-base"
