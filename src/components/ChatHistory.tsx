@@ -49,7 +49,11 @@ export default (props: Props) => {
     <>
       {/* 历史对话按钮 */}
       <div
-        class="fixed bottom-5 left-5 sm:left-5 left-3 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50"
+        class="fixed left-3 sm:left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50"
+        classList={{
+          'bottom-24 sm:bottom-5': !!props.isFloating,
+          'bottom-5': !props.isFloating,
+        }}
       >
         <button
           class="p-2.5 text-base"
