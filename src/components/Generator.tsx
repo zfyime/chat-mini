@@ -401,18 +401,6 @@ export default () => {
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
 
-      {/* File preview section - always shown when files are selected */}
-      {(() => {
-        const files = pendingAttachments()
-        return (
-          <FilePreview
-            files={files}
-            onRemoveFile={removeFile}
-            onClearAll={clearAllFiles}
-          />
-        )
-      })()}
-
       <Show
         when={!loading()}
         fallback={
@@ -430,32 +418,44 @@ export default () => {
             'op-50': systemRoleEditing(),
           }}
         >
-          <div class="fi gap-2 w-full max-w-[85ch] mx-auto">
-            <FileUpload
-              onFilesSelected={handleFilesSelected}
-              disabled={() => systemRoleEditing()}
-            />
-            <textarea
-              ref={inputRef!}
-              disabled={systemRoleEditing()}
-              onKeyDown={handleKeydown}
-              placeholder="想问一些什么..."
-              autocomplete="off"
-              autofocus
-              onInput={() => {
-                inputRef.style.height = 'auto'
-                inputRef.style.height = `${inputRef.scrollHeight}px`
-              }}
-              rows="1"
-              class="gen-textarea flex-1 rounded-lg"
-            />
-            <div class="fi gap-2">
-              <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="gen-slate-btn rounded-lg">
-                发送
-              </button>
-              <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-slate-btn fcc rounded-lg">
-                <IconClear />
-              </button>
+          <div class="w-full max-w-[85ch] mx-auto">
+            {(() => {
+              const files = pendingAttachments()
+              return (
+                <FilePreview
+                  files={files}
+                  onRemoveFile={removeFile}
+                  onClearAll={clearAllFiles}
+                />
+              )
+            })()}
+            <div class="fi gap-2 w-full">
+              <FileUpload
+                onFilesSelected={handleFilesSelected}
+                disabled={() => systemRoleEditing()}
+              />
+              <textarea
+                ref={inputRef!}
+                disabled={systemRoleEditing()}
+                onKeyDown={handleKeydown}
+                placeholder="想问一些什么..."
+                autocomplete="off"
+                autofocus
+                onInput={() => {
+                  inputRef.style.height = 'auto'
+                  inputRef.style.height = `${inputRef.scrollHeight}px`
+                }}
+                rows="1"
+                class="gen-textarea flex-1 rounded-lg"
+              />
+              <div class="fi gap-2">
+                <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="gen-slate-btn rounded-lg">
+                  发送
+                </button>
+                <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-slate-btn fcc rounded-lg">
+                  <IconClear />
+                </button>
+              </div>
             </div>
           </div>
         </div>
