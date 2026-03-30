@@ -11,6 +11,7 @@ export default (props: Props) => {
   const [showHistory, setShowHistory] = createSignal(false)
   const { historyList, loadHistoryFromStorage } = historyState
 
+  // 确保每次组件挂载时都重新加载历史数据，并监听全局切换事件
   onMount(() => {
     loadHistoryFromStorage()
     const handleToggleHistory = () => setShowHistory(!showHistory())
@@ -30,6 +31,7 @@ export default (props: Props) => {
     setShowHistory(false)
   }
 
+  // 格式化时间显示逻辑
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -61,7 +63,7 @@ export default (props: Props) => {
         classList={{ '-translate-x-full': !showHistory(), 'translate-x-0': showHistory() }}
         onClick={e => e.stopPropagation()}
       >
-        {/* 头部 */}
+        {/* 头部 - 标题与关闭按钮 */}
         <div class="px-6 py-8 flex justify-between items-center">
           <div class="fi gap-2">
             <span class="text-xl font-bold gpt-title">历史</span>
@@ -75,7 +77,7 @@ export default (props: Props) => {
           </button>
         </div>
 
-        {/* 列表区域 */}
+        {/* 列表区域 - 滚动容器 */}
         <div class="flex-1 overflow-y-auto px-3 custom-scrollbar">
           {historyList().length === 0
             ? (
@@ -118,7 +120,7 @@ export default (props: Props) => {
               )}
         </div>
 
-        {/* 底部 */}
+        {/* 底部 - 极简标识 */}
         <div class="p-6">
           <div class="px-4 py-3 rounded-2xl bg-slate/5 border border-slate/5 text-center">
             <span class="text-[10px] text-slate/40 font-bold tracking-widest uppercase">Chat Mini History</span>
