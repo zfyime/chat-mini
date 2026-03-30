@@ -3,22 +3,81 @@ import Logo from './Logo.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
 ---
 
-<header class="sticky top-0 z-30 bg-[var(--c-bg)]/80 backdrop-blur-md py-4 mb-4">
-  <div class="fb items-center">
-    <div id="logo-container" class="cursor-pointer transition-transform active:scale-95 hover:opacity-80" title="历史对话">
-      <Logo />
+<header id="page-header" class="sticky top-0 z-30 transition-all duration-300 border-b border-transparent">
+  <div id="header-bg" class="absolute inset-0 bg-[var(--c-bg)]/80 backdrop-blur-md opacity-0 transition-opacity duration-300"></div>
+  
+  <div class="relative max-w-[85ch] mx-auto px-0 transition-all duration-300" id="header-container">
+    <div class="fb items-center py-4" id="header-top">
+      <div class="fi gap-2">
+        <div id="logo-container" class="cursor-pointer transition-transform active:scale-95 hover:opacity-80" title="历史对话">
+          <Logo />
+        </div>
+        <div id="header-title-compact" class="fi opacity-0 -translate-x-2 pointer-events-none transition-all duration-400 cubic-bezier([0.4,0,0.2,1])">
+          <span class="text-xl font-extrabold mr-1">Chat</span>
+          <span class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-600">Mini</span>
+        </div>
+      </div>
+      <ThemeSwitch />
     </div>
-    <ThemeSwitch />
+    
+    <div id="header-info" class="pb-4 transition-all duration-400 cubic-bezier([0.4,0,0.2,1]) origin-top-left">
+      <div class="fi mt-2">
+        <span class="gpt-title">Chat</span>
+        <span class="gpt-subtitle">Mini</span>
+      </div>
+      <p mt-1 op-60 class="header-desc text-sm">一个简单的智能聊天机器人。</p>
+    </div>
   </div>
-  <div class="fi mt-2">
-    <span class="gpt-title">Chat</span>
-    <span class="gpt-subtitle">Mini</span>
-  </div>
-  <p mt-1 op-60>一个简单的智能聊天机器人。</p>
 </header>
 
+<style>
+  /* 滚动状态样式 */
+  #page-header.is-scrolled {
+    @apply border-slate/10 shadow-sm;
+  }
+
+  /* 使得背景在吸顶时全屏 */
+  #page-header.is-scrolled #header-bg {
+    @apply opacity-100 backdrop-blur-xl bg-white/70 dark:bg-[#212129]/70;
+    width: 100vw;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #page-header.is-scrolled #header-container {
+    @apply py-0;
+  }
+
+  #page-header.is-scrolled #header-top {
+    @apply py-2;
+  }
+
+  #page-header.is-scrolled #header-title-compact {
+    @apply opacity-100 translate-x-0 pointer-events-auto;
+  }
+
+  #page-header.is-scrolled #header-info {
+    @apply opacity-0 h-0 overflow-hidden pb-0 mt-0 pointer-events-none;
+    transform: scale(0.9) translateY(-10px);
+  }
+</style>
+
 <script>
+  const header = document.getElementById('page-header')
   const logoContainer = document.getElementById('logo-container')
+
+  const handleScroll = () => {
+    // 初始位置 6rem 约为 96px，我们在滚动一定距离后触发
+    if (window.scrollY > 80) {
+      header?.classList.add('is-scrolled')
+    } else {
+      header?.classList.remove('is-scrolled')
+    }
+  }
+
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll() // 初始化状态
+  
   logoContainer?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('toggle-history'))
   })
