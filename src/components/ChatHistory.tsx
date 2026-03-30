@@ -1,7 +1,6 @@
-import { For, createSignal, onMount } from 'solid-js'
+import { For, createSignal, onMount, onCleanup } from 'solid-js'
 import { deleteHistory, historyState } from '@/store/historyStore'
 import IconDelete from './icons/Delete'
-import IconHistory from './icons/History'
 import type { ChatHistory, ChatMessage } from '@/types'
 
 interface Props {
@@ -16,6 +15,11 @@ export default (props: Props) => {
   // 确保每次组件挂载时都重新加载历史数据
   onMount(() => {
     loadHistoryFromStorage()
+    const handleToggleHistory = () => setShowHistory(!showHistory())
+    window.addEventListener('toggle-history', handleToggleHistory)
+    onCleanup(() => {
+      window.removeEventListener('toggle-history', handleToggleHistory)
+    })
   })
 
   const handleDelete = (id: string, e: Event) => {
@@ -47,24 +51,6 @@ export default (props: Props) => {
 
   return (
     <>
-      {/* 历史对话按钮 */}
-      <div
-        class="fixed left-3 sm:left-5 rounded-md hover:bg-slate/10 w-fit h-fit transition-all duration-300 active:scale-90 z-50"
-        classList={{
-          'bottom-22 sm:bottom-5': !!props.isFloating,
-          'bottom-5': !props.isFloating,
-        }}
-      >
-        <button
-          class="p-2.5 text-base"
-          title="历史对话"
-          type="button"
-          onClick={() => setShowHistory(!showHistory())}
-        >
-          <IconHistory />
-        </button>
-      </div>
-
       {/* 历史对话弹窗 */}
       <div
         class="fixed inset-0 bg-black/50 z-50 transition-all"
