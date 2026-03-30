@@ -488,7 +488,7 @@ export default () => {
           </div>
         </div>
       </Show>
-      <ChatHistory onLoadHistory={loadHistory} isFloating={messageList().length > 0} />
+      <ChatHistory onLoadHistory={loadHistory} />
     </div>
   )
 }
