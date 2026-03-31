@@ -1,10 +1,8 @@
-import { createEffect, createSignal, onCleanup, onMount } from 'solid-js'
-import { useThrottleFn } from 'solidjs-use'
+import { createSignal, onCleanup, onMount } from 'solid-js'
 import type { Accessor, Setter } from 'solid-js'
 
 interface Options {
   threshold: number
-  smoothDelay: number
 }
 
 interface StickToBottomResult {
@@ -15,46 +13,49 @@ interface StickToBottomResult {
   isAtBottom: () => boolean
 }
 
-export function useStickToBottom({ threshold, smoothDelay }: Options): StickToBottomResult {
+export function useStickToBottom({ threshold }: Options): StickToBottomResult {
   const [isStick, setStick] = createSignal(false)
+  let programmaticScroll = false
+
   const isAtBottom = () => window.innerHeight + window.scrollY >= document.body.scrollHeight - threshold
 
-  const smoothToBottom = useThrottleFn(() => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-  }, smoothDelay, false, true)
-
   const instantToBottom = () => {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' })
+    programmaticScroll = true
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'auto' })
+      // 在下一帧重置标志，确保本次滚动事件已处理完
+      requestAnimationFrame(() => {
+        programmaticScroll = false
+      })
+    })
+  }
+
+  const smoothToBottom = () => {
+    programmaticScroll = true
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
+    // smooth 滚动持续时间较长，延迟重置
+    setTimeout(() => {
+      programmaticScroll = false
+    }, 500)
   }
 
   onMount(() => {
-    let lastPosition = window.scrollY
-    let userScrolling = false
-
     const handleScroll = () => {
-      const nowPosition = window.scrollY
+      // 程序触发的滚动不影响 isStick 状态
+      if (programmaticScroll) return
 
-      if (nowPosition < lastPosition) {
-        userScrolling = true
-        setStick(false)
-      } else if (userScrolling && isAtBottom()) {
-        userScrolling = false
+      if (isAtBottom()) {
         setStick(true)
+      } else {
+        setStick(false)
       }
-
-      lastPosition = nowPosition
     }
 
-    window.addEventListener('scroll', handleScroll)
+    window.addEventListener('scroll', handleScroll, { passive: true })
 
     onCleanup(() => {
       window.removeEventListener('scroll', handleScroll)
     })
-  })
-
-  createEffect(() => {
-    if (isStick())
-      smoothToBottom()
   })
 
   return {
