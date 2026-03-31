@@ -378,7 +378,7 @@ export default () => {
   }
 
   return (
-    <div my-4 class="pb-32 md:pb-36">
+    <div my-4 classList={{ 'pb-32 md:pb-36': messageList().length > 0 }}>
       <SystemRoleSettings
         canEdit={() => messageList().length === 0}
         systemRoleEditing={systemRoleEditing}
@@ -440,8 +440,9 @@ export default () => {
         }
       >
         <div
-          class="gen-text-wrapper fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)]/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)] pt-2 px-4"
+          class="gen-text-wrapper"
           classList={{
+            'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)]/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)] pt-2 px-4': messageList().length > 0,
             'op-50': systemRoleEditing(),
           }}
         >
