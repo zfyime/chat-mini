@@ -45,11 +45,22 @@ import ThemeSwitch from './ThemeSwitch.astro'
   }
 
   #page-header.is-scrolled #header-top {
-    @apply py-2;
+    @apply py-1;
+  }
+
+  #page-header.is-scrolled #logo-container {
+    transform: scale(0.7);
+    transform-origin: left center;
+  }
+
+  #page-header.is-scrolled #themeToggle {
+    transform: scale(0.85);
+    transform-origin: right center;
   }
 
   #page-header.is-scrolled #header-title-compact {
     @apply opacity-100 translate-x-0 pointer-events-auto;
+    margin-left: -8px; /* Adjust for logo scale */
   }
 
   #page-header.is-scrolled #header-info {
