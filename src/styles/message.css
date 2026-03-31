@@ -56,7 +56,6 @@
 
 /* 消息容器：启用横向滚动 */
 .message {
-  overflow-x: auto;
   width: 100%;
 }
 
