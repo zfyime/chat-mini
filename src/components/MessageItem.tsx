@@ -141,7 +141,7 @@ export default ({
   })
 
   return (
-    <div class="md:py-2 -mx-4 md:px-4 transition-colors md:hover:bg-slate/3 group">
+    <div class="md:py-2 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class="flex gap-3 rounded-lg">
         <div class={`shrink-0 w-7 h-7 mt-4 rounded-full op-80 ${roleClass[role]}`} />
         <div ref={messageRef!} class="message prose break-words overflow-hidden flex-1 relative md:pr-12">

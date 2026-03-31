@@ -3,7 +3,7 @@ import Logo from './Logo.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
 ---
 
-<header id="page-header" class="sticky top-0 z-30 border-b border-transparent">
+<header id="page-header" class="sticky top-0 z-30 border-b border-transparent overflow-x-clip">
   <!-- 动态背景层：在吸顶时通过脚本显示，并利用负边距实现全屏遮罩 -->
   <div id="header-bg" class="absolute inset-0 bg-[var(--c-bg)]/80 backdrop-blur-md opacity-0 transition-opacity duration-300"></div>
   
