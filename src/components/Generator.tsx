@@ -30,7 +30,6 @@ export default () => {
   const [controller, setController] = createSignal<AbortController | null>(null)
   const { isStick, setStick, instantToBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
-    smoothDelay: CONFIG.SMOOTH_SCROLL_DELAY,
   })
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
   const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
@@ -378,7 +377,7 @@ export default () => {
   }
 
   return (
-    <div my-4 classList={{ 'pb-32 md:pb-36': messageList().length > 0 }}>
+    <div my-4>
       <SystemRoleSettings
         canEdit={() => messageList().length === 0}
         systemRoleEditing={systemRoleEditing}
