@@ -3,11 +3,11 @@ import Logo from './Logo.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
 ---
 
-<header id="page-header" class="sticky top-0 z-30 transition-all duration-300 border-b border-transparent">
+<header id="page-header" class="sticky top-0 z-30 border-b border-transparent">
   <!-- 动态背景层：在吸顶时通过脚本显示，并利用负边距实现全屏遮罩 -->
   <div id="header-bg" class="absolute inset-0 bg-[var(--c-bg)]/80 backdrop-blur-md opacity-0 transition-opacity duration-300"></div>
   
-  <div class="relative max-w-[85ch] mx-auto px-0 transition-all duration-300" id="header-container">
+  <div class="relative max-w-[85ch] mx-auto px-0" id="header-container">
     <div class="fb items-center py-4" id="header-top">
       <div class="fi gap-2">
         <div id="logo-container" class="cursor-pointer transition-transform active:scale-95 hover:opacity-80" title="历史对话">
@@ -47,10 +47,6 @@ import ThemeSwitch from './ThemeSwitch.astro'
     transform: translateX(-50%);
   }
 
-  #page-header.is-scrolled #header-container {
-    @apply py-0;
-  }
-
   #page-header.is-scrolled #header-top {
     @apply py-2;
   }
@@ -60,8 +56,12 @@ import ThemeSwitch from './ThemeSwitch.astro'
   }
 
   #page-header.is-scrolled #header-info {
-    @apply opacity-0 h-0 overflow-hidden pb-0 mt-0 pointer-events-none;
+    @apply opacity-0 pointer-events-none;
     transform: scale(0.9) translateY(-10px);
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
   }
 </style>
 
