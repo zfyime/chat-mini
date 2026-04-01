@@ -222,10 +222,58 @@ html.dark .message table tbody tr:hover {
    ---------------------------------------- */
 
 @media (max-width: 640px) {
+  /* 移动端：减小标题字体大小和边距 */
+  .message.prose h1,
+  .message h1 {
+    font-size: 1.5em !important;
+    margin-top: 0.6em !important;
+    margin-bottom: 0.4em !important;
+  }
+
+  .message.prose h2,
+  .message h2 {
+    font-size: 1.3em !important;
+    margin-top: 0.5em !important;
+    margin-bottom: 0.3em !important;
+  }
+
+  .message.prose h3,
+  .message h3 {
+    font-size: 1.1em !important;
+    margin-top: 0.4em !important;
+    margin-bottom: 0.2em !important;
+  }
+
+  .message.prose h4,
+  .message.prose h5,
+  .message.prose h6,
+  .message h4,
+  .message h5,
+  .message h6 {
+    font-size: 1em !important;
+    margin-top: 0.4em !important;
+    margin-bottom: 0.2em !important;
+  }
+
+  /* 移动端：优化段落和基础字体大小 */
+  .message.prose p,
+  .message p {
+    font-size: 0.95em !important;
+    line-height: 1.6 !important;
+    margin-bottom: 0.4em !important;
+  }
+
+  /* 移动端：优化代码块内边距和字体 */
+  .message pre {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.8rem !important;
+  }
+
   /* 移动端：减小列表左边距 */
   .message.prose ul,
   .message.prose ol {
     padding-left: 1.2em !important;
+    line-height: 1.5 !important;
   }
 
   /* 移动端：缩小表格字体 */
