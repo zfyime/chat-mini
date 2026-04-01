@@ -418,13 +418,13 @@ export default () => {
           title="回到底部"
           aria-label="回到底部"
           onClick={stickToBottom}
-          class="fixed left-1/2 z-50 -translate-x-1/2 fcc gap-1 px-3 py-1.5 rounded-lg border border-slate/15 bg-[var(--c-bg)]/80 text-[var(--c-fg)] shadow-md backdrop-blur-md transition-all duration-200 hover:bg-slate/10 active:scale-95"
+          class="fixed left-1/2 z-50 -translate-x-1/2 fcc gap-1 px-4 py-1.5 rounded-full border border-slate/20 bg-[var(--c-bg)] text-sm text-[var(--c-fg)] shadow-sm transition-all duration-200 hover:bg-slate/5 active:scale-95"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
         >
-          <span class="fcc text-lg leading-none">
+          <span class="fcc text-base leading-none">
             <IconArrowDown />
           </span>
-          <span class="text-xs font-medium">回到底部</span>
+          <span class="font-medium">回到底部</span>
         </button>
       </Show>
 
@@ -441,7 +441,7 @@ export default () => {
         <div
           class="gen-text-wrapper"
           classList={{
-            'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)]/80 backdrop-blur-md pb-[env(safe-area-inset-bottom)] pt-2 px-4': messageList().length > 0,
+            'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)] pb-[env(safe-area-inset-bottom)] pt-2 px-4': messageList().length > 0,
             'op-50': systemRoleEditing(),
           }}
         >
