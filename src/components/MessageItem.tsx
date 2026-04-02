@@ -172,9 +172,18 @@ export default ({
             <IconDelete />
           </button>
         )}
+        <Show when={!isUserMessage && showRetry?.()}>
+          <button
+            onClick={onRetry}
+            title="重新生成"
+            class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
+          >
+            <IconRefresh />
+          </button>
+        </Show>
       </div>
       {showRetry?.() && (
-        <div class="flex items-center justify-between px-8 mb-24">
+        <div class="flex items-center justify-end mb-24 px-8">
           <Show when={onExport && onToggleExportMenu && showExportMenu}>
             <div class="relative">
               <div onClick={onToggleExportMenu} class="gpt-retry-btn" title="导出对话">
@@ -206,12 +215,6 @@ export default ({
                   </button>
                 </div>
               </Show>
-            </div>
-          </Show>
-          <Show when={onRetry}>
-            <div onClick={onRetry} class="gpt-retry-btn">
-              <IconRefresh />
-              <span>重新生成</span>
             </div>
           </Show>
         </div>
