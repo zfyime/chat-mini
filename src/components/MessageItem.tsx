@@ -204,8 +204,8 @@ export default ({
                 <button onClick={cancelEdit} class="px-3 py-1 text-sm rounded-md border border-slate/20 text-gray-500 hover:bg-slate/10 transition-colors">
                   取消
                 </button>
-                <button onClick={confirmEdit} class="px-3 py-1 text-sm rounded-md bg-slate-700 text-white hover:bg-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
-                  提交并重新生成
+                <button onClick={confirmEdit} class="px-3 py-1 text-sm rounded-md bg-(slate op-15) hover:bg-op-20 transition-colors">
+                  提交
                 </button>
               </div>
             </div>
@@ -266,7 +266,7 @@ export default ({
         </div>
       </Show>
       {showRetry?.() && (
-        <div class="flex items-center justify-end mb-24 px-8">
+        <div class="flex items-center justify-end mb-22 px-2">
           <Show when={onExport && onToggleExportMenu && showExportMenu}>
             <div class="relative">
               <div onClick={onToggleExportMenu} class="gpt-retry-btn" title="导出对话">
