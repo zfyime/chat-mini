@@ -139,27 +139,7 @@ export default ({
   return (
     <div class="md:py-2 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
-        <div ref={messageRef!} class={`message prose break-words overflow-hidden flex-1 relative md:pr-12 ${isUserMessage ? 'text-right' : ''}`}>
-          {/* Message action buttons - only visible on hover */}
-          <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-0.5 p-0.5 bg-slate/10 dark:bg-slate/20 rounded-lg shadow-sm z-20">
-            <button
-              onClick={copyMessage}
-              title="复制消息"
-              class="inline-fcc w-6 h-6 rounded text-sm text-gray-600 hover:text-gray-800 dark:text-slate-200 dark:hover:text-white hover:bg-slate/12 active:bg-slate/20 transition-colors"
-            >
-              <IconCopy />
-            </button>
-            {onDeleteMessage && (
-              <button
-                onClick={onDeleteMessage}
-                title="删除消息"
-                class="inline-fcc w-6 h-6 rounded text-sm text-gray-600 hover:text-red-600 dark:text-slate-200 dark:hover:text-red-400 hover:bg-red/10 active:bg-red/15 transition-colors"
-              >
-                <IconDelete />
-              </button>
-            )}
-          </div>
-
+        <div ref={messageRef!} class={`message prose break-words overflow-hidden flex-1 ${isUserMessage ? 'text-right' : ''}`}>
           {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
             <details open={!onRetry}>
               <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
@@ -173,6 +153,25 @@ export default ({
             <FileAttachments attachments={attachments!} />
           </Show>
         </div>
+      </div>
+      {/* Message action buttons */}
+      <div class={`flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isUserMessage ? 'justify-end' : ''}`}>
+        <button
+          onClick={copyMessage}
+          title="复制消息"
+          class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
+        >
+          <IconCopy />
+        </button>
+        {onDeleteMessage && (
+          <button
+            onClick={onDeleteMessage}
+            title="删除消息"
+            class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-red/10 transition-colors"
+          >
+            <IconDelete />
+          </button>
+        )}
       </div>
       {showRetry?.() && (
         <div class="flex items-center justify-between px-8 mb-24">
