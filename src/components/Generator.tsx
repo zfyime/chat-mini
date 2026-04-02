@@ -114,6 +114,25 @@ export default () => {
     // console.log('Message copied:', content.slice(0, 50) + '...')
   }
 
+  // 编辑用户消息并重新生成回答
+  const editMessage = (index: number, newContent: string) => {
+    const messages = messageList()
+    // 清理该消息之后所有消息的附件
+    for (let i = index + 1; i < messages.length; i++)
+      cleanupMessageAttachments(messages[i])
+
+    // 更新该条用户消息内容，并截断后续所有消息
+    const updatedMessage = { ...messages[index], content: newContent }
+    const updatedMessages = [...messages.slice(0, index), updatedMessage]
+    setMessageList(updatedMessages)
+
+    // 标记对话已修改
+    setIsCurrentChatModified(true)
+    setStick(true)
+    requestWithLatestMessage()
+    instantToBottom()
+  }
+
   const handleBeforeUnload = async() => {
     // 如果有未保存的对话修改，自动保存
     if (messageList().length > 0 && isCurrentChatModified())
@@ -401,6 +420,7 @@ export default () => {
             onExport={handleExport}
             onCopyMessage={copyMessage}
             onDeleteMessage={() => deleteMessage(index)}
+            onEditMessage={newContent => editMessage(index, newContent)}
           />
         )}
       </Index>

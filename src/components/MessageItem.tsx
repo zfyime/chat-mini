@@ -6,6 +6,7 @@ import IconRefresh from './icons/Refresh'
 import IconExport from './icons/Export'
 import IconCopy from './icons/Copy'
 import IconDelete from './icons/Delete'
+import IconEdit from './icons/Edit'
 import FileAttachments from './FileAttachments'
 import type { Accessor } from 'solid-js'
 import type { ChatMessage } from '@/types'
@@ -22,6 +23,7 @@ interface Props {
   onExport?: (format: 'markdown' | 'json' | 'text') => void
   onCopyMessage?: (content: string) => void
   onDeleteMessage?: () => void
+  onEditMessage?: (newContent: string) => void
 }
 
 export default ({
@@ -36,10 +38,13 @@ export default ({
   onExport,
   onCopyMessage,
   onDeleteMessage,
+  onEditMessage,
 }: Props) => {
   const isUserMessage = role === 'user'
   const [source, setSource] = createSignal('')
   const [codeCopied, setCodeCopied] = createSignal(false)
+  const [isEditing, setIsEditing] = createSignal(false)
+  const [editContent, setEditContent] = createSignal('')
 
   // Simple clipboard implementation for code blocks
   const copy = async() => {
@@ -60,6 +65,41 @@ export default ({
       onCopyMessage?.(content || '')
     } catch (err) {
       console.error('Failed to copy message:', err)
+    }
+  }
+
+  // Start editing message
+  const startEdit = () => {
+    const content = typeof message === 'function' ? message() : message
+    setEditContent(content || '')
+    setIsEditing(true)
+  }
+
+  // Confirm edit and trigger regeneration
+  const confirmEdit = () => {
+    const newContent = editContent().trim()
+    if (newContent && onEditMessage) {
+      onEditMessage(newContent)
+    }
+    setIsEditing(false)
+  }
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setIsEditing(false)
+    setEditContent('')
+  }
+
+  // Handle keyboard events in edit textarea
+  const handleEditKeydown = (e: KeyboardEvent) => {
+    if (e.isComposing || e.shiftKey) return
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      confirmEdit()
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelEdit()
     }
   }
 
@@ -140,48 +180,91 @@ export default ({
     <div class="md:py-2 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
         <div ref={messageRef!} class={`message prose break-words overflow-hidden flex-1 ${isUserMessage ? 'text-right' : ''}`}>
-          {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
-            <details open={!onRetry}>
-              <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
-              <div innerHTML={thinkHtmlStringWithCopyState()} />
-            </details>
-          )}
-          <div innerHTML={htmlStringWithCopyState()} />
+          <Show when={isEditing()}>
+            <div class="text-left">
+              <textarea
+                ref={(el) => {
+                  // 设置初始值并自动调整高度
+                  el.value = editContent()
+                  setTimeout(() => {
+                    el.style.height = 'auto'
+                    el.style.height = `${el.scrollHeight}px`
+                    el.focus()
+                  })
+                }}
+                onInput={(e) => {
+                  setEditContent(e.currentTarget.value)
+                  e.currentTarget.style.height = 'auto'
+                  e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`
+                }}
+                onKeyDown={handleEditKeydown}
+                class="w-full p-2 rounded-lg border border-slate/20 bg-[var(--c-bg)] text-[var(--c-fg)] resize-none focus:outline-none focus:border-slate/40 min-h-[4em]"
+              />
+              <div class="flex gap-2 mt-2 justify-end">
+                <button onClick={cancelEdit} class="px-3 py-1 text-sm rounded-md border border-slate/20 text-gray-500 hover:bg-slate/10 transition-colors">
+                  取消
+                </button>
+                <button onClick={confirmEdit} class="px-3 py-1 text-sm rounded-md bg-slate-700 text-white hover:bg-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 transition-colors">
+                  提交并重新生成
+                </button>
+              </div>
+            </div>
+          </Show>
+          <Show when={!isEditing()}>
+            {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
+              <details open={!onRetry}>
+                <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
+                <div innerHTML={thinkHtmlStringWithCopyState()} />
+              </details>
+            )}
+            <div innerHTML={htmlStringWithCopyState()} />
 
-          {/* Show attachments if present */}
-          <Show when={attachments && attachments.length > 0}>
-            <FileAttachments attachments={attachments!} />
+            {/* Show attachments if present */}
+            <Show when={attachments && attachments.length > 0}>
+              <FileAttachments attachments={attachments!} />
+            </Show>
           </Show>
         </div>
       </div>
       {/* Message action buttons */}
-      <div class={`flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isUserMessage ? 'justify-end' : ''}`}>
-        <button
-          onClick={copyMessage}
-          title="复制消息"
-          class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
-        >
-          <IconCopy />
-        </button>
-        {onDeleteMessage && (
+      <Show when={!isEditing()}>
+        <div class={`flex gap-0.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isUserMessage ? 'justify-end' : ''}`}>
           <button
-            onClick={onDeleteMessage}
-            title="删除消息"
-            class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-red/10 transition-colors"
-          >
-            <IconDelete />
-          </button>
-        )}
-        <Show when={!isUserMessage && showRetry?.()}>
-          <button
-            onClick={onRetry}
-            title="重新生成"
+            onClick={copyMessage}
+            title="复制消息"
             class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
           >
-            <IconRefresh />
+            <IconCopy />
           </button>
-        </Show>
-      </div>
+          {onDeleteMessage && (
+            <button
+              onClick={onDeleteMessage}
+              title="删除消息"
+              class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-red/10 transition-colors"
+            >
+              <IconDelete />
+            </button>
+          )}
+          {isUserMessage && onEditMessage && (
+            <button
+              onClick={startEdit}
+              title="编辑消息"
+              class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
+            >
+              <IconEdit />
+            </button>
+          )}
+          <Show when={!isUserMessage && showRetry?.()}>
+            <button
+              onClick={onRetry}
+              title="重新生成"
+              class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
+            >
+              <IconRefresh />
+            </button>
+          </Show>
+        </div>
+      </Show>
       {showRetry?.() && (
         <div class="flex items-center justify-end mb-24 px-8">
           <Show when={onExport && onToggleExportMenu && showExportMenu}>
