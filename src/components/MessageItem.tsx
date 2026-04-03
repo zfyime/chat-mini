@@ -177,11 +177,10 @@ export default ({
   })
 
   return (
-    <div class="md:py-2 md:px-4 transition-colors md:hover:bg-slate/3 group">
+    <div class="md:py-2 md:px-4 transition-colors group">
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
-        <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? 'max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 py-2' : 'flex-1'}`}>
+        <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? `max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 py-2${isEditing() ? ' w-[85%]' : ''}` : 'flex-1'}`}>
           <Show when={isEditing()}>
-            <div class="text-left">
               <textarea
                 ref={(el) => {
                   // 设置初始值并自动调整高度
@@ -208,7 +207,6 @@ export default ({
                   提交
                 </button>
               </div>
-            </div>
           </Show>
           <Show when={!isEditing()}>
             {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
