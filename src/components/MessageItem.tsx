@@ -179,7 +179,7 @@ export default ({
   return (
     <div class="md:py-2 md:px-4 transition-colors md:hover:bg-slate/3 group">
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
-        <div ref={messageRef!} class={`message prose break-words overflow-hidden flex-1 ${isUserMessage ? 'text-right' : ''}`}>
+        <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? 'max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 py-2' : 'flex-1'}`}>
           <Show when={isEditing()}>
             <div class="text-left">
               <textarea
