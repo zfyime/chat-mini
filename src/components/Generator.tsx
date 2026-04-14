@@ -261,6 +261,7 @@ export default () => {
       return
     }
     archiveCurrentMessage()
+    dispatchStreamingState(false)
     instantToBottom()
   }
 
