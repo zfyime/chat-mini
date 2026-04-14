@@ -1,12 +1,13 @@
 ---
 import Logo from './Logo.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
+import ModelSelector from './ModelSelector'
 ---
 
 <header id="page-header" class="sticky top-0 z-30 border-b border-transparent overflow-x-clip">
   <!-- 动态背景层：在吸顶时通过脚本显示，并利用负边距实现全屏遮罩 -->
   <div id="header-bg" class="absolute inset-0 bg-[var(--c-bg)]/80 backdrop-blur-md opacity-0 transition-opacity duration-300"></div>
-  
+
   <div class="relative max-w-[85ch] mx-auto px-0" id="header-container">
     <div class="fb items-center py-4" id="header-top">
       <div class="fi gap-2">
@@ -19,9 +20,12 @@ import ThemeSwitch from './ThemeSwitch.astro'
           <span class="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-emerald-600">Mini</span>
         </div>
       </div>
-      <ThemeSwitch />
+      <div class="fi gap-1">
+        <ModelSelector client:load />
+        <ThemeSwitch />
+      </div>
     </div>
-    
+
     <!-- 默认大标题区域：滚动后高度塌陷并淡出 -->
     <div id="header-info" class="pb-4 transition-all duration-400 cubic-bezier([0.4,0,0.2,1]) origin-top-left">
       <div class="fi mt-2">
@@ -84,7 +88,7 @@ import ThemeSwitch from './ThemeSwitch.astro'
     if (!ticking) {
       window.requestAnimationFrame(() => {
         const scrollY = window.scrollY
-        
+
         // 引入迟滞 (Hysteresis) 机制：
         // 1. 向下滚动超过 100px 激活收缩状态
         // 2. 向上滚动回到 20px 以下才恢复原始状态
@@ -100,7 +104,7 @@ import ThemeSwitch from './ThemeSwitch.astro'
             isScrolled = false
           }
         }
-        
+
         ticking = false
       })
       ticking = true
@@ -109,7 +113,7 @@ import ThemeSwitch from './ThemeSwitch.astro'
 
   window.addEventListener('scroll', handleScroll, { passive: true })
   handleScroll() // 初始化检查
-  
+
   logoContainer?.addEventListener('click', () => {
     window.dispatchEvent(new CustomEvent('toggle-history'))
   })

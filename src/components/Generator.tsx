@@ -80,9 +80,16 @@ export default () => {
 
     loadSessionData()
 
+    // 监听 header 模型切换事件
+    const handleModelChange = ((e: CustomEvent) => {
+      setChatModel(e.detail)
+    }) as EventListener
+    window.addEventListener('model-change', handleModelChange)
+
     window.addEventListener('beforeunload', handleBeforeUnload)
     onCleanup(() => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('model-change', handleModelChange)
       document.removeEventListener('click', handleClickOutside)
       // 清理文件URL
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))

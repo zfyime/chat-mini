@@ -44,11 +44,10 @@ export function useStickToBottom({ threshold }: Options): StickToBottomResult {
       // 程序触发的滚动不影响 isStick 状态
       if (programmaticScroll) return
 
-      if (isAtBottom()) {
+      if (isAtBottom())
         setStick(true)
-      } else {
+      else
         setStick(false)
-      }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })

@@ -78,9 +78,9 @@ export default ({
   // Confirm edit and trigger regeneration
   const confirmEdit = () => {
     const newContent = editContent().trim()
-    if (newContent && onEditMessage) {
+    if (newContent && onEditMessage)
       onEditMessage(newContent)
-    }
+
     setIsEditing(false)
   }
 

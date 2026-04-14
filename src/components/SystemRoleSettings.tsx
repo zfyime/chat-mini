@@ -1,4 +1,4 @@
-import { For, Show, createEffect, createSignal } from 'solid-js'
+import { For, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { useStorage } from 'solidjs-use'
 import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import IconEnv from './icons/Env'
@@ -19,6 +19,15 @@ export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
   const [chatModel, setChatModel] = useStorage('selected_model', CONFIG.DEFAULT_MODEL)
+
+  // 监听 header 模型切换，同步本组件状态
+  onMount(() => {
+    const handleModelChange = ((e: CustomEvent) => {
+      setChatModel(e.detail)
+    }) as EventListener
+    window.addEventListener('model-change', handleModelChange)
+    onCleanup(() => window.removeEventListener('model-change', handleModelChange))
+  })
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
@@ -69,7 +78,11 @@ export default (props: Props) => {
                 value={chatModel()}
                 class="w-full rounded-lg p-2 appearance-none"
                 gen-textarea
-                onChange={e => setChatModel(e.currentTarget.value)}
+                onChange={(e) => {
+                  const value = e.currentTarget.value
+                  setChatModel(value)
+                  window.dispatchEvent(new CustomEvent('model-change', { detail: value }))
+                }}
               >
                 <For each={AVAILABLE_MODELS}>
                   {model => <option value={model.id}>{model.name}</option>}
