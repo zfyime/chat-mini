@@ -75,6 +75,12 @@ import ModelSelector from './ModelSelector'
     right: 0;
     top: 100%;
   }
+
+  /* 瞬时切换：临时禁用过渡（仅在同帧内使用） */
+  #page-header.no-transition,
+  #page-header.no-transition * {
+    transition-duration: 0s !important;
+  }
 </style>
 
 <script>
@@ -83,6 +89,30 @@ import ModelSelector from './ModelSelector'
 
   let isScrolled = false
   let ticking = false
+  let isStreamingLocked = false
+
+  // 无动画地添加 is-scrolled（同帧内完成，不产生过渡）
+  const collapseInstant = () => {
+    header?.classList.add('no-transition')
+    header?.classList.add('is-scrolled')
+    isScrolled = true
+    void header?.offsetHeight // 强制回流，让 0s 过渡立即生效
+    header?.classList.remove('no-transition')
+  }
+
+  // 流式输出期间锁定 header，只阻止从收缩恢复展开
+  window.addEventListener('streaming-state-change', (e: CustomEvent) => {
+    if (e.detail.streaming) {
+      isStreamingLocked = true
+      // 如果已经滚动过阈值，立即收缩（单步完成，无动画）
+      if (window.scrollY > 100 && !isScrolled) {
+        collapseInstant()
+      }
+    } else {
+      isStreamingLocked = false
+      handleScroll() // 恢复正常逻辑
+    }
+  })
 
   const handleScroll = () => {
     if (!ticking) {
@@ -95,11 +125,17 @@ import ModelSelector from './ModelSelector'
         // 这 80px 的缓冲区可以有效防止临界点处的反复横跳
         if (scrollY > 100) {
           if (!isScrolled) {
-            header?.classList.add('is-scrolled')
-            isScrolled = true
+            // 流式期间无动画收缩，避免和滚动产生"两步"感
+            if (isStreamingLocked) {
+              collapseInstant()
+            } else {
+              header?.classList.add('is-scrolled')
+              isScrolled = true
+            }
           }
         } else if (scrollY < 20) {
-          if (isScrolled) {
+          // 流式输出期间不允许恢复展开状态，防止高频抖动
+          if (isScrolled && !isStreamingLocked) {
             header?.classList.remove('is-scrolled')
             isScrolled = false
           }

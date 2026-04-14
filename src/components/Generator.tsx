@@ -44,6 +44,11 @@ export default () => {
   const chatModelSetting = (value: string) => { setChatModel(value) }
   const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
 
+  // 通知 header 流式输出状态变化
+  const dispatchStreamingState = (streaming: boolean) => {
+    window.dispatchEvent(new CustomEvent('streaming-state-change', { detail: { streaming } }))
+  }
+
   const thinkParser = createThinkTagParser({
     onMessage: chunk => setCurrentAssistantMessage(prev => prev + chunk),
     onThink: chunk => setCurrentAssistantThinkMessage(prev => prev + chunk),
@@ -231,10 +236,16 @@ export default () => {
       const reader = data.getReader()
       const decoder = new TextDecoder('utf-8')
       let done = false
+      let streamingLocked = false
 
       while (!done) {
         const { value, done: readerDone } = await reader.read()
         if (value) {
+          // 收到第一个 chunk 时才通知 header 锁定，避免短内容被误锁
+          if (!streamingLocked) {
+            dispatchStreamingState(true)
+            streamingLocked = true
+          }
           const chunk = decoder.decode(value, { stream: true })
           thinkParser.process(chunk)
 
@@ -245,6 +256,7 @@ export default () => {
     } catch (e) {
       console.error(e)
       setLoading(false)
+      dispatchStreamingState(false)
       setController(null)
       return
     }
@@ -269,6 +281,7 @@ export default () => {
       setCurrentAssistantMessage('')
       setCurrentAssistantThinkMessage('')
       setLoading(false)
+      dispatchStreamingState(false)
       setController(null)
 
       // 标记对话已修改并立即保存/更新历史
