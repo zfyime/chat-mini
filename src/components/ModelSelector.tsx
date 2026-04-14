@@ -4,9 +4,7 @@ import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 export default () => {
   const [isOpen, setIsOpen] = createSignal(false)
   const [isStreaming, setIsStreaming] = createSignal(false)
-  const [currentModel, setCurrentModel] = createSignal(
-    localStorage.getItem('selected_model') || CONFIG.DEFAULT_MODEL,
-  )
+  const [currentModel, setCurrentModel] = createSignal(CONFIG.DEFAULT_MODEL)
 
   const getModelName = (modelId: string) => {
     return AVAILABLE_MODELS.find(m => m.id === modelId)?.name || modelId
@@ -20,6 +18,10 @@ export default () => {
   }
 
   onMount(() => {
+    // 从 localStorage 恢复上次选择的模型（仅浏览器端）
+    const saved = localStorage.getItem('selected_model')
+    if (saved) setCurrentModel(saved)
+
     const handleModelChange = ((e: CustomEvent) => {
       setCurrentModel(e.detail)
     }) as EventListener
