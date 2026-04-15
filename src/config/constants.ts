@@ -66,16 +66,16 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-5.4', name: 'gpt-5.4' },
-  { id: 'gpt-5-search-api', name: 'gpt-5-search' },
-  { id: 'cc-sonnet-4-5-20250929', name: 'claude-4.5-sonnet' },
-  { id: 'cc-opus-4-5-20251101', name: 'claude-4.5-opus' },
-  { id: 'gemini-3.1-pro-preview', name: 'gemini-3.1-pro' },
-  { id: 'gemini-3.1-pro-preview-search', name: 'gemini-3.1-pro-search' },
-  { id: 'grok-4.1', name: 'grok-4.1' },
-  { id: 'glm-5', name: 'glm-5' },
-  { id: 'deepseek-v3.2', name: 'deepseek-v3.2' },
-  { id: 'doubao-seed-1-8-251228', name: 'doubao-seed-1.8' },
+  { id: 'gpt-5.4', name: 'GPT-5.4' },
+  { id: 'gpt-5-search-api', name: 'GPT-5-Search' },
+  { id: 'claude-sonnet-4-6', name: 'Claude-4.6-Sonnet' },
+  { id: 'claude-opus-4-6', name: 'Claude-4.6-Opus' },
+  { id: 'gemini-3.1-pro-preview', name: 'Gemini-3.1-Pro' },
+  { id: 'gemini-3.1-pro-preview-search', name: 'Gemini-3.1-Pro-Search' },
+  { id: 'grok-4.1', name: 'Grok-4.1' },
+  { id: 'glm-5', name: 'GLM-5' },
+  { id: 'deepseek-v3.2', name: 'DeepSeek-V3.2' },
+  { id: 'doubao-seed-1-8-251228', name: 'Doubao-Seed-1.8' },
 ] as const
 
 // 错误消息
