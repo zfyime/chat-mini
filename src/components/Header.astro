@@ -2,6 +2,7 @@
 import Logo from './Logo.astro'
 import ThemeSwitch from './ThemeSwitch.astro'
 import ModelSelector from './ModelSelector'
+import WebSearchToggle from './WebSearchToggle'
 ---
 
 <header id="page-header" class="sticky top-0 z-30 border-b border-transparent overflow-x-clip">
@@ -21,6 +22,7 @@ import ModelSelector from './ModelSelector'
         </div>
       </div>
       <div class="fi gap-1">
+        <WebSearchToggle client:load />
         <ModelSelector client:load />
         <ThemeSwitch />
       </div>

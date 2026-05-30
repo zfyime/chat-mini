@@ -1,13 +1,16 @@
 // #vercel-disable-blocks
 import { ProxyAgent, fetch } from 'undici'
 // #vercel-end
-import { generatePayload, parseOpenAIStream } from '@/utils/openAI'
+import { buildOpenAIMessages, generatePayload, generatePayloadRaw, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/openAI'
 import { verifySignature } from '@/utils/auth'
-import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
+import { tavilySearch } from '@/utils/tavily'
+import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
+import { AGENT_TOOLS } from '@/config/tools'
 import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
 const httpsProxy = import.meta.env.HTTPS_PROXY
+const tavilyApiKey = import.meta.env.TAVILY_API_KEY
 const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
 const sitePassword = import.meta.env.SITE_PASSWORD || ''
 const passList = sitePassword.split(',') || []
@@ -16,7 +19,7 @@ const apiModel = CONFIG.DEFAULT_MODEL
 
 export const post: APIRoute = async(context) => {
   const body = await context.request.json()
-  const { sign, time, messages, pass, temperature, model } = body
+  const { sign, time, messages, pass, temperature, model, webSearch } = body
   if (!messages) {
     return new Response(JSON.stringify({
       error: {
@@ -48,23 +51,202 @@ export const post: APIRoute = async(context) => {
       },
     }), { status: 400 })
   }
-  const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
-  // #vercel-disable-blocks
-  if (httpsProxy)
-    initOptions.dispatcher = new ProxyAgent(httpsProxy)
-  // #vercel-end
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error
-  const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
-    console.error(err)
+  const dispatcher = httpsProxy ? new ProxyAgent(httpsProxy) : undefined
+
+  // 联网搜索开关关闭：走原有的单次流式逻辑
+  if (!webSearch) {
+    const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
+    // #vercel-disable-blocks
+    if (dispatcher) initOptions.dispatcher = dispatcher
+    // #vercel-end
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
+    const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
+      console.error(err)
+      return new Response(JSON.stringify({
+        error: {
+          code: err.name,
+          message: err.message,
+        },
+      }), { status: 500 })
+    }) as Response
+
+    return parseOpenAIStream(response) as Response
+  }
+
+  // 联网开但未配置 Tavily key
+  if (!tavilyApiKey) {
     return new Response(JSON.stringify({
       error: {
-        code: err.name,
-        message: err.message,
+        message: '未配置 TAVILY_API_KEY，无法使用联网搜索。',
       },
-    }), { status: 500 })
-  }) as Response
+    }), { status: 400 })
+  }
 
-  return parseOpenAIStream(response) as Response
+  return runAgentLoop({
+    messages,
+    temperature,
+    model: modelToUse,
+    dispatcher,
+  })
+}
+
+interface AgentLoopArgs {
+  messages: any[]
+  temperature: number
+  model: string
+  dispatcher?: any
+}
+
+const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArgs): Response => {
+  const encoder = new TextEncoder()
+  // 把项目内的 ChatMessage 转成 OpenAI 协议消息后作为初始 workingMessages
+  const workingMessages: any[] = buildOpenAIMessages(messages)
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const writeToolTag = (body: string) => {
+        controller.enqueue(encoder.encode(`<tool>${body}\n</tool>`))
+      }
+
+      try {
+        let round = 0
+        while (round < AGENT.MAX_TOOL_ROUNDS) {
+          const init = generatePayloadRaw(apiKey, workingMessages, temperature, model, {
+            stream: false,
+            tools: AGENT_TOOLS as any[],
+            toolChoice: 'auto',
+          })
+          if (dispatcher) (init as any).dispatcher = dispatcher
+
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-expect-error
+          const resp = await fetch(`${baseUrl}/chat/completions`, init) as Response
+          if (!resp.ok) {
+            const text = await resp.text().catch(() => '')
+            controller.enqueue(encoder.encode(`\n\n[上游错误 ${resp.status}] ${text.slice(0, 300)}`))
+            controller.close()
+            return
+          }
+          const json: any = await resp.json()
+          const choice = json.choices?.[0]
+          const msg = choice?.message
+
+          if (!msg) {
+            controller.enqueue(encoder.encode('\n\n[上游返回为空]'))
+            controller.close()
+            return
+          }
+
+          // 模型不再调用工具，且本轮就是最终回答
+          if (!msg.tool_calls || msg.tool_calls.length === 0) {
+            // 仍可能带 reasoning_content，简单包一层 think 标签透出
+            if (msg.reasoning_content && typeof msg.reasoning_content === 'string')
+              controller.enqueue(encoder.encode(`<think>${msg.reasoning_content}</think>`))
+            if (msg.content) controller.enqueue(encoder.encode(String(msg.content)))
+            controller.close()
+            return
+          }
+
+          // 把 assistant 这条带 tool_calls 的消息回灌到上下文
+          workingMessages.push({
+            role: 'assistant',
+            content: msg.content ?? '',
+            tool_calls: msg.tool_calls,
+          })
+
+          for (const call of msg.tool_calls) {
+            if (call?.function?.name !== 'web_search') {
+              writeToolTag(`⚠️ 未知工具: ${call?.function?.name}`)
+              workingMessages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify({ error: 'unknown tool' }),
+              })
+              continue
+            }
+
+            let args: { query?: string } = {}
+            try {
+              args = JSON.parse(call.function.arguments || '{}')
+            } catch (e) {
+              writeToolTag(`⚠️ 工具参数解析失败: ${(e as Error).message}`)
+              workingMessages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify({ error: 'invalid arguments json' }),
+              })
+              continue
+            }
+
+            const query = (args.query || '').trim()
+            if (!query) {
+              writeToolTag('⚠️ 空 query')
+              workingMessages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify({ error: 'empty query' }),
+              })
+              continue
+            }
+
+            writeToolTag(`🔍 搜索: ${query}`)
+            try {
+              const search = await tavilySearch(query, tavilyApiKey, {
+                maxResults: AGENT.TAVILY_MAX_RESULTS,
+                searchDepth: AGENT.TAVILY_SEARCH_DEPTH,
+                dispatcher,
+              }, fetch as any)
+
+              writeToolTag(`✅ 共 ${search.results.length} 条结果`)
+              const compact = search.results.map(r => ({
+                title: r.title,
+                url: r.url,
+                snippet: r.content?.slice(0, 600) ?? '',
+              }))
+              workingMessages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify(compact),
+              })
+            } catch (e) {
+              const errMsg = (e as Error).message
+              writeToolTag(`❌ 搜索失败: ${errMsg}`)
+              workingMessages.push({
+                role: 'tool',
+                tool_call_id: call.id,
+                content: JSON.stringify({ error: errMsg }),
+              })
+            }
+          }
+
+          round++
+        }
+
+        // 触顶：禁用工具，开启流式拿最终回答
+        const finalInit = generatePayloadRaw(apiKey, workingMessages, temperature, model, {
+          stream: true,
+          toolChoice: 'none',
+        })
+        if (dispatcher) (finalInit as any).dispatcher = dispatcher
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        const finalResp = await fetch(`${baseUrl}/chat/completions`, finalInit) as Response
+        if (!finalResp.ok) {
+          const text = await finalResp.text().catch(() => '')
+          controller.enqueue(encoder.encode(`\n\n[上游错误 ${finalResp.status}] ${text.slice(0, 300)}`))
+          controller.close()
+          return
+        }
+        await pipeOpenAIStreamToController(finalResp, controller, { closeWhenDone: true })
+      } catch (e) {
+        controller.enqueue(encoder.encode(`\n\n[agent 异常] ${(e as Error).message}`))
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream)
 }

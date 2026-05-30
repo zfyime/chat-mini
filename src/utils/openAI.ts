@@ -75,29 +75,62 @@ const transformMessagesForAPI = (messages: ChatMessage[]) => {
   })
 }
 
+// 导出供 agent 循环使用：把项目内 ChatMessage 转成 OpenAI 协议格式的消息
+export const buildOpenAIMessages = transformMessagesForAPI
+
+interface PayloadOptions {
+  stream?: boolean
+  tools?: any[]
+  toolChoice?: 'auto' | 'none' | 'required'
+}
+
+const buildRequestInit = (
+  apiKey: string,
+  body: Record<string, any>,
+): RequestInit & { dispatcher?: any } => ({
+  headers: {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Authorization': `Bearer ${apiKey}`,
+    'Accept': 'text/event-stream',
+    'Accept-Charset': 'utf-8',
+  },
+  method: 'POST',
+  body: JSON.stringify(body),
+})
+
 export const generatePayload = (
   apiKey: string,
   messages: ChatMessage[],
   temperature: number,
   model: string,
+  opts: PayloadOptions = {},
 ): RequestInit & { dispatcher?: any } => {
   const transformedMessages = transformMessagesForAPI(messages)
+  return buildRequestInit(apiKey, {
+    model,
+    messages: transformedMessages,
+    temperature,
+    stream: opts.stream ?? true,
+    ...(opts.tools ? { tools: opts.tools, tool_choice: opts.toolChoice ?? 'auto' } : {}),
+  })
+}
 
-  return {
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Authorization': `Bearer ${apiKey}`,
-      'Accept': 'text/event-stream',
-      'Accept-Charset': 'utf-8',
-    },
-    method: 'POST',
-    body: JSON.stringify({
-      model,
-      messages: transformedMessages,
-      temperature,
-      stream: true,
-    }),
-  }
+// Agent 循环里 workingMessages 已经是 OpenAI 协议格式（含 assistant.tool_calls / role: 'tool'），
+// 不应再走 transformMessagesForAPI，否则会丢失 tool_calls 等字段
+export const generatePayloadRaw = (
+  apiKey: string,
+  rawMessages: any[],
+  temperature: number,
+  model: string,
+  opts: PayloadOptions = {},
+): RequestInit & { dispatcher?: any } => {
+  return buildRequestInit(apiKey, {
+    model,
+    messages: rawMessages,
+    temperature,
+    stream: opts.stream ?? true,
+    ...(opts.tools ? { tools: opts.tools, tool_choice: opts.toolChoice ?? 'auto' } : {}),
+  })
 }
 
 export const parseOpenAIStream = (rawResponse: Response) => {
@@ -110,91 +143,102 @@ export const parseOpenAIStream = (rawResponse: Response) => {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
-      if (!reader) {
-        controller.close()
-        return
-      }
-
-      let isThinking = false
-      const encoder = new TextEncoder()
-
-      // 辅助函数：提取文本内容
-      const extractTextContent = (content: unknown): string => {
-        if (!content) return ''
-        if (typeof content === 'string') return content
-        if (Array.isArray(content))
-          return content.map(item => extractTextContent(item)).join('')
-
-        if (typeof content === 'object') {
-          const maybeText = (content as { text?: unknown }).text
-          if (typeof maybeText === 'string') return maybeText
-
-          const maybeContent = (content as { content?: unknown }).content
-          if (maybeContent !== undefined) return extractTextContent(maybeContent)
-        }
-
-        return ''
-      }
-
-      const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
-        if (event.type === 'event') {
-          const data = event.data
-          if (data === '[DONE]') {
-            // 如果还在思考模式中，需要关闭 think 标签
-            if (isThinking)
-              controller.enqueue(encoder.encode('</think>'))
-            controller.close()
-            return
-          }
-          try {
-            const trimmed = data?.trimStart()
-            if (!trimmed || trimmed[0] !== '{')
-              return
-            const json = JSON.parse(trimmed)
-            const choice = json.choices && json.choices[0]
-
-            // 处理 reasoning_content 字段（与 delta 同级）
-            const rawReasoningContent = choice && choice.delta?.reasoning_content ? choice.delta.reasoning_content : null
-            const rawTextContent = choice && choice.delta?.content ? choice.delta.content : null
-
-            // 提取实际的文本内容
-            const reasoningContent = rawReasoningContent ? extractTextContent(rawReasoningContent) : ''
-            const text = rawTextContent ? extractTextContent(rawTextContent) : ''
-
-            // 处理流式的 reasoning_content
-            if (reasoningContent) {
-              if (!isThinking)
-                controller.enqueue(encoder.encode('<think>'))
-
-              isThinking = true
-              controller.enqueue(encoder.encode(reasoningContent))
-            }
-
-            if (text) {
-              if (isThinking)
-                controller.enqueue(encoder.encode('</think>'))
-
-              isThinking = false
-              controller.enqueue(encoder.encode(text))
-            }
-          } catch (e) {
-            // 某些上游会发送非 JSON 的 keep-alive/注释帧；跳过即可，避免中断整条流
-          }
-        }
-      })
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          parser.feed(value)
-        }
-      } catch (error) {
-        controller.error(error)
-      }
+      await pipeOpenAIStreamToController(rawResponse, controller, { closeWhenDone: true })
     },
   })
 
   return new Response(stream)
+}
+
+interface PipeOptions {
+  // 末轮流式结束时是否关闭 controller。在 agent 聚合流里调多次时应传 false
+  closeWhenDone?: boolean
+}
+
+// 把一次 OpenAI 流式响应的内容解析后写入给定的 controller。
+// 抽出来后既被 parseOpenAIStream 使用，也供 generate.ts 中的 agent 循环复用。
+export const pipeOpenAIStreamToController = async(
+  rawResponse: Response,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  { closeWhenDone = true }: PipeOptions = {},
+): Promise<void> => {
+  const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
+  if (!reader) {
+    if (closeWhenDone) controller.close()
+    return
+  }
+
+  let isThinking = false
+  const encoder = new TextEncoder()
+
+  const extractTextContent = (content: unknown): string => {
+    if (!content) return ''
+    if (typeof content === 'string') return content
+    if (Array.isArray(content))
+      return content.map(item => extractTextContent(item)).join('')
+
+    if (typeof content === 'object') {
+      const maybeText = (content as { text?: unknown }).text
+      if (typeof maybeText === 'string') return maybeText
+
+      const maybeContent = (content as { content?: unknown }).content
+      if (maybeContent !== undefined) return extractTextContent(maybeContent)
+    }
+
+    return ''
+  }
+
+  const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
+    if (event.type === 'event') {
+      const data = event.data
+      if (data === '[DONE]') {
+        if (isThinking)
+          controller.enqueue(encoder.encode('</think>'))
+        if (closeWhenDone) controller.close()
+        return
+      }
+      try {
+        const trimmed = data?.trimStart()
+        if (!trimmed || trimmed[0] !== '{')
+          return
+        const json = JSON.parse(trimmed)
+        const choice = json.choices && json.choices[0]
+
+        const rawReasoningContent = choice && choice.delta?.reasoning_content ? choice.delta.reasoning_content : null
+        const rawTextContent = choice && choice.delta?.content ? choice.delta.content : null
+
+        const reasoningContent = rawReasoningContent ? extractTextContent(rawReasoningContent) : ''
+        const text = rawTextContent ? extractTextContent(rawTextContent) : ''
+
+        if (reasoningContent) {
+          if (!isThinking)
+            controller.enqueue(encoder.encode('<think>'))
+
+          isThinking = true
+          controller.enqueue(encoder.encode(reasoningContent))
+        }
+
+        if (text) {
+          if (isThinking)
+            controller.enqueue(encoder.encode('</think>'))
+
+          isThinking = false
+          controller.enqueue(encoder.encode(text))
+        }
+      } catch (e) {
+        // keep-alive / 注释帧
+      }
+    }
+  })
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      parser.feed(value)
+    }
+  } catch (error) {
+    if (closeWhenDone) controller.error(error)
+    else throw error
+  }
 }

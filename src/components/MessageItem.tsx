@@ -15,6 +15,7 @@ interface Props {
   role: ChatMessage['role']
   message: Accessor<string> | string
   thinkMessage: Accessor<string> | string
+  toolMessage?: Accessor<string> | string
   attachments?: ChatMessage['attachments']
   showRetry?: Accessor<boolean>
   onRetry?: () => void
@@ -30,6 +31,7 @@ export default ({
   role,
   message,
   thinkMessage,
+  toolMessage,
   attachments,
   showRetry,
   onRetry,
@@ -139,6 +141,7 @@ export default ({
 
   const htmlString = () => renderMarkdown(message)
   const thinkHtmlString = () => renderMarkdown(thinkMessage)
+  const toolHtmlString = () => toolMessage ? renderMarkdown(toolMessage) : ''
   const htmlStringWithCopyState = () => {
     codeCopied()
     return htmlString()
@@ -146,6 +149,16 @@ export default ({
   const thinkHtmlStringWithCopyState = () => {
     codeCopied()
     return thinkHtmlString()
+  }
+  const toolHtmlStringWithCopyState = () => {
+    codeCopied()
+    return toolHtmlString()
+  }
+
+  const hasToolMessage = () => {
+    if (!toolMessage) return false
+    const v = typeof toolMessage === 'function' ? toolMessage() : toolMessage
+    return !!v && v !== ''
   }
 
   const handleCopyClick = (e: MouseEvent) => {
@@ -209,6 +222,12 @@ export default ({
               </div>
           </Show>
           <Show when={!isEditing()}>
+            {hasToolMessage() && (
+              <details open={!onRetry}>
+                <summary>🔍 联网搜索</summary>
+                <div innerHTML={toolHtmlStringWithCopyState()} />
+              </details>
+            )}
             {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
               <details open={!onRetry}>
                 <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>

@@ -85,3 +85,10 @@ export const ERROR_MESSAGES = {
   SAVE_FAILED: '保存失败，请稍后重试',
   LOAD_FAILED: '加载失败，请刷新页面重试',
 } as const
+
+// Agent / 工具调用相关
+export const AGENT = {
+  MAX_TOOL_ROUNDS: 3, // 服务端最多执行的工具循环轮数
+  TAVILY_MAX_RESULTS: 5,
+  TAVILY_SEARCH_DEPTH: 'basic' as 'basic' | 'advanced',
+} as const

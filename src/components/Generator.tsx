@@ -5,7 +5,7 @@ import { saveOrUpdateChat } from '@/store/historyStore'
 import { cleanupFileUrl } from '@/utils/fileUtils'
 import { exportChat } from '@/utils/exportUtils'
 import { loadChatSession, saveChatSession } from '@/utils/chatSession'
-import { createThinkTagParser } from '@/utils/thinkTagParser'
+import { createTagParser } from '@/utils/tagParser'
 import { useStickToBottom } from '@/hooks/useStickToBottom'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
@@ -26,6 +26,7 @@ export default () => {
   const [currentError, setCurrentError] = createSignal<ErrorMessage>()
   const [currentAssistantMessage, setCurrentAssistantMessage] = createSignal('')
   const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
+  const [currentAssistantToolMessage, setCurrentAssistantToolMessage] = createSignal('')
   const [loading, setLoading] = createSignal(false)
   const [controller, setController] = createSignal<AbortController | null>(null)
   const { isStick, setStick, instantToBottom } = useStickToBottom({
@@ -33,6 +34,7 @@ export default () => {
   })
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
   const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
+  const [webSearchEnabled, setWebSearchEnabled] = createSignal(false)
   // 新增：跟踪对话状态
   const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
   const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
@@ -49,9 +51,13 @@ export default () => {
     window.dispatchEvent(new CustomEvent('streaming-state-change', { detail: { streaming } }))
   }
 
-  const thinkParser = createThinkTagParser({
-    onMessage: chunk => setCurrentAssistantMessage(prev => prev + chunk),
-    onThink: chunk => setCurrentAssistantThinkMessage(prev => prev + chunk),
+  const thinkParser = createTagParser({
+    tags: ['think', 'tool'],
+    onText: chunk => setCurrentAssistantMessage(prev => prev + chunk),
+    onTag: (tag, chunk) => {
+      if (tag === 'think') setCurrentAssistantThinkMessage(prev => prev + chunk)
+      else if (tag === 'tool') setCurrentAssistantToolMessage(prev => prev + chunk)
+    },
   })
 
   const cleanupMessageAttachments = (message: ChatMessage) => {
@@ -91,10 +97,19 @@ export default () => {
     }) as EventListener
     window.addEventListener('model-change', handleModelChange)
 
+    // 监听 header 联网开关事件
+    const savedWebSearch = localStorage.getItem('web-search-enabled')
+    if (savedWebSearch === '1') setWebSearchEnabled(true)
+    const handleWebSearchChange = ((e: CustomEvent) => {
+      setWebSearchEnabled(!!e.detail)
+    }) as EventListener
+    window.addEventListener('web-search-change', handleWebSearchChange)
+
     window.addEventListener('beforeunload', handleBeforeUnload)
     onCleanup(() => {
       window.removeEventListener('beforeunload', handleBeforeUnload)
       window.removeEventListener('model-change', handleModelChange)
+      window.removeEventListener('web-search-change', handleWebSearchChange)
       document.removeEventListener('click', handleClickOutside)
       // 清理文件URL
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))
@@ -194,6 +209,7 @@ export default () => {
     setLoading(true)
     setCurrentAssistantMessage('')
     setCurrentAssistantThinkMessage('')
+    setCurrentAssistantToolMessage('')
     setCurrentError(null)
     thinkParser.reset()
     const storagePassword = localStorage.getItem('pass')
@@ -220,6 +236,7 @@ export default () => {
           }),
           temperature: temperature(),
           model: chatModel(),
+          webSearch: webSearchEnabled(),
         }),
         signal: controller.signal,
       })
@@ -266,11 +283,12 @@ export default () => {
   }
 
   const archiveCurrentMessage = () => {
-    if (currentAssistantMessage() || currentAssistantThinkMessage()) {
+    if (currentAssistantMessage() || currentAssistantThinkMessage() || currentAssistantToolMessage()) {
       const newAssistantMessage: ChatMessage = {
         role: 'assistant',
         content: currentAssistantMessage(),
         think: currentAssistantThinkMessage(),
+        tool: currentAssistantToolMessage() || undefined,
       }
 
       const updatedMessages = [
@@ -281,6 +299,7 @@ export default () => {
       setMessageList(updatedMessages)
       setCurrentAssistantMessage('')
       setCurrentAssistantThinkMessage('')
+      setCurrentAssistantToolMessage('')
       setLoading(false)
       dispatchStreamingState(false)
       setController(null)
@@ -313,6 +332,7 @@ export default () => {
     setMessageList([])
     setCurrentAssistantMessage('')
     setCurrentAssistantThinkMessage('')
+    setCurrentAssistantToolMessage('')
     setCurrentError(null)
 
     // 清除文件
@@ -433,6 +453,7 @@ export default () => {
             role={message().role}
             message={message().content}
             thinkMessage={message().think}
+            toolMessage={message().tool}
             attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
@@ -445,11 +466,12 @@ export default () => {
           />
         )}
       </Index>
-      {(currentAssistantMessage() || currentAssistantThinkMessage()) && (
+      {(currentAssistantMessage() || currentAssistantThinkMessage() || currentAssistantToolMessage()) && (
         <MessageItem
           role="assistant"
           message={currentAssistantMessage}
           thinkMessage={currentAssistantThinkMessage}
+          toolMessage={currentAssistantToolMessage}
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
