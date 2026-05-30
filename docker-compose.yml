@@ -1,21 +1,26 @@
-version: '3'
-
 services:
   chat:
     build: .
     container_name: chat-mini
     restart: always
     ports:
-        - "3000:3000"
+      - "3000:3000"
     environment:
-        OPENAI_API_KEY: ${OPENAI_API_KEY}
-        OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL}
-        VIRTUAL_HOST: ${VIRTUAL_HOST}
-        LETSENCRYPT_HOST: ${VIRTUAL_HOST}
-        VIRTUAL_PROTO: http
-        VIRTUAL_PORT: 3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_BASE_URL: ${OPENAI_API_BASE_URL}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      VIRTUAL_HOST: ${VIRTUAL_HOST}
+      LETSENCRYPT_HOST: ${VIRTUAL_HOST}
+      VIRTUAL_PROTO: http
+      VIRTUAL_PORT: 3000
     networks:
       - nginx-proxy_nginx-proxy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 networks:
   nginx-proxy_nginx-proxy:
     external: true
