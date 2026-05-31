@@ -191,32 +191,32 @@ export default ({
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
         <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? `max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 ${isEditing() ? ' w-[85%]' : ''}` : 'flex-1'}`}>
           <Show when={isEditing()}>
-              <textarea
-                ref={(el) => {
-                  // 设置初始值并自动调整高度
-                  el.value = editContent()
-                  setTimeout(() => {
-                    el.style.height = 'auto'
-                    el.style.height = `${el.scrollHeight}px`
-                    el.focus()
-                  })
-                }}
-                onInput={(e) => {
-                  setEditContent(e.currentTarget.value)
-                  e.currentTarget.style.height = 'auto'
-                  e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`
-                }}
-                onKeyDown={handleEditKeydown}
-                class="w-full p-2 rounded-lg border border-slate/20 bg-[var(--c-bg)] text-[var(--c-fg)] resize-none focus:outline-none focus:border-slate/40 min-h-[4em]"
-              />
-              <div class="flex gap-2 mt-2 justify-end">
-                <button onClick={cancelEdit} class="px-3 py-1 text-sm rounded-md border border-slate/20 text-gray-500 hover:bg-slate/10 transition-colors">
-                  取消
-                </button>
-                <button onClick={confirmEdit} class="px-3 py-1 text-sm rounded-md bg-(slate op-15) hover:bg-op-20 transition-colors">
-                  提交
-                </button>
-              </div>
+            <textarea
+              ref={(el) => {
+                // 设置初始值并自动调整高度
+                el.value = editContent()
+                setTimeout(() => {
+                  el.style.height = 'auto'
+                  el.style.height = `${el.scrollHeight}px`
+                  el.focus()
+                })
+              }}
+              onInput={(e) => {
+                setEditContent(e.currentTarget.value)
+                e.currentTarget.style.height = 'auto'
+                e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`
+              }}
+              onKeyDown={handleEditKeydown}
+              class="w-full p-2 rounded-lg border border-slate/20 bg-[var(--c-bg)] text-[var(--c-fg)] resize-none focus:outline-none focus:border-slate/40 min-h-[4em]"
+            />
+            <div class="flex gap-2 mt-2 justify-end">
+              <button onClick={cancelEdit} class="px-3 py-1 text-sm rounded-md border border-slate/20 text-gray-500 hover:bg-slate/10 transition-colors">
+                取消
+              </button>
+              <button onClick={confirmEdit} class="px-3 py-1 text-sm rounded-md bg-(slate op-15) hover:bg-op-20 transition-colors">
+                提交
+              </button>
+            </div>
           </Show>
           <Show when={!isEditing()}>
             {hasToolMessage() && (
