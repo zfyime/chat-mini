@@ -2,13 +2,13 @@
 
 <cite>
 **本文档中引用的文件**   
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466) - *新增复制和删除单条消息功能*
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466) - *新增复制和删除单条消息功能*
 - [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L171) - *新增onCopyMessage和onDeleteMessage回调支持*
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx#L1-L115)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx#L1-L106)
 - [historyStore.ts](file://src/store/historyStore.ts#L1-L112)
 - [generate.ts](file://src/pages/api/generate.ts#L1-L71)
-- [openAI.ts](file://src/utils/openAI.ts#L1-L72)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L1-L72)
 - [constants.ts](file://src/config/constants.ts#L1-L38)
 - [types.ts](file://src/types.ts#L1-L29)
 - [FileUpload.tsx](file://src/components/FileUpload.tsx#L1-L114)
@@ -46,7 +46,7 @@
 ```mermaid
 graph TB
 subgraph "前端界面"
-Generator[Generator.tsx<br>核心容器组件]
+Generator[ChatRoot.tsx<br>核心容器组件]
 MessageItem[MessageItem.tsx<br>消息项组件]
 ChatHistory[ChatHistory.tsx<br>聊天历史组件]
 SystemRoleSettings[SystemRoleSettings.tsx<br>系统角色设置组件]
@@ -61,7 +61,7 @@ subgraph "后端API"
 generate[generate.ts<br>生成接口]
 end
 subgraph "工具函数"
-openAI[openAI.ts<br>OpenAI工具]
+openAI[chatCompletion.ts<br>OpenAI工具]
 auth[auth.ts<br>认证工具]
 fileUtils[fileUtils.ts<br>文件处理工具]
 end
@@ -85,7 +85,7 @@ Generator --> fileUtils
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [historyStore.ts](file://src/store/historyStore.ts#L1-L112)
 - [generate.ts](file://src/pages/api/generate.ts#L1-L71)
 - [FileUpload.tsx](file://src/components/FileUpload.tsx#L1-L114)
@@ -93,15 +93,15 @@ Generator --> fileUtils
 - [FileAttachments.tsx](file://src/components/FileAttachments.tsx#L1-L77)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [project_structure](file://#L1-L50)
 
 ## 核心组件分析
 
-`Generator.tsx`作为聊天界面的核心容器组件，负责协调各个子组件的工作，管理对话状态流和用户输入逻辑。它通过Solid.js的响应式系统实现高效的状态更新和UI渲染。新增了复制和删除单条消息的功能，支持用户对历史消息进行操作。
+`ChatRoot.tsx`作为聊天界面的核心容器组件，负责协调各个子组件的工作，管理对话状态流和用户输入逻辑。它通过Solid.js的响应式系统实现高效的状态更新和UI渲染。新增了复制和删除单条消息的功能，支持用户对历史消息进行操作。
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 
 ## 架构概览
 
@@ -127,7 +127,7 @@ Response --> Generator
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [generate.ts](file://src/pages/api/generate.ts#L1-L71)
 - [historyStore.ts](file://src/store/historyStore.ts#L1-L112)
 
@@ -217,7 +217,7 @@ Generator --> MessageItem : "传递回调"
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L171)
 
 #### 消息操作功能实现
@@ -242,9 +242,9 @@ G->>G : 记录复制行为
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L171)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L466)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L466)
 - [MessageItem.tsx](file://src/components/MessageItem.tsx#L1-L171)

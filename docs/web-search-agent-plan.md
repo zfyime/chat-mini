@@ -108,7 +108,7 @@ const WEB_SEARCH_TOOL = {
 } as const
 ```
 
-### 3.3 改造 `src/utils/openAI.ts`
+### 3.3 改造 `src/utils/chatCompletion.ts`
 
 `generatePayload` 增加可选参数：
 
@@ -216,8 +216,8 @@ return new Response(new ReadableStream({
 
 ### 3.5 `<tool>` 标签处理
 
-复用 `thinkTagParser`：把它泛化为支持多个 tag，或者直接复制一份成 `agentTagParser`，原 think 不动。
-推荐做法：**新建 `createTagParser({ tags: ['think', 'tool'], onText, onTag })`**，让 think parser 失去原有特殊地位，think 和 tool 都走通用机制。原 `createThinkTagParser` 可以转成对新 parser 的包装以保持兼容。
+复用通用 `tagParser`：把原先只服务于 think 的解析逻辑泛化为支持多个 tag。
+推荐做法：**使用 `createTagParser({ tags: ['think', 'tool'], onText, onTag })`**，让 think 和 tool 都走通用机制，避免继续保留只包一层的 `thinkTagParser` 壳文件。
 
 ---
 
@@ -227,7 +227,7 @@ return new Response(new ReadableStream({
 
 新组件 `src/components/WebSearchToggle.tsx`：圆形按钮，开/关两态，状态读写 localStorage，切换时派发 CustomEvent `web-search-change`。
 
-### 4.2 `Generator.tsx`
+### 4.2 `ChatRoot.tsx`
 
 - 新增 `webSearchEnabled` signal，挂到上述 CustomEvent。
 - `requestWithLatestMessage` 的 fetch body 增加 `webSearch: webSearchEnabled()`。
@@ -242,7 +242,7 @@ return new Response(new ReadableStream({
 `src/types/index.ts` 给 `ChatMessage` 增加可选字段：
 
 ```ts
-tool?: string  // 工具调用的元信息（已渲染的纯文本），用于历史回放
+toolTrace?: string  // 工具调用的元信息（已渲染的纯文本），用于历史回放
 ```
 
 存档时把累加好的 tool 文本一起写进去；加载历史时如有 `tool` 就显示折叠块。
@@ -311,14 +311,14 @@ export const AGENT = {
 | 文件 | 改动 |
 |---|---|
 | `src/utils/tavily.ts` | **新增** |
-| `src/utils/openAI.ts` | `generatePayload` 增加 `opts` 参数 |
-| `src/utils/thinkTagParser.ts` | 泛化为多 tag parser（或新建 `tagParser.ts`） |
+| `src/utils/chatCompletion.ts` | `generatePayload` 增加 `opts` 参数 |
+| `src/utils/tagParser.ts` | 泛化为多 tag parser |
 | `src/pages/api/generate.ts` | 增加 agent 循环分支 |
 | `src/components/WebSearchToggle.tsx` | **新增** |
 | `src/components/Header.astro` | 嵌入 `WebSearchToggle` |
-| `src/components/Generator.tsx` | 接收开关状态、解析 `<tool>` 块、传 `tool` 字段 |
+| `src/components/ChatRoot.tsx` | 接收开关状态、解析 `<tool>` 块、传 `toolTrace` 字段 |
 | `src/components/MessageItem.tsx` | 增加 `toolMessage` 折叠块 |
-| `src/types/index.ts` | `ChatMessage` 增加 `tool?: string` |
+| `src/types/index.ts` | `ChatMessage` 增加 `toolTrace?: string` |
 | `src/config/constants.ts` | 增加 `AGENT` 常量块 |
 | `.env.example` | 增加 `TAVILY_API_KEY` |
 | `CLAUDE.md` | 在功能特性、环境变量、应用内常量段落各加一行 |
@@ -332,7 +332,7 @@ export const AGENT = {
 1. `feat: add tavily web search util` — 只加 `utils/tavily.ts` + env var，独立可测
 2. `feat: generalize think tag parser` — parser 重构 + 单测
 3. `feat: add agent loop to generate api` — 后端循环，前端先不接，用 curl 测试
-4. `feat: add web search toggle UI` — 前端开关 + Generator 接 webSearch 字段
+4. `feat: add web search toggle UI` — 前端开关 + ChatRoot 接 webSearch 字段
 5. `feat: render tool calls in message item` — 折叠块 UI
 6. `docs: update README and CLAUDE.md`
 

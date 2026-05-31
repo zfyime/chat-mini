@@ -6,7 +6,7 @@
 - [historyStore.ts](file://src/store/historyStore.ts)
 - [types.ts](file://src/types.ts)
 - [constants.ts](file://src/config/constants.ts)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 </cite>
 
 ## 目录
@@ -25,7 +25,7 @@
 graph TB
 subgraph "组件"
 ChatHistory[ChatHistory.tsx]
-Generator[Generator.tsx]
+Generator[ChatRoot.tsx]
 Icons[icons/]
 end
 subgraph "状态管理"
@@ -45,7 +45,7 @@ HistoryStore --> Constants
 **图表来源**
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx)
 - [historyStore.ts](file://src/store/historyStore.ts)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [types.ts](file://src/types.ts)
 - [constants.ts](file://src/config/constants.ts)
 
@@ -86,11 +86,11 @@ G->>G : setIsCurrentChatModified(false)
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L387)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L387)
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx#L25)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx)
 
 ## 数据结构与类型定义
@@ -126,9 +126,9 @@ CHAT_HISTORY ||--o{ CHAT_MESSAGE : 包含
 ```mermaid
 classDiagram
 class CONFIG {
-+number MAX_HISTORY_COUNT
++number HISTORY_LIST_LIMIT
 +number SAVE_DEBOUNCE_TIME
-+number MAX_HISTORY_MESSAGES
++number CONTEXT_WINDOW_SIZE
 +number AUTH_TIMEOUT
 +number SCROLL_THRESHOLD
 +number SMOOTH_SCROLL_DELAY
@@ -258,10 +258,10 @@ G->>G : setTimeout(instantToBottom, 100)
 ```
 
 **图表来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L323-L341)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L323-L341)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 
 ## 数据流与状态管理
 
@@ -293,7 +293,7 @@ const loadHistory = (history: ChatHistory) => {
 ```
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L323-L341)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L323-L341)
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx#L25)
 
 ## 持久化存储策略
@@ -306,7 +306,7 @@ const loadHistory = (history: ChatHistory) => {
 
 2. **时间戳管理**：包含`createdAt`和`updatedAt`两个时间戳，分别记录创建和更新时间。
 
-3. **容量限制**：通过`MAX_HISTORY_COUNT`常量（默认25）限制历史记录数量，超出时自动截断。
+3. **容量限制**：通过`HISTORY_LIST_LIMIT`常量（默认25）限制历史记录数量，超出时自动截断。
 
 4. **防抖保存**：使用`SAVE_DEBOUNCE_TIME`（默认500ms）进行防抖，避免频繁写入存储。
 
@@ -410,9 +410,9 @@ O --> P[界面自动更新]
 **图表来源**
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx)
 - [historyStore.ts](file://src/store/historyStore.ts)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 
 **本节来源**
 - [ChatHistory.tsx](file://src/components/ChatHistory.tsx)
 - [historyStore.ts](file://src/store/historyStore.ts)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)

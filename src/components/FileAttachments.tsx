@@ -13,11 +13,18 @@ export default ({ attachments }: Props) => {
     const mimeType = attachment.type || 'application/octet-stream'
 
     if (attachment.encoding === 'base64' && typeof atob === 'function') {
-      const binary = atob(attachment.content)
-      const bytes = new Uint8Array(binary.length)
-      for (let i = 0; i < binary.length; i++)
-        bytes[i] = binary.charCodeAt(i)
-      return new Blob([bytes], { type: mimeType })
+      // 分块解码避免大文件一次性占用 2~3 倍内存且阻塞 UI
+      const CHUNK = 32 * 1024
+      const parts: Uint8Array[] = []
+      for (let offset = 0; offset < attachment.content.length; offset += CHUNK) {
+        const slice = attachment.content.slice(offset, offset + CHUNK)
+        const binary = atob(slice)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++)
+          bytes[i] = binary.charCodeAt(i)
+        parts.push(bytes)
+      }
+      return new Blob(parts, { type: mimeType })
     }
 
     return new Blob([attachment.content], { type: mimeType })

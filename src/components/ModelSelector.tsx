@@ -19,8 +19,12 @@ export default () => {
 
   onMount(() => {
     // 从 localStorage 恢复上次选择的模型（仅浏览器端）
+    // 必须派发 model-change 通知 ChatRoot 同步，否则刷新后首条消息仍按 DEFAULT_MODEL 发送
     const saved = localStorage.getItem('selected_model')
-    if (saved) setCurrentModel(saved)
+    if (saved) {
+      setCurrentModel(saved)
+      window.dispatchEvent(new CustomEvent('model-change', { detail: saved }))
+    }
 
     const handleModelChange = ((e: CustomEvent) => {
       setCurrentModel(e.detail)

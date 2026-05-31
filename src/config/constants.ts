@@ -1,8 +1,8 @@
 // 应用配置常量
 export const CONFIG = {
   // 对话相关
-  MAX_HISTORY_MESSAGES: 9, // 传给openai api的消息最大上下文条数
-  MAX_HISTORY_COUNT: 25, // 保留最近的多少次历史会话
+  CONTEXT_WINDOW_SIZE: 9, // 传给openai api的消息最大上下文条数
+  HISTORY_LIST_LIMIT: 25, // 保留最近的多少次历史会话
 
   // 时间相关
   AUTH_TIMEOUT: 1000 * 60 * 5, // 5分钟
@@ -11,14 +11,19 @@ export const CONFIG = {
   // UI相关
   SCROLL_THRESHOLD: 25, // 滚动阈值
   SMOOTH_SCROLL_DELAY: 300, // 平滑滚动延迟
+  LOAD_SCROLL_DELAY: 100, // 加载历史会话后等 DOM 渲染再滚动的延迟
+
+  // 存储相关
+  HISTORY_CLEANUP_PROBABILITY: 0.1, // 每次保存触发一次清理的概率
 
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6, // 默认温度
   DEFAULT_MODEL: 'gpt-5.4', // 默认模型
 
   // 文件上传限制
-  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB（文本类）
   MAX_IMAGE_SIZE: 10 * 1024 * 1024, // 10MB
+  MAX_BINARY_FILE_SIZE: 5 * 1024 * 1024, // 5MB（需 base64 编码的非图片文件，限制更小以控制内存峰值）
   ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   ALLOWED_DOCUMENT_TYPES: [
     'application/pdf',

@@ -1,5 +1,5 @@
 import { For, createSignal, onCleanup, onMount } from 'solid-js'
-import { deleteHistory, historyState } from '@/store/historyStore'
+import { deleteHistory, historyList, loadHistoryFromStorage } from '@/store/historyStore'
 import IconDelete from './icons/Delete'
 import type { ChatHistory, ChatMessage } from '@/types'
 
@@ -9,7 +9,6 @@ interface Props {
 
 export default (props: Props) => {
   const [showHistory, setShowHistory] = createSignal(false)
-  const { historyList, loadHistoryFromStorage } = historyState
 
   // 确保每次组件挂载时都重新加载历史数据，并监听全局切换事件
   onMount(() => {

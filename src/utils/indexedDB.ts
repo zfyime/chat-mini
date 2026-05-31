@@ -37,10 +37,6 @@ class ChatDatabase {
           historyStore.createIndex('createdAt', 'createdAt', { unique: false })
         }
 
-        // 创建临时会话存储（替代 sessionStorage）
-        if (!db.objectStoreNames.contains('tempSession'))
-          db.createObjectStore('tempSession', { keyPath: 'key' })
-
         // 创建设置存储
         if (!db.objectStoreNames.contains('settings'))
           db.createObjectStore('settings', { keyPath: 'key' })
@@ -76,7 +72,7 @@ class ChatDatabase {
   }
 
   // 获取所有历史记录（按更新时间倒序）
-  async getAllHistory(limit: number = CONFIG.MAX_HISTORY_COUNT): Promise<ChatHistory[]> {
+  async getAllHistory(limit: number = CONFIG.HISTORY_LIST_LIMIT): Promise<ChatHistory[]> {
     const db = await this.ensureDb()
     const tx = db.transaction(['chatHistory'], 'readonly')
     const store = tx.objectStore('chatHistory')
@@ -136,57 +132,6 @@ class ChatDatabase {
     await Promise.all(promises)
   }
 
-  // 保存临时会话数据
-  async saveSession(key: string, value: any): Promise<void> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['tempSession'], 'readwrite')
-    const store = tx.objectStore('tempSession')
-
-    return new Promise((resolve, reject) => {
-      const request = store.put({ key, value, timestamp: Date.now() })
-      request.onsuccess = () => resolve()
-      request.onerror = () => {
-        console.error('Failed to save session:', request.error)
-        reject(request.error)
-      }
-    })
-  }
-
-  // 获取临时会话数据
-  async getSession(key: string): Promise<any> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['tempSession'], 'readonly')
-    const store = tx.objectStore('tempSession')
-
-    return new Promise((resolve, reject) => {
-      const request = store.get(key)
-      request.onsuccess = () => {
-        const result = request.result
-        resolve(result ? result.value : null)
-      }
-      request.onerror = () => {
-        console.error('Failed to get session:', request.error)
-        reject(request.error)
-      }
-    })
-  }
-
-  // 清理临时会话数据
-  async clearSession(): Promise<void> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['tempSession'], 'readwrite')
-    const store = tx.objectStore('tempSession')
-
-    return new Promise((resolve, reject) => {
-      const request = store.clear()
-      request.onsuccess = () => resolve()
-      request.onerror = () => {
-        console.error('Failed to clear session:', request.error)
-        reject(request.error)
-      }
-    })
-  }
-
   // 保存设置
   async saveSetting(key: string, value: any): Promise<void> {
     const db = await this.ensureDb()
@@ -227,27 +172,10 @@ class ChatDatabase {
     try {
       const histories = await this.getAllHistory(Number.POSITIVE_INFINITY)
       // 只保留配置的最大数量
-      if (histories.length > CONFIG.MAX_HISTORY_COUNT) {
-        const toDelete = histories.slice(CONFIG.MAX_HISTORY_COUNT)
+      if (histories.length > CONFIG.HISTORY_LIST_LIMIT) {
+        const toDelete = histories.slice(CONFIG.HISTORY_LIST_LIMIT)
         for (const history of toDelete)
           await this.deleteHistory(history.id)
-      }
-
-      // 清理过期的临时会话（超过24小时）
-      const db = await this.ensureDb()
-      const tx = db.transaction(['tempSession'], 'readwrite')
-      const store = tx.objectStore('tempSession')
-      const now = Date.now()
-      const dayAgo = now - 24 * 60 * 60 * 1000
-
-      const request = store.openCursor()
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result
-        if (cursor) {
-          if (cursor.value.timestamp < dayAgo)
-            cursor.delete()
-          cursor.continue()
-        }
       }
     } catch (error) {
       console.error('Cleanup failed:', error)

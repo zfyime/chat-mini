@@ -106,11 +106,19 @@
 
 | 常量名 | 说明 | 当前值 |
 | :--- | :--- | :--- |
-| `MAX_HISTORY_MESSAGES` | 发送给 API 的最大上下文消息数量。 | `9` |
-| `MAX_HISTORY_COUNT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
+| `CONTEXT_WINDOW_SIZE` | 发送给 API 的最大上下文消息数量。 | `9` |
+| `HISTORY_LIST_LIMIT` | 在本地浏览器中保留的最近历史会话数量。 | `25` |
 | `DEFAULT_TEMPERATURE` | 默认的 `temperature` 参数值。 | `0.6` |
-| `DEFAULT_MODEL` | 默认模型 ID（由应用配置决定）。 | `'gpt-5-chat'` |
-| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表（详见 `src/config/constants.ts`）。 | [...见源码] |
+| `DEFAULT_MODEL` | 默认模型 ID（由应用配置决定）。 | `'gpt-5.4'` |
+| `MAX_FILE_SIZE` | 常规文本类文件的最大上传大小限制。 | `50MB` |
+| `MAX_IMAGE_SIZE` | 图片文件的最大上传大小限制。 | `10MB` |
+| `MAX_BINARY_FILE_SIZE` | 非图片二进制文件的最大上传大小限制。 | `5MB` |
+| `AUTH_TIMEOUT` | 身份验证超时时间。 | `5分钟` |
+| `SAVE_DEBOUNCE_TIME` | 保存操作的防抖时间。 | `500ms` |
+| `AVAILABLE_MODELS` | 在 UI 界面上可供选择的模型列表。 | `GPT-5.4、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
+| `AGENT.MAX_TOOL_ROUNDS` | 服务端 agent 工具调用循环最大轮次。 | `3` |
+| `AGENT.TAVILY_MAX_RESULTS` | Tavily 单次搜索返回结果数。 | `5` |
+| `AGENT.TAVILY_SEARCH_DEPTH` | Tavily 搜索深度。 | `'basic'` |
 
 ## 🚢 部署
 

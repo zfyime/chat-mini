@@ -1,7 +1,7 @@
 // #vercel-disable-blocks
 import { ProxyAgent, fetch } from 'undici'
 // #vercel-end
-import { buildOpenAIMessages, generatePayload, generatePayloadRaw, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/openAI'
+import { buildOpenAIMessages, generatePayload, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/chatCompletion'
 import { verifySignature } from '@/utils/auth'
 import { tavilySearch } from '@/utils/tavily'
 import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
@@ -114,10 +114,11 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
       try {
         let round = 0
         while (round < AGENT.MAX_TOOL_ROUNDS) {
-          const init = generatePayloadRaw(apiKey, workingMessages, temperature, model, {
+          const init = generatePayload(apiKey, workingMessages, temperature, model, {
             stream: false,
             tools: AGENT_TOOLS as any[],
             toolChoice: 'auto',
+            pretransformed: true,
           })
           if (dispatcher) (init as any).dispatcher = dispatcher
 
@@ -226,9 +227,10 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
         }
 
         // 触顶：禁用工具，开启流式拿最终回答
-        const finalInit = generatePayloadRaw(apiKey, workingMessages, temperature, model, {
+        const finalInit = generatePayload(apiKey, workingMessages, temperature, model, {
           stream: true,
           toolChoice: 'none',
+          pretransformed: true,
         })
         if (dispatcher) (finalInit as any).dispatcher = dispatcher
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment

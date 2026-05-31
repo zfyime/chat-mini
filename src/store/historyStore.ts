@@ -1,5 +1,5 @@
 import { createSignal } from 'solid-js'
-import { useThrottleFn } from 'solidjs-use'
+import { useDebounceFn } from 'solidjs-use'
 import { CONFIG } from '@/config/constants'
 import { chatDB, fallbackStorage } from '@/utils/indexedDB'
 import type { ChatHistory, ChatMessage } from '@/types'
@@ -81,32 +81,31 @@ const generateUniqueId = () => {
 if (typeof window !== 'undefined')
   loadHistoryFromStorage()
 
-const saveHistoryList = useThrottleFn(async(list: ChatHistory[]) => {
+const saveHistoryList = useDebounceFn(async() => {
+  // debounce 触发时直接读最新 historyList()
+  const list = historyList()
   try {
     // 尝试使用 IndexedDB
     if (chatDB.isSupported()) {
       await chatDB.bulkSaveHistory(list)
-      setHistoryList(list)
 
-      // 定期清理（10%概率）
-      if (Math.random() < 0.1)
+      // 定期清理
+      if (Math.random() < CONFIG.HISTORY_CLEANUP_PROBABILITY)
         chatDB.cleanup()
     } else {
       // 降级到 localStorage
       fallbackStorage.setItem('chatHistoryList', list)
-      setHistoryList(list)
     }
   } catch (e) {
     console.error('Failed to save chat history:', e)
     // 降级到 localStorage
     try {
       fallbackStorage.setItem('chatHistoryList', list)
-      setHistoryList(list)
     } catch (fallbackError) {
       console.error('Fallback to localStorage also failed:', fallbackError)
     }
   }
-}, CONFIG.SAVE_DEBOUNCE_TIME, true, true)
+}, CONFIG.SAVE_DEBOUNCE_TIME)
 
 // --- Public Actions ---
 export const deleteHistory = async(id: string) => {
@@ -114,63 +113,63 @@ export const deleteHistory = async(id: string) => {
     // 从 IndexedDB 删除
     if (chatDB.isSupported())
       await chatDB.deleteHistory(id)
-    // 更新内存中的列表
-    const newList = historyList().filter(item => item.id !== id)
-    await saveHistoryList(newList)
   } catch (e) {
     console.error('Failed to delete history:', e)
-    // 降级处理
-    const newList = historyList().filter(item => item.id !== id)
-    saveHistoryList(newList)
   }
+  // 更新内存中的列表并触发持久化（兜底）
+  setHistoryList(historyList().filter(item => item.id !== id))
+  saveHistoryList()
 }
 
 export const saveOrUpdateChat = async(messages: ChatMessage[], systemRole: string, existingId?: string) => {
   if (messages.length === 0) return
 
   const now = Date.now()
+  const sanitizedMessages = sanitizeMessagesForStorage(messages)
 
   if (existingId) {
-    // Update existing history
-    const sanitizedMessages = sanitizeMessagesForStorage(messages)
-    const updatedList = historyList().map(item =>
-      item.id === existingId
-        ? {
-            ...item,
-            title: generateTitle(messages),
-            messages: sanitizedMessages,
-            systemRole,
-            updatedAt: now,
-          }
-        : item,
-    )
-    await saveHistoryList(updatedList)
-    return existingId
-  } else {
-    // Create new history
-    const id = generateUniqueId()
-    const sanitizedMessages = sanitizeMessagesForStorage(messages)
-    const newHistory: ChatHistory = {
-      id,
-      title: generateTitle(messages),
-      messages: sanitizedMessages,
-      systemRole,
-      createdAt: now,
-      updatedAt: now,
+    // Update existing history（若内存里还没加载到该 id，则回退到创建新条目，避免静默丢失）
+    const current = historyList()
+    const hit = current.find(item => item.id === existingId)
+    if (hit) {
+      const updatedList = current.map(item =>
+        item.id === existingId
+          ? {
+              ...item,
+              title: generateTitle(messages),
+              messages: sanitizedMessages,
+              systemRole,
+              updatedAt: now,
+            }
+          : item,
+      )
+      setHistoryList(updatedList)
+      saveHistoryList()
+      return existingId
     }
-
-    const newList = [newHistory, ...historyList()]
-    // Limit history count
-    if (newList.length > CONFIG.MAX_HISTORY_COUNT)
-      newList.splice(CONFIG.MAX_HISTORY_COUNT)
-
-    await saveHistoryList(newList)
-    return id
+    // 未命中：fallthrough 到下方新增分支
   }
+
+  // Create new history
+  const id = existingId || generateUniqueId()
+  const newHistory: ChatHistory = {
+    id,
+    title: generateTitle(messages),
+    messages: sanitizedMessages,
+    systemRole,
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  const newList = [newHistory, ...historyList()]
+  // Limit history count
+  if (newList.length > CONFIG.HISTORY_LIST_LIMIT)
+    newList.splice(CONFIG.HISTORY_LIST_LIMIT)
+
+  setHistoryList(newList)
+  saveHistoryList()
+  return id
 }
 
 // --- Exported State ---
-export const historyState = {
-  historyList,
-  loadHistoryFromStorage, // Export the reload function
-}
+export { historyList, loadHistoryFromStorage }

@@ -12,7 +12,7 @@ export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
   content: string
   think?: string
-  tool?: string // 联网搜索等工具调用的过程信息（仅展示用）
+  toolTrace?: string // 联网搜索等工具调用的过程信息（仅展示用）
   attachments?: FileAttachment[]
 }
 

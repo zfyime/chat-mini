@@ -7,7 +7,7 @@
 - [package.json](file://package.json)
 - [src/pages/api/auth.ts](file://src/pages/api/auth.ts)
 - [src/pages/api/generate.ts](file://src/pages/api/generate.ts)
-- [src/utils/openAI.ts](file://src/utils/openAI.ts)
+- [src/utils/chatCompletion.ts](file://src/utils/chatCompletion.ts)
 - [src/env.d.ts](file://src/env.d.ts)
 - [README.md](file://README.md)
 </cite>
@@ -274,23 +274,23 @@ A[OpenAI API] -- text/event-stream --> B[generate.ts]
 B --> C[parseOpenAIStream]
 C --> D[ReadableStream]
 D --> E[前端 fetch]
-E --> F[Generator.tsx]
+E --> F[ChatRoot.tsx]
 F --> G[实时更新 UI]
 ```
 
 **Diagram sources**
 - [src/pages/api/generate.ts](file://src/pages/api/generate.ts#L0-L70)
-- [src/utils/openAI.ts](file://src/utils/openAI.ts#L0-L71)
-- [src/components/Generator.tsx](file://src/components/Generator.tsx#L124-L211)
+- [src/utils/chatCompletion.ts](file://src/utils/chatCompletion.ts#L0-L230)
+- [src/components/ChatRoot.tsx](file://src/components/ChatRoot.tsx#L149-L171)
 
 **Section sources**
 - [src/pages/api/generate.ts](file://src/pages/api/generate.ts#L0-L70)
-- [src/utils/openAI.ts](file://src/utils/openAI.ts#L0-L71)
-- [src/components/Generator.tsx](file://src/components/Generator.tsx#L124-L211)
+- [src/utils/chatCompletion.ts](file://src/utils/chatCompletion.ts#L0-L230)
+- [src/components/ChatRoot.tsx](file://src/components/ChatRoot.tsx#L149-L171)
 
 ### 后端处理 (`parseOpenAIStream`)
 
-在 `src/utils/openAI.ts` 中，`parseOpenAIStream` 函数负责处理来自 OpenAI 的 `text/event-stream` 响应。
+在 `src/utils/chatCompletion.ts` 中，`parseOpenAIStream` 函数负责处理来自 OpenAI 的 `text/event-stream` 响应。
 
 ```typescript
 export const parseOpenAIStream = (rawResponse: Response) => {
@@ -324,7 +324,7 @@ export const parseOpenAIStream = (rawResponse: Response) => {
 
 该函数创建了一个新的 `ReadableStream`，将 OpenAI 的 SSE (Server-Sent Events) 数据解析，并将每个 `delta.content` 作为独立的文本块推送给前端。
 
-### 前端处理 (`Generator.tsx`)
+### 前端处理 (`ChatRoot.tsx`)
 
 前端通过 `fetch` 获取这个流式响应，并使用 `ReadableStream` 的 `reader` 逐块读取数据，实时更新 UI。
 

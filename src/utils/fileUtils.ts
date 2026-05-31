@@ -87,7 +87,12 @@ export const validateFile = (file: File): { valid: boolean, error?: string } => 
     }
   }
 
-  const maxSize = isImage ? CONFIG.MAX_IMAGE_SIZE : CONFIG.MAX_FILE_SIZE
+  // 文本文件可直接读取，沿用大限制；图片次之；其余需 base64 编码的二进制文件控制内存峰值
+  let maxSize: number
+  if (isImage) maxSize = CONFIG.MAX_IMAGE_SIZE
+  else if (isTextFileType(fileType)) maxSize = CONFIG.MAX_FILE_SIZE
+  else maxSize = CONFIG.MAX_BINARY_FILE_SIZE
+
   if (file.size > maxSize) {
     return {
       valid: false,

@@ -5,7 +5,7 @@
 - [auth.ts](file://src/pages/api/auth.ts)
 - [generate.ts](file://src/pages/api/generate.ts)
 - [auth.ts](file://src/utils/auth.ts)
-- [openAI.ts](file://src/utils/openAI.ts)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts)
 - [constants.ts](file://src/config/constants.ts)
 - [types.ts](file://src/types.ts)
 - [README.md](file://README.md)
@@ -41,7 +41,7 @@ generate[generate.ts]
 end
 subgraph "工具模块"
 utils_auth[auth.ts]
-utils_openAI[openAI.ts]
+utils_openAI[chatCompletion.ts]
 end
 subgraph "配置与类型"
 config[constants.ts]
@@ -58,7 +58,7 @@ generate --> types
 - [auth.ts](file://src/pages/api/auth.ts)
 - [generate.ts](file://src/pages/api/generate.ts)
 - [auth.ts](file://src/utils/auth.ts)
-- [openAI.ts](file://src/utils/openAI.ts)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts)
 - [constants.ts](file://src/config/constants.ts)
 - [types.ts](file://src/types.ts)
 
@@ -144,7 +144,7 @@ API-->>Client : text/event-stream
 
 **图示来源**
 - [generate.ts](file://src/pages/api/generate.ts#L1-L70)
-- [openAI.ts](file://src/utils/openAI.ts#L4-L71)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L4-L71)
 
 #### 请求参数验证流程
 ```mermaid
@@ -183,7 +183,7 @@ Forward --> End
 
 **本节来源**
 - [generate.ts](file://src/pages/api/generate.ts#L1-L70)
-- [openAI.ts](file://src/utils/openAI.ts#L4-L71)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L4-L71)
 - [auth.ts](file://src/utils/auth.ts#L27-L34)
 - [constants.ts](file://src/config/constants.ts#L1-L17)
 
@@ -195,7 +195,7 @@ graph TD
 auth_api[src/pages/api/auth.ts] --> env[import.meta.env.SITE_PASSWORD]
 generate_api[src/pages/api/generate.ts] --> env
 generate_api --> auth_util[src/utils/auth.ts]
-generate_api --> openAI_util[src/utils/openAI.ts]
+generate_api --> openAI_util[src/utils/chatCompletion.ts]
 generate_api --> constants[src/config/constants.ts]
 auth_util --> crypto[Web Crypto API]
 auth_util --> js_sha256[js-sha256]
@@ -208,14 +208,14 @@ openAI_util --> types[src/types.ts]
 - [auth.ts](file://src/pages/api/auth.ts)
 - [generate.ts](file://src/pages/api/generate.ts)
 - [auth.ts](file://src/utils/auth.ts)
-- [openAI.ts](file://src/utils/openAI.ts)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts)
 - [constants.ts](file://src/config/constants.ts)
 - [types.ts](file://src/types.ts)
 
 **本节来源**
 - [generate.ts](file://src/pages/api/generate.ts#L1-L70)
 - [auth.ts](file://src/utils/auth.ts#L1-L35)
-- [openAI.ts](file://src/utils/openAI.ts#L1-L71)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L1-L71)
 
 ## 性能考虑
 - **流式响应**：`/api/generate` 接口使用 `text/event-stream` 实现流式传输，用户可即时看到 AI 生成内容，提升体验。

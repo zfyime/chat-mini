@@ -5,7 +5,7 @@
 - [Slider.tsx](file://src/components/Slider.tsx)
 - [SettingsSlider.tsx](file://src/components/SettingsSlider.tsx)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [slider.css](file://src/slider.css)
 </cite>
 
@@ -24,7 +24,7 @@
 本文档深入分析了 `Slider` 与 `SettingsSlider` 两个滑块组件的设计与实现。`Slider` 是一个基础滑块组件，封装了原生 `input[type='range']` 并提供响应式值绑定；`SettingsSlider` 在其基础上扩展，集成了标签显示与数值反馈功能。文档将阐述它们在参数调节场景（如 temperature、top_p）中的使用模式，包括步长控制、范围限定与实时更新机制。通过 `Generator` 组件中的调用示例，展示其 props 接口设计与事件回调模式，并分析其通过 UnoCSS 实现的响应式布局与交互反馈效果。
 
 ## 项目结构
-项目采用基于功能的文件组织方式，核心组件位于 `src/components/` 目录下。`Slider.tsx` 和 `SettingsSlider.tsx` 是两个独立的 UI 组件，`SystemRoleSettings.tsx` 是使用它们的父级设置组件，而 `Generator.tsx` 是最终的调用方，构成了完整的调用链。
+项目采用基于功能的文件组织方式，核心组件位于 `src/components/` 目录下。`Slider.tsx` 和 `SettingsSlider.tsx` 是两个独立的 UI 组件，`SystemRoleSettings.tsx` 是使用它们的父级设置组件，而 `ChatRoot.tsx` 是最终的调用方，构成了完整的调用链。
 
 ```mermaid
 graph TD
@@ -35,13 +35,13 @@ Slider --> slider.css
 ```
 
 **图示来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx)
 - [SettingsSlider.tsx](file://src/components/SettingsSlider.tsx)
 - [Slider.tsx](file://src/components/Slider.tsx)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx)
 
 ## 核心组件
@@ -210,12 +210,12 @@ Generator-->>User : UI 实时更新
 ```
 
 **图示来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L392)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx#L1-L105)
 - [SettingsSlider.tsx](file://src/components/SettingsSlider.tsx#L1-L42)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L392)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx#L1-L105)
 
 ## 依赖关系分析
@@ -232,13 +232,13 @@ Slider --> "@zag-js/slider"
 - **低耦合**: 组件间通过明确的 props 接口通信，`SettingsSlider` 不关心 `Slider` 的具体实现，`SystemRoleSettings` 不关心 `SettingsSlider` 的内部逻辑。
 
 **图示来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx)
 - [SettingsSlider.tsx](file://src/components/SettingsSlider.tsx)
 - [Slider.tsx](file://src/components/Slider.tsx)
 
 **本节来源**
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 - [SystemRoleSettings.tsx](file://src/components/SystemRoleSettings.tsx)
 - [SettingsSlider.tsx](file://src/components/SettingsSlider.tsx)
 - [Slider.tsx](file://src/components/Slider.tsx)

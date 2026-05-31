@@ -3,11 +3,11 @@
 <cite>
 **本文档中引用的文件**   
 - [generate.ts](file://src/pages/api/generate.ts)
-- [openAI.ts](file://src/utils/openAI.ts)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts)
 - [constants.ts](file://src/config/constants.ts)
 - [types.ts](file://src/types.ts)
 - [auth.ts](file://src/utils/auth.ts)
-- [Generator.tsx](file://src/components/Generator.tsx)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx)
 </cite>
 
 ## 目录
@@ -57,14 +57,14 @@
 | `pass` | 字符串 | 否 | 站点访问密码。如果环境变量 `SITE_PASSWORD` 已设置，则此参数为必需。支持多个密码，用英文逗号分隔。 |
 | `sign` | 字符串 | 是 | 基于 `time`、`messages` 中最后一条消息内容和 `PUBLIC_SECRET_KEY` 生成的签名。在生产环境（`import.meta.env.PROD`）下为必需。 |
 | `temperature` | 数字 | 否 | 控制 AI 生成文本的随机性。值越高，输出越随机；值越低，输出越确定。默认值为 `0.6`。 |
-| `model` | 字符串 | 否 | 要使用的 AI 模型 ID。如果未提供，则使用环境变量 `OPENAI_API_MODEL` 或默认模型 `gpt-4.1`。 |
+| `model` | 字符串 | 否 | 要使用的 AI 模型 ID。如果未提供，则使用请求默认模型 `gpt-5.4`。 |
 
 **Section sources**
 - [generate.ts](file://src/pages/api/generate.ts#L16-L69)
 - [types.ts](file://src/types.ts#L1-L4)
 - [constants.ts](file://src/config/constants.ts#L1-L37)
 - [auth.ts](file://src/utils/auth.ts#L1-L34)
-- [Generator.tsx](file://src/components/Generator.tsx#L120-L170)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L149-L171)
 
 ## 响应格式
 
@@ -117,10 +117,10 @@ API-->>Client : text/event-stream (逐块返回文本)
 
 **Diagram sources**
 - [generate.ts](file://src/pages/api/generate.ts#L1-L70)
-- [openAI.ts](file://src/utils/openAI.ts#L1-L71)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L1-L230)
 
 **Section sources**
-- [openAI.ts](file://src/utils/openAI.ts#L1-L71)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L1-L230)
 
 ## 错误处理
 
@@ -170,7 +170,7 @@ curl -X POST https://your-domain.com/api/generate \
 
 ### 客户端代码示例
 
-在 `Generator.tsx` 组件中，可以看到完整的调用流程，包括签名生成：
+在 `ChatRoot.tsx` 组件中，可以看到完整的调用流程，包括签名生成：
 
 ```typescript
 const timestamp = Date.now()
@@ -192,7 +192,7 @@ const response = await fetch('/api/generate', {
 ```
 
 **Section sources**
-- [Generator.tsx](file://src/components/Generator.tsx#L120-L170)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L149-L171)
 
 ## 依赖与配置
 
@@ -212,7 +212,7 @@ const response = await fetch('/api/generate', {
 
 | 常量 | 说明 |
 | :--- | :--- |
-| `CONFIG.DEFAULT_MODEL` | 默认使用的模型 ID（如 `gpt-4.1`）。 |
+| `CONFIG.DEFAULT_MODEL` | 默认使用的模型 ID（如 `gpt-5.4`）。 |
 | `CONFIG.DEFAULT_TEMPERATURE` | `temperature` 参数的默认值（如 `0.6`）。 |
 | `AVAILABLE_MODELS` | 允许使用的模型列表。 |
 

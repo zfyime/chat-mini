@@ -26,7 +26,7 @@
 
 ### 第一阶段：布局重构（核心）
 
-**涉及文件：** Layout.astro, index.astro, Generator.tsx, ChatHistory.tsx
+**涉及文件：** Layout.astro, index.astro, ChatRoot.tsx, ChatHistory.tsx
 
 #### 1.1 全局布局改为双栏
 
@@ -50,7 +50,7 @@
 
 - **Layout.astro**：移除 `main` 的 `max-w-85ch` 限制，改为 `flex h-screen w-full`
 - **index.astro**：页面结构改为 `<div class="flex h-full"><Sidebar /><MainChat /></div>`
-- **Generator.tsx**：从顶层容器中拆出侧边栏，主体占满剩余空间
+- **ChatRoot.tsx**：从顶层容器中拆出侧边栏，主体占满剩余空间
 
 #### 1.2 侧边栏组件（新建 Sidebar.tsx）
 
@@ -103,7 +103,7 @@ Sidebar
 
 ### 第三阶段：输入框重新设计
 
-**涉及文件：** Generator.tsx, FileUpload.tsx
+**涉及文件：** ChatRoot.tsx, FileUpload.tsx
 
 #### 3.1 胶囊型输入框
 
@@ -129,7 +129,7 @@ Sidebar
 
 ### 第四阶段：顶栏与细节
 
-**涉及文件：** Header.astro（可能废弃或重构）, Generator.tsx
+**涉及文件：** Header.astro（可能废弃或重构）, ChatRoot.tsx
 
 #### 4.1 浮动顶栏
 
@@ -196,7 +196,7 @@ html.dark {
 | `src/layouts/Layout.astro` | 修改 | 移除居中限制，改全屏flex，新增CSS变量 |
 | `src/pages/index.astro` | 修改 | 引入Sidebar，调整页面结构 |
 | `src/components/Sidebar.tsx` | **新建** | 常驻侧边栏组件 |
-| `src/components/Generator.tsx` | 修改 | 重构输入框和顶栏UI，移除旧历史/导出按钮 |
+| `src/components/ChatRoot.tsx` | 修改 | 重构输入框和顶栏UI，移除旧历史/导出按钮 |
 | `src/components/MessageItem.tsx` | 修改 | 增加头像、左右对齐、操作按钮样式 |
 | `src/components/ChatHistory.tsx` | **删除或合并** | 逻辑合并到 Sidebar.tsx |
 | `src/components/Header.astro` | **删除或重构** | 功能合并到浮动顶栏 |

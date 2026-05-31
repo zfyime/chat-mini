@@ -1,7 +1,7 @@
 import { createSignal, onCleanup, onMount } from 'solid-js'
 
 // 联网搜索开关：放在 Header 模型选择器旁，状态持久化到 localStorage，
-// 通过 CustomEvent('web-search-change') 向 Generator 派发。
+// 通过 CustomEvent('web-search-change') 向 ChatRoot 派发。
 export default () => {
   const [enabled, setEnabled] = createSignal(false)
   const [isStreaming, setIsStreaming] = createSignal(false)

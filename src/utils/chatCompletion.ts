@@ -82,6 +82,9 @@ interface PayloadOptions {
   stream?: boolean
   tools?: any[]
   toolChoice?: 'auto' | 'none' | 'required'
+  // 传 true 表示 messages 已是 OpenAI 协议原始格式（含 tool_calls / role: 'tool' 等），
+  // 跳过 transformMessagesForAPI 以免丢字段。Agent 循环里使用。
+  pretransformed?: boolean
 }
 
 const buildRequestInit = (
@@ -100,36 +103,19 @@ const buildRequestInit = (
 
 export const generatePayload = (
   apiKey: string,
-  messages: ChatMessage[],
+  messages: ChatMessage[] | any[],
   temperature: number,
   model: string,
   opts: PayloadOptions = {},
 ): RequestInit & { dispatcher?: any } => {
-  const transformedMessages = transformMessagesForAPI(messages)
+  const finalMessages = opts.pretransformed ? messages : transformMessagesForAPI(messages as ChatMessage[])
   return buildRequestInit(apiKey, {
     model,
-    messages: transformedMessages,
+    messages: finalMessages,
     temperature,
     stream: opts.stream ?? true,
-    ...(opts.tools ? { tools: opts.tools, tool_choice: opts.toolChoice ?? 'auto' } : {}),
-  })
-}
-
-// Agent 循环里 workingMessages 已经是 OpenAI 协议格式（含 assistant.tool_calls / role: 'tool'），
-// 不应再走 transformMessagesForAPI，否则会丢失 tool_calls 等字段
-export const generatePayloadRaw = (
-  apiKey: string,
-  rawMessages: any[],
-  temperature: number,
-  model: string,
-  opts: PayloadOptions = {},
-): RequestInit & { dispatcher?: any } => {
-  return buildRequestInit(apiKey, {
-    model,
-    messages: rawMessages,
-    temperature,
-    stream: opts.stream ?? true,
-    ...(opts.tools ? { tools: opts.tools, tool_choice: opts.toolChoice ?? 'auto' } : {}),
+    ...(opts.tools ? { tools: opts.tools } : {}),
+    ...(opts.toolChoice ? { tool_choice: opts.toolChoice } : {}),
   })
 }
 

@@ -6,8 +6,8 @@
 - [generate.ts](file://src/pages/api/generate.ts#L1-L71)
 - [auth.ts](file://src/utils/auth.ts#L1-L35)
 - [constants.ts](file://src/config/constants.ts#L1-L38)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
-- [openAI.ts](file://src/utils/openAI.ts#L1-L72)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L363)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L1-L230)
 </cite>
 
 ## 目录
@@ -36,7 +36,7 @@
 
 **Section sources**
 - [auth.ts](file://src/pages/api/auth.ts#L1-L13)
-- [openAI.ts](file://src/utils/openAI.ts#L11)
+- [chatCompletion.ts](file://src/utils/chatCompletion.ts#L90-L102)
 
 ## 请求体参数
 请求体必须为 JSON 格式，包含以下字段：
@@ -135,12 +135,12 @@ participant 后端 as 后端
 - [constants.ts](file://src/config/constants.ts#L8-L10)
 
 ## 前端集成
-### Generator 组件密码逻辑
-`Generator` 组件负责处理用户密码输入和认证状态管理：
+### ChatRoot 组件密码逻辑
+`ChatRoot` 组件负责处理用户密码输入和认证状态管理：
 
 ```mermaid
 classDiagram
-class Generator {
+class ChatRoot {
 +storagePassword : string
 +requestWithLatestMessage()
 +handleButtonClick()
@@ -149,16 +149,16 @@ class auth {
 +generateSignature()
 +verifySignature()
 }
-Generator --> auth : 使用
-Generator --> localStorage : 读写
+ChatRoot --> auth : 使用
+ChatRoot --> localStorage : 读写
 ```
 
 **Diagram sources**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L363)
 - [auth.ts](file://src/utils/auth.ts#L1-L35)
 
 **Section sources**
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L363)
 
 ### 认证状态持久化
 - 密码通过 `localStorage` 持久化存储，键名为 `pass`
@@ -214,11 +214,11 @@ participant 生成 as /api/generate
 **Diagram sources**
 - [auth.ts](file://src/pages/api/auth.ts#L1-L13)
 - [generate.ts](file://src/pages/api/generate.ts#L1-L71)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L363)
 
 **Section sources**
 - [generate.ts](file://src/pages/api/generate.ts#L16-L24)
-- [Generator.tsx](file://src/components/Generator.tsx#L1-L392)
+- [ChatRoot.tsx](file://src/components/ChatRoot.tsx#L1-L363)
 
 ### 权限验证逻辑
 在 `/api/generate` 接口中，系统会再次验证密码：

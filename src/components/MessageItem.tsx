@@ -22,7 +22,6 @@ interface Props {
   showExportMenu?: Accessor<boolean>
   onToggleExportMenu?: (e: MouseEvent) => void
   onExport?: (format: 'markdown' | 'json' | 'text') => void
-  onCopyMessage?: (content: string) => void
   onDeleteMessage?: () => void
   onEditMessage?: (newContent: string) => void
 }
@@ -38,7 +37,6 @@ export default ({
   showExportMenu,
   onToggleExportMenu,
   onExport,
-  onCopyMessage,
   onDeleteMessage,
   onEditMessage,
 }: Props) => {
@@ -64,7 +62,6 @@ export default ({
     try {
       const content = typeof message === 'function' ? message() : message
       await navigator.clipboard.writeText(content || '')
-      onCopyMessage?.(content || '')
     } catch (err) {
       console.error('Failed to copy message:', err)
     }

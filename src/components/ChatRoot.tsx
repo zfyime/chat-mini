@@ -1,12 +1,11 @@
 import { Index, Show, createSignal, onCleanup, onMount } from 'solid-js'
-import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
-import { saveOrUpdateChat } from '@/store/historyStore'
 import { cleanupFileUrl } from '@/utils/fileUtils'
-import { exportChat } from '@/utils/exportUtils'
-import { loadChatSession, saveChatSession } from '@/utils/chatSession'
-import { createTagParser } from '@/utils/tagParser'
+import { loadChatSession } from '@/utils/currentChatStore'
 import { useStickToBottom } from '@/hooks/useStickToBottom'
+import { useChatStream } from '@/hooks/useChatStream'
+import { useHistoryPersist } from '@/hooks/useHistoryPersist'
+import { useExportMenu } from '@/hooks/useExportMenu'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
 import IconArrowDown from './icons/ArrowDown'
@@ -16,54 +15,62 @@ import ErrorMessageItem from './ErrorMessageItem'
 import ChatHistory from './ChatHistory'
 import FileUpload from './FileUpload'
 import FilePreview from './FilePreview'
-import type { ChatMessage, ErrorMessage, FileAttachment } from '@/types'
+import type { ChatMessage, FileAttachment } from '@/types'
 
 export default () => {
   let inputRef: HTMLTextAreaElement
   const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal('')
   const [systemRoleEditing, setSystemRoleEditing] = createSignal(false)
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
-  const [currentError, setCurrentError] = createSignal<ErrorMessage>()
-  const [currentAssistantMessage, setCurrentAssistantMessage] = createSignal('')
-  const [currentAssistantThinkMessage, setCurrentAssistantThinkMessage] = createSignal('')
-  const [currentAssistantToolMessage, setCurrentAssistantToolMessage] = createSignal('')
-  const [loading, setLoading] = createSignal(false)
-  const [controller, setController] = createSignal<AbortController | null>(null)
   const { isStick, setStick, instantToBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
   })
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
   const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
   const [webSearchEnabled, setWebSearchEnabled] = createSignal(false)
-  // 新增：跟踪对话状态
-  const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
-  const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
-  // 新增：文件上传状态
   const [pendingAttachments, setPendingAttachments] = createSignal<FileAttachment[]>([])
-  // 新增：导出菜单状态
-  const [showExportMenu, setShowExportMenu] = createSignal(false)
-  const temperatureSetting = (value: number) => { setTemperature(value) }
-  const chatModelSetting = (value: string) => { setChatModel(value) }
-  const maxHistoryMessages = CONFIG.MAX_HISTORY_MESSAGES
 
-  // 通知 header 流式输出状态变化
-  const dispatchStreamingState = (streaming: boolean) => {
-    window.dispatchEvent(new CustomEvent('streaming-state-change', { detail: { streaming } }))
-  }
+  const {
+    isCurrentChatModified,
+    persist,
+    persistImmediate,
+    resetCurrentChat,
+    adoptHistory,
+    markModified,
+  } = useHistoryPersist()
 
-  const thinkParser = createTagParser({
-    tags: ['think', 'tool'],
-    onText: chunk => setCurrentAssistantMessage(prev => prev + chunk),
-    onTag: (tag, chunk) => {
-      if (tag === 'think') setCurrentAssistantThinkMessage(prev => prev + chunk)
-      else if (tag === 'tool') setCurrentAssistantToolMessage(prev => prev + chunk)
+  const {
+    currentAssistantMessage,
+    currentAssistantThinkMessage,
+    currentAssistantToolMessage,
+    loading,
+    currentError,
+    resetStreamingBuffers,
+    requestWithLatestMessage,
+    stopStreamFetch,
+  } = useChatStream({
+    messageList,
+    setMessageList,
+    systemRole: currentSystemRoleSettings,
+    model: chatModel,
+    temperature,
+    webSearchEnabled,
+    onChunk: () => { isStick() && instantToBottom() },
+    onArchived: (messages) => {
+      markModified()
+      persist(messages, currentSystemRoleSettings())
+      if (!('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0))
+        inputRef.focus()
     },
   })
 
+  const { showExportMenu, toggleExportMenu, handleExport } = useExportMenu(messageList, currentSystemRoleSettings)
+
+  const temperatureSetting = (value: number) => { setTemperature(value) }
+  const chatModelSetting = (value: string) => { setChatModel(value) }
+
   const cleanupMessageAttachments = (message: ChatMessage) => {
-    message.attachments?.forEach((attachment) => {
-      cleanupFileUrl(attachment.url)
-    })
+    message.attachments?.forEach(attachment => cleanupFileUrl(attachment.url))
   }
 
   const cleanupMessageListAttachments = (messages: ChatMessage[]) => {
@@ -71,16 +78,6 @@ export default () => {
   }
 
   onMount(() => {
-    // 点击外部关闭导出菜单
-    const handleClickOutside = (e: MouseEvent) => {
-      // 检查点击是否在导出按钮或菜单内
-      const target = e.target as HTMLElement
-      if (!target.closest('[title="导出对话"]') && !target.closest('.export-menu'))
-        setShowExportMenu(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-
-    // 使用 IndexedDB 替代 sessionStorage
     const loadSessionData = async() => {
       const session = await loadChatSession()
       if (session.messageList?.length)
@@ -88,16 +85,13 @@ export default () => {
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
     }
-
     loadSessionData()
 
-    // 监听 header 模型切换事件
     const handleModelChange = ((e: CustomEvent) => {
       setChatModel(e.detail)
     }) as EventListener
     window.addEventListener('model-change', handleModelChange)
 
-    // 监听 header 联网开关事件
     const savedWebSearch = localStorage.getItem('web-search-enabled')
     if (savedWebSearch === '1') setWebSearchEnabled(true)
     const handleWebSearchChange = ((e: CustomEvent) => {
@@ -105,71 +99,48 @@ export default () => {
     }) as EventListener
     window.addEventListener('web-search-change', handleWebSearchChange)
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handleBeforeUnload)
     onCleanup(() => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handleBeforeUnload)
       window.removeEventListener('model-change', handleModelChange)
       window.removeEventListener('web-search-change', handleWebSearchChange)
-      document.removeEventListener('click', handleClickOutside)
-      // 清理文件URL
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))
     })
   })
 
-  // 删除单条消息
   const deleteMessage = (index: number) => {
     const messages = messageList()
     const targetMessage = messages[index]
-    if (targetMessage)
-      cleanupMessageAttachments(targetMessage)
+    if (targetMessage) cleanupMessageAttachments(targetMessage)
 
     const updatedMessages = messages.filter((_, i) => i !== index)
     setMessageList(updatedMessages)
 
-    // 标记对话已修改并保存
-    setIsCurrentChatModified(true)
-    if (updatedMessages.length > 0) {
-      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then((historyId) => {
-        if (historyId) setCurrentChatHistoryId(historyId)
-      })
-    }
+    markModified()
+    persist(updatedMessages, currentSystemRoleSettings())
   }
 
-  // 复制消息（可选，用于日志记录等）
-  const copyMessage = (_content: string) => {
-    // 这里可以添加复制相关的逻辑，如统计等
-    // console.log('Message copied:', content.slice(0, 50) + '...')
-  }
-
-  // 编辑用户消息并重新生成回答
   const editMessage = (index: number, newContent: string) => {
     const messages = messageList()
-    // 清理该消息之后所有消息的附件
     for (let i = index + 1; i < messages.length; i++)
       cleanupMessageAttachments(messages[i])
 
-    // 更新该条用户消息内容，并截断后续所有消息
     const updatedMessage = { ...messages[index], content: newContent }
     const updatedMessages = [...messages.slice(0, index), updatedMessage]
     setMessageList(updatedMessages)
 
-    // 标记对话已修改
-    setIsCurrentChatModified(true)
+    markModified()
     setStick(true)
     requestWithLatestMessage()
     instantToBottom()
   }
 
-  const handleBeforeUnload = async() => {
-    // 如果有未保存的对话修改，自动保存
-    if (messageList().length > 0 && isCurrentChatModified())
-      await saveOrUpdateChat(messageList(), currentSystemRoleSettings(), currentChatHistoryId())
-
+  // pagehide 触发时无法 await 异步写盘：会话数据用 sessionStorage 同步落盘；
+  // 历史对话已在每次修改后由 saveOrUpdateChat 立即持久化，这里不再重复。
+  const handleBeforeUnload = () => {
     try {
-      await saveChatSession({
-        messageList: messageList(),
-        systemRole: currentSystemRoleSettings(),
-      })
+      sessionStorage.setItem('messageList', JSON.stringify(messageList()))
+      sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
     } catch (error) {
       console.error('Failed to persist chat session:', error)
     }
@@ -177,179 +148,44 @@ export default () => {
 
   const handleButtonClick = async() => {
     const inputValue = inputRef.value
-    if (!inputValue && pendingAttachments().length === 0)
-      return
+    if (!inputValue && pendingAttachments().length === 0) return
 
     inputRef.value = ''
     const attachments = [...pendingAttachments()]
-    setPendingAttachments([]) // Clear pending attachments
+    setPendingAttachments([])
 
     const newMessage: ChatMessage = {
       role: 'user',
-      content: inputValue || '', // Allow empty content if there are attachments
+      content: inputValue || '',
       think: '',
       attachments: attachments.length > 0 ? attachments : undefined,
     }
 
-    setMessageList([
-      ...messageList(),
-      newMessage,
-    ])
-
-    // 标记对话已修改
-    setIsCurrentChatModified(true)
-
-    // 用户发送消息时自动开启自动滚动
+    setMessageList([...messageList(), newMessage])
+    markModified()
     setStick(true)
-    requestWithLatestMessage()
+    requestWithLatestMessage().then((res) => {
+      if (!res?.aborted) instantToBottom()
+    })
     instantToBottom()
-  }
-
-  const requestWithLatestMessage = async() => {
-    setLoading(true)
-    setCurrentAssistantMessage('')
-    setCurrentAssistantThinkMessage('')
-    setCurrentAssistantToolMessage('')
-    setCurrentError(null)
-    thinkParser.reset()
-    const storagePassword = localStorage.getItem('pass')
-    try {
-      const controller = new AbortController()
-      setController(controller)
-      const requestMessageList = messageList().slice(-maxHistoryMessages)
-      if (currentSystemRoleSettings()) {
-        requestMessageList.unshift({
-          role: 'system',
-          content: currentSystemRoleSettings(),
-        })
-      }
-      const timestamp = Date.now()
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        body: JSON.stringify({
-          messages: requestMessageList,
-          time: timestamp,
-          pass: storagePassword,
-          sign: await generateSignature({
-            t: timestamp,
-            m: requestMessageList?.[requestMessageList.length - 1]?.content || '',
-          }),
-          temperature: temperature(),
-          model: chatModel(),
-          webSearch: webSearchEnabled(),
-        }),
-        signal: controller.signal,
-      })
-      if (!response.ok) {
-        const error = await response.json()
-        console.error(error.error)
-        setCurrentError(error.error)
-        throw new Error('请求失败')
-      }
-      const data = response.body
-      if (!data)
-        throw new Error('没有数据')
-
-      const reader = data.getReader()
-      const decoder = new TextDecoder('utf-8')
-      let done = false
-      let streamingLocked = false
-
-      while (!done) {
-        const { value, done: readerDone } = await reader.read()
-        if (value) {
-          // 收到第一个 chunk 时才通知 header 锁定，避免短内容被误锁
-          if (!streamingLocked) {
-            dispatchStreamingState(true)
-            streamingLocked = true
-          }
-          const chunk = decoder.decode(value, { stream: true })
-          thinkParser.process(chunk)
-
-          isStick() && instantToBottom()
-        }
-        done = readerDone
-      }
-    } catch (e) {
-      console.error(e)
-      setLoading(false)
-      dispatchStreamingState(false)
-      setController(null)
-      return
-    }
-    archiveCurrentMessage()
-    dispatchStreamingState(false)
-    instantToBottom()
-  }
-
-  const archiveCurrentMessage = () => {
-    if (currentAssistantMessage() || currentAssistantThinkMessage() || currentAssistantToolMessage()) {
-      const newAssistantMessage: ChatMessage = {
-        role: 'assistant',
-        content: currentAssistantMessage(),
-        think: currentAssistantThinkMessage(),
-        tool: currentAssistantToolMessage() || undefined,
-      }
-
-      const updatedMessages = [
-        ...messageList(),
-        newAssistantMessage,
-      ]
-
-      setMessageList(updatedMessages)
-      setCurrentAssistantMessage('')
-      setCurrentAssistantThinkMessage('')
-      setCurrentAssistantToolMessage('')
-      setLoading(false)
-      dispatchStreamingState(false)
-      setController(null)
-
-      // 标记对话已修改并立即保存/更新历史
-      setIsCurrentChatModified(true)
-
-      // 立即保存或更新历史记录
-      saveOrUpdateChat(updatedMessages, currentSystemRoleSettings(), currentChatHistoryId()).then((historyId) => {
-        if (historyId)
-          setCurrentChatHistoryId(historyId)
-      })
-
-      // Disable auto-focus on touch devices
-      if (!('ontouchstart' in document.documentElement || navigator.maxTouchPoints > 0))
-        inputRef.focus()
-    }
   }
 
   const clear = async() => {
     const currentMessages = messageList()
-    // 只有当对话被修改且不是历史对话时才保存
     if (currentMessages.length > 0 && isCurrentChatModified())
-      await saveOrUpdateChat(currentMessages, currentSystemRoleSettings(), currentChatHistoryId())
+      await persistImmediate(currentMessages, currentSystemRoleSettings())
 
     cleanupMessageListAttachments(currentMessages)
 
     inputRef.value = ''
     inputRef.style.height = 'auto'
     setMessageList([])
-    setCurrentAssistantMessage('')
-    setCurrentAssistantThinkMessage('')
-    setCurrentAssistantToolMessage('')
-    setCurrentError(null)
+    resetStreamingBuffers()
 
-    // 清除文件
     clearAllFiles()
 
-    // 清空后关闭自动滚动
     setStick(false)
-    // 重置对话状态
-    setIsCurrentChatModified(false)
-    setCurrentChatHistoryId()
-  }
-
-  const stopStreamFetch = () => {
-    if (controller()) {
-      controller().abort()
-      archiveCurrentMessage()
-    }
+    resetCurrentChat()
   }
 
   const retryLastFetch = () => {
@@ -359,63 +195,36 @@ export default () => {
         cleanupMessageAttachments(lastMessage)
         setMessageList(messageList().slice(0, -1))
       }
-      // 重试时开启自动滚动
       setStick(true)
       requestWithLatestMessage()
     }
   }
 
   const handleKeydown = (e: KeyboardEvent) => {
-    if (e.isComposing || e.shiftKey)
-      return
-
+    if (e.isComposing || e.shiftKey) return
     if (e.key === 'Enter') {
       e.preventDefault()
       handleButtonClick()
     }
   }
 
-  // 加载历史对话
   const loadHistory = async(messages: ChatMessage[], systemRole: string, historyId?: string) => {
     await clear()
 
     setMessageList(messages)
     setCurrentSystemRoleSettings(systemRole)
 
-    // 设置当前加载的历史对话状态
-    setCurrentChatHistoryId(historyId)
-    setIsCurrentChatModified(false) // 刚加载的历史对话未修改
+    adoptHistory(historyId)
 
-    // 滚动到底部
     setTimeout(() => {
       instantToBottom()
-    }, 100)
+    }, CONFIG.LOAD_SCROLL_DELAY)
   }
 
-  // 处理导出
-  const handleExport = (format: 'markdown' | 'json' | 'text') => {
-    try {
-      if (messageList().length === 0)
-        return
-
-      exportChat(messageList(), currentSystemRoleSettings(), format)
-      setShowExportMenu(false)
-    } catch (error) {
-      console.error('导出失败:', error)
-    }
-  }
-
-  const toggleExportMenu = (e: MouseEvent) => {
-    e.stopPropagation()
-    setShowExportMenu(!showExportMenu())
-  }
-
-  // 处理文件上传
   const handleFilesSelected = (files: FileAttachment[]) => {
     setPendingAttachments(prev => [...prev, ...files])
   }
 
-  // 移除单个文件
   const removeFile = (fileId: string) => {
     setPendingAttachments((prev) => {
       const removed = prev.find(file => file.id === fileId)
@@ -424,7 +233,6 @@ export default () => {
     })
   }
 
-  // 清除所有文件
   const clearAllFiles = () => {
     const files = pendingAttachments()
     files.forEach(file => file.url && cleanupFileUrl(file.url))
@@ -453,14 +261,13 @@ export default () => {
             role={message().role}
             message={message().content}
             thinkMessage={message().think}
-            toolMessage={message().tool}
+            toolMessage={message().toolTrace}
             attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
             showExportMenu={showExportMenu}
             onToggleExportMenu={toggleExportMenu}
             onExport={handleExport}
-            onCopyMessage={copyMessage}
             onDeleteMessage={() => deleteMessage(index)}
             onEditMessage={newContent => editMessage(index, newContent)}
           />
