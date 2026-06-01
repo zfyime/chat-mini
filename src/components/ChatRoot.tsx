@@ -11,6 +11,7 @@ import IconArrowDown from './icons/ArrowDown'
 import IconArrowUp from './icons/ArrowUp'
 import IconStop from './icons/Stop'
 import MessageItem from './MessageItem'
+import TypingIndicator from './TypingIndicator'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
 import ChatHistory from './ChatHistory'
@@ -298,6 +299,10 @@ export default () => {
           toolMessage={currentAssistantToolMessage}
           animate
         />
+      )}
+      {/* 已发送但还没收到首字：显示"正在输入"动画占位气泡 */}
+      {loading() && !currentAssistantMessage() && !currentAssistantThinkMessage() && !currentAssistantToolMessage() && (
+        <TypingIndicator />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
 
