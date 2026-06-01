@@ -24,6 +24,7 @@ interface Props {
   onExport?: (format: 'markdown' | 'json' | 'text') => void
   onDeleteMessage?: () => void
   onEditMessage?: (newContent: string) => void
+  animate?: boolean
 }
 
 export default ({
@@ -39,8 +40,11 @@ export default ({
   onExport,
   onDeleteMessage,
   onEditMessage,
+  animate,
 }: Props) => {
   const isUserMessage = role === 'user'
+  // 仅在组件创建时读取一次 animate，避免后续 prop 变化导致已挂载的旧消息补播动画
+  const shouldAnimate = animate
   const [source, setSource] = createSignal('')
   const [codeCopied, setCodeCopied] = createSignal(false)
   const [isEditing, setIsEditing] = createSignal(false)
@@ -187,7 +191,7 @@ export default ({
   })
 
   return (
-    <div class="md:py-2 md:px-4 transition-colors group">
+    <div class={`md:py-2 md:px-4 transition-colors group${shouldAnimate ? ' message-enter' : ''}`}>
       <div class={`flex rounded-lg ${isUserMessage ? 'justify-end' : ''}`}>
         <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? `max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 ${isEditing() ? ' w-[85%]' : ''}` : 'flex-1'}`}>
           <Show when={isEditing()}>

@@ -23,6 +23,8 @@ export default () => {
   const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal('')
   const [systemRoleEditing, setSystemRoleEditing] = createSignal(false)
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
+  // 入场动画开关：初始加载/切换历史期间为 false，避免整屏消息一起淡入；加载完成后开启，只有之后的新消息才有动画
+  const [entranceReady, setEntranceReady] = createSignal(false)
   const { isStick, setStick, instantToBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
   })
@@ -93,6 +95,8 @@ export default () => {
         setMessageList(session.messageList)
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
+      // 初始消息不做入场动画，加载完成后再开启，使后续新消息才有动画
+      setTimeout(() => setEntranceReady(true))
     }
     loadSessionData()
 
@@ -216,12 +220,15 @@ export default () => {
   const loadHistory = async(messages: ChatMessage[], systemRole: string, historyId?: string) => {
     await clear()
 
+    // 切换历史会话时关闭动画，避免整屏消息一起淡入
+    setEntranceReady(false)
     setMessageList(messages)
     setCurrentSystemRoleSettings(systemRole)
 
     adoptHistory(historyId)
 
     setTimeout(() => {
+      setEntranceReady(true)
       instantToBottom()
     }, CONFIG.LOAD_SCROLL_DELAY)
   }
@@ -275,6 +282,7 @@ export default () => {
             onExport={handleExport}
             onDeleteMessage={() => deleteMessage(index)}
             onEditMessage={newContent => editMessage(index, newContent)}
+            animate={entranceReady() && message().role === 'user'}
           />
         )}
       </Index>
@@ -284,6 +292,7 @@ export default () => {
           message={currentAssistantMessage}
           thinkMessage={currentAssistantThinkMessage}
           toolMessage={currentAssistantToolMessage}
+          animate
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
