@@ -284,7 +284,7 @@ export default ({
         </div>
       </Show>
       {showRetry?.() && (
-        <div class="flex items-center justify-end mb-22 px-2">
+        <div class="flex items-center justify-end mb-2 px-2">
           <Show when={onExport && onToggleExportMenu && showExportMenu}>
             <div class="relative">
               <div onClick={onToggleExportMenu} class="gpt-retry-btn" title="导出对话">

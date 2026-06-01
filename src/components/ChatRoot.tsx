@@ -257,7 +257,11 @@ export default () => {
   }
 
   return (
-    <div my-4>
+    // 有消息时为底部固定输入框预留空间（含移动端 safe-area），避免输入框遮挡最后一条消息
+    <div
+      class="my-4"
+      classList={{ 'pb-[calc(7.5rem+env(safe-area-inset-bottom))]': messageList().length > 0 }}
+    >
       <SystemRoleSettings
         canEdit={() => messageList().length === 0}
         systemRoleEditing={systemRoleEditing}
