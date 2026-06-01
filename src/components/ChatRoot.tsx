@@ -7,9 +7,9 @@ import { useChatStream } from '@/hooks/useChatStream'
 import { useHistoryPersist } from '@/hooks/useHistoryPersist'
 import { useExportMenu } from '@/hooks/useExportMenu'
 import IconClear from './icons/Clear'
-import IconLoading from './icons/Loading'
 import IconArrowDown from './icons/ArrowDown'
 import IconArrowUp from './icons/ArrowUp'
+import IconStop from './icons/Stop'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
@@ -287,114 +287,113 @@ export default () => {
         />
       )}
       { currentError() && <ErrorMessageItem data={currentError()} onRetry={retryLastFetch} /> }
-      <Show when={loading() && !isStick()}>
-        <button
-          type="button"
-          title="回到底部"
-          aria-label="回到底部"
-          onClick={stickToBottom}
-          class="fixed left-1/2 z-50 -translate-x-1/2 fcc gap-1 px-4 py-1.5 rounded-full border border-slate/20 bg-[var(--c-bg)] text-sm text-[var(--c-fg)] shadow-sm transition-all duration-200 hover:bg-slate/5 active:scale-95"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}
-        >
-          <span class="fcc text-base leading-none">
-            <IconArrowDown />
-          </span>
-          <span class="font-medium">回到底部</span>
-        </button>
-      </Show>
 
-      <Show
-        when={!loading()}
-        fallback={
-          <div class="gen-cb-wrapper">
-            <IconLoading />
-            <span>AI 正在思考中...</span>
-            <div class="gen-cb-stop" onClick={stopStreamFetch}>停止</div>
-          </div>
-        }
+      {/* 输入区常驻：加载时输入框不消失，仅右下角发送按钮切换为停止 */}
+      <div
+        class="gen-text-wrapper"
+        classList={{
+          'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)] pb-[env(safe-area-inset-bottom)] pt-2 px-4': messageList().length > 0,
+          'op-50': systemRoleEditing(),
+        }}
       >
-        <div
-          class="gen-text-wrapper"
-          classList={{
-            'fixed bottom-0 left-0 right-0 z-40 bg-[var(--c-bg)] pb-[env(safe-area-inset-bottom)] pt-2 px-4': messageList().length > 0,
-            'op-50': systemRoleEditing(),
-          }}
-        >
-          <div class="w-full max-w-[85ch] mx-auto">
-            {(() => {
-              const files = pendingAttachments()
-              return (
-                <FilePreview
-                  files={files}
-                  onRemoveFile={removeFile}
-                  onClearAll={clearAllFiles}
-                />
-              )
-            })()}
-            {/* 统一输入容器：textarea 透明嵌入，操作按钮沉到底栏 */}
-            <div class="gen-input-box">
-              <textarea
-                ref={inputRef!}
-                disabled={systemRoleEditing()}
-                onKeyDown={handleKeydown}
-                placeholder="想问一些什么..."
-                autocomplete="off"
-                autofocus
-                onInput={() => {
-                  inputRef.style.height = 'auto'
-                  inputRef.style.height = `${inputRef.scrollHeight}px`
-                }}
-                rows="1"
-                class="gen-textarea"
+        {/* 回到底部：锚定在输入框上方，避免与输入框重叠 */}
+        <Show when={loading() && !isStick()}>
+          <button
+            type="button"
+            title="回到底部"
+            aria-label="回到底部"
+            onClick={stickToBottom}
+            class="absolute bottom-full left-1/2 mb-2 z-50 -translate-x-1/2 fcc gap-1 px-4 py-1.5 rounded-full border border-slate/20 bg-[var(--c-bg)] text-sm text-[var(--c-fg)] shadow-sm transition-all duration-200 hover:bg-slate/5 active:scale-95"
+          >
+            <span class="fcc text-base leading-none">
+              <IconArrowDown />
+            </span>
+            <span class="font-medium">回到底部</span>
+          </button>
+        </Show>
+        <div class="w-full max-w-[85ch] mx-auto">
+          {(() => {
+            const files = pendingAttachments()
+            return (
+              <FilePreview
+                files={files}
+                onRemoveFile={removeFile}
+                onClearAll={clearAllFiles}
               />
-              <div class="fb items-center px-1">
-                {/* 左侧工具：附件 + 联网 */}
-                <div class="fi gap-1">
-                  <FileUpload
-                    onFilesSelected={handleFilesSelected}
-                    disabled={() => systemRoleEditing()}
-                  />
-                  <button
-                    type="button"
-                    onClick={toggleWebSearch}
-                    title={webSearchEnabled() ? '联网搜索：已开启' : '联网搜索：已关闭'}
-                    aria-pressed={webSearchEnabled()}
-                    disabled={systemRoleEditing()}
-                    class="gen-bar-btn select-none"
-                    classList={{ 'text-blue-600 bg-blue-500/10 hover:bg-blue-500/15': webSearchEnabled() }}
+            )
+          })()}
+          {/* 统一输入容器：textarea 透明嵌入，操作按钮沉到底栏 */}
+          <div class="gen-input-box">
+            <textarea
+              ref={inputRef!}
+              disabled={systemRoleEditing()}
+              onKeyDown={handleKeydown}
+              placeholder="想问一些什么..."
+              autocomplete="off"
+              autofocus
+              onInput={() => {
+                inputRef.style.height = 'auto'
+                inputRef.style.height = `${inputRef.scrollHeight}px`
+              }}
+              rows="1"
+              class="gen-textarea"
+            />
+            <div class="fb items-center px-1">
+              {/* 左侧工具：附件 + 联网 */}
+              <div class="fi gap-1">
+                <FileUpload
+                  onFilesSelected={handleFilesSelected}
+                  disabled={() => systemRoleEditing()}
+                />
+                <button
+                  type="button"
+                  onClick={toggleWebSearch}
+                  title={webSearchEnabled() ? '联网搜索：已开启' : '联网搜索：已关闭'}
+                  aria-pressed={webSearchEnabled()}
+                  disabled={systemRoleEditing() || loading()}
+                  class="gen-bar-btn select-none"
+                  classList={{ 'text-blue-600 bg-blue-500/10 hover:bg-blue-500/15': webSearchEnabled() }}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="flex-shrink-0"
                   >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      class="flex-shrink-0"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <line x1="2" y1="12" x2="22" y2="12" />
-                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                    </svg>
-                    <span class="text-xs">联网</span>
-                  </button>
-                </div>
-                {/* 右侧操作：清空 + 发送 */}
-                <div class="fi gap-1">
-                  <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-bar-btn fcc !px-2">
-                    <IconClear />
-                  </button>
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span class="text-xs">联网</span>
+                </button>
+              </div>
+              {/* 右侧操作：清空 + 发送 */}
+              <div class="fi gap-1">
+                <button title="清空" onClick={clear} disabled={systemRoleEditing() || loading()} class="gen-bar-btn fcc !px-2">
+                  <IconClear />
+                </button>
+                <Show
+                  when={!loading()}
+                  fallback={
+                    <button onClick={stopStreamFetch} title="停止生成" aria-label="停止生成" class="gen-send-btn">
+                      <IconStop />
+                    </button>
+                    }
+                >
                   <button onClick={handleButtonClick} disabled={systemRoleEditing()} title="发送" aria-label="发送" class="gen-send-btn">
                     <IconArrowUp />
                   </button>
-                </div>
+                </Show>
               </div>
             </div>
           </div>
         </div>
-      </Show>
+      </div>
       <ChatHistory onLoadHistory={loadHistory} />
     </div>
   )
