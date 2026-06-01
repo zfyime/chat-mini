@@ -281,16 +281,16 @@ export default ({
               <IconRefresh />
             </button>
           </Show>
-        </div>
-      </Show>
-      {showRetry?.() && (
-        <div class="flex items-center justify-end mb-2 px-2">
-          <Show when={onExport && onToggleExportMenu && showExportMenu}>
-            <div class="relative">
-              <div onClick={onToggleExportMenu} class="gpt-retry-btn" title="导出对话">
+          {/* 导出对话按钮，并入消息操作按钮组，仅保留图标 */}
+          <Show when={showRetry?.() && onExport && onToggleExportMenu && showExportMenu}>
+            <div class="relative inline-fcc">
+              <button
+                onClick={onToggleExportMenu}
+                title="导出对话"
+                class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
+              >
                 <IconExport />
-                <span>导出</span>
-              </div>
+              </button>
               <Show when={showExportMenu?.()}>
                 <div
                   class="export-menu absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[120px] z-50"
@@ -319,7 +319,7 @@ export default ({
             </div>
           </Show>
         </div>
-      )}
+      </Show>
     </div>
   )
 }
