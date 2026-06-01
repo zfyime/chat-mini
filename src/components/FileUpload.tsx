@@ -116,11 +116,11 @@ export default ({ onFilesSelected, disabled }: Props) => {
       <button
         onClick={() => !isDisabled() && fileInputRef.click()}
         disabled={isDisabled() || isUploading()}
-        class="gen-slate-btn fcc rounded-lg"
+        class="gen-bar-btn"
         title="上传文件"
       >
         <IconAttachment />
-        {isUploading() && <span class="ml-1 text-xs">上传中...</span>}
+        <span class="text-xs">{isUploading() ? '上传中...' : '文件'}</span>
       </button>
 
       {isDragOver() && (

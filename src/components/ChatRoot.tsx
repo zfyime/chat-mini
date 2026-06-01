@@ -9,6 +9,7 @@ import { useExportMenu } from '@/hooks/useExportMenu'
 import IconClear from './icons/Clear'
 import IconLoading from './icons/Loading'
 import IconArrowDown from './icons/ArrowDown'
+import IconArrowUp from './icons/ArrowUp'
 import MessageItem from './MessageItem'
 import SystemRoleSettings from './SystemRoleSettings'
 import ErrorMessageItem from './ErrorMessageItem'
@@ -69,6 +70,14 @@ export default () => {
   const temperatureSetting = (value: number) => { setTemperature(value) }
   const chatModelSetting = (value: string) => { setChatModel(value) }
 
+  // 联网搜索开关：状态持久化到 localStorage，编辑系统角色或正在流式输出时禁用
+  const toggleWebSearch = () => {
+    if (systemRoleEditing() || loading()) return
+    const next = !webSearchEnabled()
+    setWebSearchEnabled(next)
+    localStorage.setItem('web-search-enabled', next ? '1' : '0')
+  }
+
   const cleanupMessageAttachments = (message: ChatMessage) => {
     message.attachments?.forEach(attachment => cleanupFileUrl(attachment.url))
   }
@@ -92,18 +101,14 @@ export default () => {
     }) as EventListener
     window.addEventListener('model-change', handleModelChange)
 
+    // 联网开关已移入输入框底栏，由 toggleWebSearch 直接维护；此处仅恢复上次状态
     const savedWebSearch = localStorage.getItem('web-search-enabled')
     if (savedWebSearch === '1') setWebSearchEnabled(true)
-    const handleWebSearchChange = ((e: CustomEvent) => {
-      setWebSearchEnabled(!!e.detail)
-    }) as EventListener
-    window.addEventListener('web-search-change', handleWebSearchChange)
 
     window.addEventListener('pagehide', handleBeforeUnload)
     onCleanup(() => {
       window.removeEventListener('pagehide', handleBeforeUnload)
       window.removeEventListener('model-change', handleModelChange)
-      window.removeEventListener('web-search-change', handleWebSearchChange)
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))
     })
   })
@@ -326,11 +331,8 @@ export default () => {
                 />
               )
             })()}
-            <div class="fi gap-2 w-full">
-              <FileUpload
-                onFilesSelected={handleFilesSelected}
-                disabled={() => systemRoleEditing()}
-              />
+            {/* 统一输入容器：textarea 透明嵌入，操作按钮沉到底栏 */}
+            <div class="gen-input-box">
               <textarea
                 ref={inputRef!}
                 disabled={systemRoleEditing()}
@@ -343,15 +345,51 @@ export default () => {
                   inputRef.style.height = `${inputRef.scrollHeight}px`
                 }}
                 rows="1"
-                class="gen-textarea flex-1 rounded-lg"
+                class="gen-textarea"
               />
-              <div class="fi gap-2">
-                <button onClick={handleButtonClick} disabled={systemRoleEditing()} class="gen-slate-btn rounded-lg">
-                  发送
-                </button>
-                <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-slate-btn fcc rounded-lg">
-                  <IconClear />
-                </button>
+              <div class="fb items-center px-1">
+                {/* 左侧工具：附件 + 联网 */}
+                <div class="fi gap-1">
+                  <FileUpload
+                    onFilesSelected={handleFilesSelected}
+                    disabled={() => systemRoleEditing()}
+                  />
+                  <button
+                    type="button"
+                    onClick={toggleWebSearch}
+                    title={webSearchEnabled() ? '联网搜索：已开启' : '联网搜索：已关闭'}
+                    aria-pressed={webSearchEnabled()}
+                    disabled={systemRoleEditing()}
+                    class="gen-bar-btn select-none"
+                    classList={{ 'text-blue-600 bg-blue-500/10 hover:bg-blue-500/15': webSearchEnabled() }}
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="flex-shrink-0"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
+                    <span class="text-xs">联网</span>
+                  </button>
+                </div>
+                {/* 右侧操作：清空 + 发送 */}
+                <div class="fi gap-1">
+                  <button title="清空" onClick={clear} disabled={systemRoleEditing()} class="gen-bar-btn fcc !px-2">
+                    <IconClear />
+                  </button>
+                  <button onClick={handleButtonClick} disabled={systemRoleEditing()} title="发送" aria-label="发送" class="gen-send-btn">
+                    <IconArrowUp />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
