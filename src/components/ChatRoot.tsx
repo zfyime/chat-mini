@@ -26,7 +26,7 @@ export default () => {
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
   // 入场动画开关：初始加载/切换历史期间为 false，避免整屏消息一起淡入；加载完成后开启，只有之后的新消息才有动画
   const [entranceReady, setEntranceReady] = createSignal(false)
-  const { isStick, setStick, instantToBottom } = useStickToBottom({
+  const { isStick, setStick, instantToBottom, isAtBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
   })
   const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
@@ -97,7 +97,10 @@ export default () => {
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
       // 初始消息不做入场动画，加载完成后再开启，使后续新消息才有动画
-      setTimeout(() => setEntranceReady(true))
+      setTimeout(() => {
+        setStick(isAtBottom())
+        setEntranceReady(true)
+      })
     }
     loadSessionData()
 
@@ -231,6 +234,7 @@ export default () => {
     setTimeout(() => {
       setEntranceReady(true)
       instantToBottom()
+      setStick(true)
     }, CONFIG.LOAD_SCROLL_DELAY)
   }
 
@@ -316,7 +320,7 @@ export default () => {
         }}
       >
         {/* 回到底部：锚定在输入框上方，避免与输入框重叠 */}
-        <Show when={loading() && !isStick()}>
+        <Show when={messageList().length > 0 && !isStick()}>
           <button
             type="button"
             title="回到底部"
