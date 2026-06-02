@@ -23,6 +23,9 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
   const [controller, setController] = createSignal<AbortController | null>(null)
   const [currentError, setCurrentError] = createSignal<ErrorMessage>()
 
+  // 累积本轮服务端回传的 <tool_data> 原始 JSON（agent 中间协议消息），仅用于持久化回灌，不展示。
+  let toolContextRaw = ''
+
   const dispatchStreamingState = (streaming: boolean) => {
     window.dispatchEvent(new CustomEvent('streaming-state-change', { detail: { streaming } }))
   }
@@ -31,14 +34,16 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
     setCurrentAssistantMessage('')
     setCurrentAssistantThinkMessage('')
     setCurrentAssistantToolMessage('')
+    toolContextRaw = ''
   }
 
   const thinkParser = createTagParser({
-    tags: ['think', 'tool'],
+    tags: ['think', 'tool', 'tool_data'],
     onText: chunk => setCurrentAssistantMessage(prev => prev + chunk),
     onTag: (tag, chunk) => {
       if (tag === 'think') setCurrentAssistantThinkMessage(prev => prev + chunk)
       else if (tag === 'tool') setCurrentAssistantToolMessage(prev => prev + chunk)
+      else if (tag === 'tool_data') toolContextRaw += chunk
     },
   })
 
@@ -46,11 +51,23 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
     if (!(currentAssistantMessage() || currentAssistantThinkMessage() || currentAssistantToolMessage()))
       return null
 
+    // 解析回灌数据：失败则降级为不挂载 toolContext，不影响正文归档
+    let toolContext: any[] | undefined
+    if (toolContextRaw) {
+      try {
+        const parsed = JSON.parse(toolContextRaw)
+        if (Array.isArray(parsed) && parsed.length) toolContext = parsed
+      } catch (e) {
+        console.error('解析 toolContext 失败:', e)
+      }
+    }
+
     const newAssistantMessage: ChatMessage = {
       role: 'assistant',
       content: currentAssistantMessage(),
       think: currentAssistantThinkMessage(),
       toolTrace: currentAssistantToolMessage() || undefined,
+      toolContext,
     }
     const updatedMessages = [...opts.messageList(), newAssistantMessage]
     opts.setMessageList(updatedMessages)

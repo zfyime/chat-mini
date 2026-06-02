@@ -13,6 +13,9 @@ export interface ChatMessage {
   content: string
   think?: string
   toolTrace?: string // 联网搜索等工具调用的过程信息（仅展示用）
+  // agent 循环产生的中间协议消息（assistant 的 tool_calls + role:'tool' 结果），
+  // OpenAI 原始格式，仅用于后续轮次回灌上下文复用搜索结果，不展示、不导出。
+  toolContext?: any[]
   attachments?: FileAttachment[]
 }
 

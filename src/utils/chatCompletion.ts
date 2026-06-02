@@ -4,75 +4,82 @@ import type { ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import type { ChatMessage } from '@/types'
 
 const transformMessagesForAPI = (messages: ChatMessage[]) => {
-  return messages.map((msg) => {
-    const baseMessage = {
-      role: msg.role,
-      content: msg.content,
-    }
+  // assistant 消息若带 toolContext（上一轮 agent 的 tool_calls + tool 结果），
+  // 展开为标准 OpenAI 协议序列放在该消息之前，让后续轮次复用已搜到的内容。
+  return messages.flatMap((msg) => {
+    const single = transformOne(msg)
+    return msg.toolContext?.length ? [...msg.toolContext, single] : single
+  })
+}
 
-    // If message has attachments, include them in the content
-    if (msg.attachments && msg.attachments.length > 0) {
-      const hasImages = msg.attachments.some(att => isImageFile(att.type))
+const transformOne = (msg: ChatMessage) => {
+  const baseMessage = {
+    role: msg.role,
+    content: msg.content,
+  }
 
-      if (hasImages && msg.role === 'user') {
-        // For GPT-4 Vision API, send content as array with text and images
-        const content = []
+  // If message has attachments, include them in the content
+  if (msg.attachments && msg.attachments.length > 0) {
+    const hasImages = msg.attachments.some(att => isImageFile(att.type))
 
-        // Add text content
-        if (msg.content) {
+    if (hasImages && msg.role === 'user') {
+      // For GPT-4 Vision API, send content as array with text and images
+      const content = []
+
+      // Add text content
+      if (msg.content) {
+        content.push({
+          type: 'text',
+          text: msg.content,
+        })
+      }
+
+      // Add images
+      msg.attachments.forEach((att) => {
+        if (isImageFile(att.type)) {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${att.type};base64,${att.content}`,
+            },
+          })
+        } else {
+          // For non-image files, append content as text
+          const attachmentHeader = `[文件: ${att.name}]`
+          const attachmentBody = att.encoding === 'base64'
+            ? `${attachmentHeader} (Base64)\n${att.content}`
+            : `${attachmentHeader}\n${att.content}`
           content.push({
             type: 'text',
-            text: msg.content,
+            text: `\n\n${attachmentBody}`,
           })
         }
+      })
 
-        // Add images
-        msg.attachments.forEach((att) => {
-          if (isImageFile(att.type)) {
-            content.push({
-              type: 'image_url',
-              image_url: {
-                url: `data:${att.type};base64,${att.content}`,
-              },
-            })
-          } else {
-            // For non-image files, append content as text
-            const attachmentHeader = `[文件: ${att.name}]`
-            const attachmentBody = att.encoding === 'base64'
-              ? `${attachmentHeader} (Base64)\n${att.content}`
-              : `${attachmentHeader}\n${att.content}`
-            content.push({
-              type: 'text',
-              text: `\n\n${attachmentBody}`,
-            })
-          }
-        })
-
-        return {
-          ...baseMessage,
-          content,
+      return {
+        ...baseMessage,
+        content,
+      }
+    } else {
+      // For non-vision models or assistant messages, append file content as text
+      let enhancedContent = msg.content ?? ''
+      msg.attachments.forEach((att) => {
+        if (!isImageFile(att.type)) {
+          const attachmentHeader = `[文件: ${att.name}]`
+          const attachmentBody = att.encoding === 'base64'
+            ? `${attachmentHeader} (Base64)\n${att.content}`
+            : `${attachmentHeader}\n${att.content}`
+          enhancedContent += `\n\n${attachmentBody}`
         }
-      } else {
-        // For non-vision models or assistant messages, append file content as text
-        let enhancedContent = msg.content ?? ''
-        msg.attachments.forEach((att) => {
-          if (!isImageFile(att.type)) {
-            const attachmentHeader = `[文件: ${att.name}]`
-            const attachmentBody = att.encoding === 'base64'
-              ? `${attachmentHeader} (Base64)\n${att.content}`
-              : `${attachmentHeader}\n${att.content}`
-            enhancedContent += `\n\n${attachmentBody}`
-          }
-        })
-        return {
-          ...baseMessage,
-          content: enhancedContent,
-        }
+      })
+      return {
+        ...baseMessage,
+        content: enhancedContent,
       }
     }
+  }
 
-    return baseMessage
-  })
+  return baseMessage
 }
 
 // 导出供 agent 循环使用：把项目内 ChatMessage 转成 OpenAI 协议格式的消息

@@ -104,11 +104,25 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
   const encoder = new TextEncoder()
   // 把项目内的 ChatMessage 转成 OpenAI 协议消息后作为初始 workingMessages
   const workingMessages: any[] = buildOpenAIMessages(messages)
+  // 记录初始长度：之后 push 进来的全是 agent 中间消息（assistant tool_calls + role:'tool' 结果），
+  // workingMessages.slice(initialLen) 即本轮需回灌给客户端持久化的协议片段。
+  const initialLen = workingMessages.length
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const writeToolTag = (body: string) => {
         controller.enqueue(encoder.encode(`<tool>${body}\n</tool>`))
+      }
+
+      // 把本轮 agent 中间协议消息以 <tool_data> 标签透传给客户端（非展示，纯数据），
+      // 供下一轮请求展开回灌，让模型复用已搜到的内容。无中间消息时不发。
+      const flushToolContext = () => {
+        const toolContext = workingMessages.slice(initialLen)
+        if (toolContext.length) {
+          // 转义 '<' 为 <（合法 JSON），确保搜索内容里的尖括号不会产生伪 </tool_data> 闭合标签
+          const json = JSON.stringify(toolContext).replace(/</g, '\\u003c')
+          controller.enqueue(encoder.encode(`<tool_data>${json}</tool_data>`))
+        }
       }
 
       try {
@@ -143,6 +157,8 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
 
           // 模型不再调用工具，且本轮就是最终回答
           if (!msg.tool_calls || msg.tool_calls.length === 0) {
+            // 先回传本轮搜索过程的协议片段供客户端持久化，再输出最终内容
+            flushToolContext()
             // 仍可能带 reasoning_content，简单包一层 think 标签透出
             if (msg.reasoning_content && typeof msg.reasoning_content === 'string')
               controller.enqueue(encoder.encode(`<think>${msg.reasoning_content}</think>`))
@@ -202,6 +218,14 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
               }, fetch as any)
 
               writeToolTag(`✅ 共 ${search.results.length} 条结果`)
+              // 来源以 Markdown 链接列表透出到展示面板，供用户点击溯源；
+              // snippet 不进展示，仅随 toolContext 回灌给模型，避免面板冗长。
+              if (search.results.length) {
+                const sources = search.results
+                  .map((r, i) => `${i + 1}. [${r.title || r.url}](${r.url})`)
+                  .join('\n')
+                writeToolTag(sources)
+              }
               const compact = search.results.map(r => ({
                 title: r.title,
                 url: r.url,
@@ -227,6 +251,8 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
         }
 
         // 触顶：禁用工具，开启流式拿最终回答
+        // 先回传已积累的搜索过程协议片段供客户端持久化
+        flushToolContext()
         const finalInit = generatePayload(apiKey, workingMessages, temperature, model, {
           stream: true,
           toolChoice: 'none',
