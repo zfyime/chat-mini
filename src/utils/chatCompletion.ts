@@ -102,7 +102,7 @@ const buildRequestInit = (
     'Content-Type': 'application/json; charset=utf-8',
     'Authorization': `Bearer ${apiKey}`,
     // 流式请求才需要 text/event-stream，非流式发该头部分 provider 会行为异常
-    ...(body.stream ? { 'Accept': 'text/event-stream' } : {}),
+    ...(body.stream ? { Accept: 'text/event-stream' } : {}),
     'Accept-Charset': 'utf-8',
   },
   method: 'POST',

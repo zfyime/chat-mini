@@ -146,7 +146,16 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
             controller.close()
             return
           }
-          const json: any = await resp.json()
+          const rawText = await resp.text()
+          // 部分 provider 忽略 stream:false，仍返回 SSE 格式；兼容处理：
+          // 取第一行以 "data: {" 开头的行解析，否则直接 JSON.parse
+          let json: any
+          const sseLine = rawText.split('\n').find(l => l.startsWith('data: {'))
+          if (sseLine) {
+            json = JSON.parse(sseLine.slice(6))
+          } else {
+            json = JSON.parse(rawText)
+          }
           const choice = json.choices?.[0]
           const msg = choice?.message
 
