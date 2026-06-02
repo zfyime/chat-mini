@@ -128,6 +128,7 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
       try {
         let round = 0
         while (round < AGENT.MAX_TOOL_ROUNDS) {
+          // 先用非流式 + tools 探测模型是否要调工具
           const init = generatePayload(apiKey, workingMessages, temperature, model, {
             stream: false,
             tools: AGENT_TOOLS as any[],
@@ -155,15 +156,25 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
             return
           }
 
-          // 模型不再调用工具，且本轮就是最终回答
+          // 模型不再调用工具：先flush搜索上下文，再用流式重新请求以获得逐字输出
           if (!msg.tool_calls || msg.tool_calls.length === 0) {
-            // 先回传本轮搜索过程的协议片段供客户端持久化，再输出最终内容
             flushToolContext()
-            // 仍可能带 reasoning_content，简单包一层 think 标签透出
-            if (msg.reasoning_content && typeof msg.reasoning_content === 'string')
-              controller.enqueue(encoder.encode(`<think>${msg.reasoning_content}</think>`))
-            if (msg.content) controller.enqueue(encoder.encode(String(msg.content)))
-            controller.close()
+            const streamInit = generatePayload(apiKey, workingMessages, temperature, model, {
+              stream: true,
+              toolChoice: 'none',
+              pretransformed: true,
+            })
+            if (dispatcher) (streamInit as any).dispatcher = dispatcher
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-expect-error
+            const streamResp = await fetch(`${baseUrl}/chat/completions`, streamInit) as Response
+            if (!streamResp.ok) {
+              const text = await streamResp.text().catch(() => '')
+              controller.enqueue(encoder.encode(`\n\n[上游错误 ${streamResp.status}] ${text.slice(0, 300)}`))
+              controller.close()
+              return
+            }
+            await pipeOpenAIStreamToController(streamResp, controller, { closeWhenDone: true })
             return
           }
 
