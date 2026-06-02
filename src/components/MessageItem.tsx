@@ -42,6 +42,18 @@ const renderMarkdown = (content: Accessor<string> | string) => {
   return ''
 }
 
+// 流式期间的轻量渲染：仅转义 HTML 并把换行转为 <br>（与 md 的 breaks:true 行为一致），
+// 不跑 markdown / highlight.js / katex，避免每个 chunk 全量重排导致的 O(n²) 卡顿。
+// 流结束后该条消息以新实例进入列表，自然走完整 renderMarkdown。
+const renderLight = (content: Accessor<string> | string) => {
+  const text = typeof content === 'function' ? content() : content
+  return (text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+}
+
 interface Props {
   role: ChatMessage['role']
   message: Accessor<string> | string
@@ -56,6 +68,8 @@ interface Props {
   onDeleteMessage?: () => void
   onEditMessage?: (newContent: string) => void
   animate?: boolean
+  // 流式期间为真：正文/think/tool 走轻量渲染，避免逐 chunk 全量 markdown 重排
+  streaming?: boolean
 }
 
 export default ({
@@ -72,6 +86,7 @@ export default ({
   onDeleteMessage,
   onEditMessage,
   animate,
+  streaming,
 }: Props) => {
   const isUserMessage = role === 'user'
   // 仅在组件创建时读取一次 animate，避免后续 prop 变化导致已挂载的旧消息补播动画
@@ -138,9 +153,12 @@ export default ({
     }
   }
 
-  const htmlString = () => renderMarkdown(message)
-  const thinkHtmlString = () => renderMarkdown(thinkMessage)
-  const toolHtmlString = () => toolMessage ? renderMarkdown(toolMessage) : ''
+  const htmlString = () => streaming ? renderLight(message) : renderMarkdown(message)
+  const thinkHtmlString = () => streaming ? renderLight(thinkMessage) : renderMarkdown(thinkMessage)
+  const toolHtmlString = () => {
+    if (!toolMessage) return ''
+    return streaming ? renderLight(toolMessage) : renderMarkdown(toolMessage)
+  }
 
   const hasToolMessage = () => {
     if (!toolMessage) return false

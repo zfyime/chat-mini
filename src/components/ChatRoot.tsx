@@ -298,6 +298,7 @@ export default () => {
           thinkMessage={currentAssistantThinkMessage}
           toolMessage={currentAssistantToolMessage}
           animate
+          streaming
         />
       )}
       {/* 已发送但还没收到首字：显示"正在输入"动画占位气泡 */}
