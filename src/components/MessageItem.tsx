@@ -11,6 +11,37 @@ import FileAttachments from './FileAttachments'
 import type { Accessor } from 'solid-js'
 import type { ChatMessage } from '@/types'
 
+// 模块级单例：所有 MessageItem 共享同一个 MarkdownIt 实例，避免每条消息重复 new 与插件注册。
+// fence 规则不再读取任何组件级状态（复制反馈改为直接操作被点击按钮的 DOM），因此可安全共享。
+const md = new MarkdownIt({
+  linkify: true,
+  breaks: true,
+}).use(mdKatex).use(mdHighlight)
+
+const defaultFence = md.renderer.rules.fence!
+md.renderer.rules.fence = (...args) => {
+  const [tokens, idx] = args
+  const token = tokens[idx]
+  const rawCode = defaultFence(...args)
+
+  return `<div class="relative">
+    <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy rounded-md">
+      <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
+      <div class="group-hover/copy:op-100 gpt-copy-tips">复制</div>
+    </div>
+    ${rawCode}
+  </div>`
+}
+
+const renderMarkdown = (content: Accessor<string> | string) => {
+  if (typeof content === 'function')
+    return md.render(content() || '')
+  else if (typeof content === 'string')
+    return md.render(content)
+
+  return ''
+}
+
 interface Props {
   role: ChatMessage['role']
   message: Accessor<string> | string
@@ -105,38 +136,6 @@ export default ({
       e.preventDefault()
       cancelEdit()
     }
-  }
-
-  const md = (() => {
-    const instance = new MarkdownIt({
-      linkify: true,
-      breaks: true,
-    }).use(mdKatex).use(mdHighlight)
-
-    const fence = instance.renderer.rules.fence!
-    instance.renderer.rules.fence = (...args) => {
-      const [tokens, idx] = args
-      const token = tokens[idx]
-      const rawCode = fence(...args)
-
-      return `<div class="relative">
-        <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy rounded-md">
-          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
-          <div class="group-hover/copy:op-100 gpt-copy-tips">复制</div>
-        </div>
-        ${rawCode}
-      </div>`
-    }
-    return instance
-  })()
-
-  const renderMarkdown = (content: Accessor<string> | string) => {
-    if (typeof content === 'function')
-      return md.render(content() || '')
-    else if (typeof content === 'string')
-      return md.render(content)
-
-    return ''
   }
 
   const htmlString = () => renderMarkdown(message)
