@@ -42,16 +42,17 @@ const renderMarkdown = (content: Accessor<string> | string) => {
   return ''
 }
 
-// 流式期间的轻量渲染：仅转义 HTML 并把换行转为 <br>（与 md 的 breaks:true 行为一致），
-// 不跑 markdown / highlight.js / katex，避免每个 chunk 全量重排导致的 O(n²) 卡顿。
-// 流结束后该条消息以新实例进入列表，自然走完整 renderMarkdown。
+// 流式期间的轻量渲染实例：仍解析 markdown（保留加粗/标题/列表/代码块结构），
+// 但不挂 highlight.js / katex 这两个最贵的插件——它们才是逐 chunk 全量重排导致 O(n²) 卡顿的根源。
+// 流结束后该条消息以新实例进入列表，自然走完整 renderMarkdown 补上高亮与公式。
+const mdLight = new MarkdownIt({
+  linkify: true,
+  breaks: true,
+})
+
 const renderLight = (content: Accessor<string> | string) => {
   const text = typeof content === 'function' ? content() : content
-  return (text || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
+  return mdLight.render(text || '')
 }
 
 interface Props {
