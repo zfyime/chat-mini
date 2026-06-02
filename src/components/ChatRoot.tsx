@@ -276,9 +276,9 @@ export default () => {
         {(message, index) => (
           <MessageItem
             role={message().role}
-            message={message().content}
-            thinkMessage={message().think}
-            toolMessage={message().toolTrace}
+            message={() => message().content}
+            thinkMessage={() => message().think}
+            toolMessage={() => message().toolTrace || ''}
             attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}

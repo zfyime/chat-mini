@@ -123,7 +123,8 @@ export const generatePayload = (
     temperature,
     stream: opts.stream ?? true,
     ...(opts.tools ? { tools: opts.tools } : {}),
-    ...(opts.toolChoice ? { tool_choice: opts.toolChoice } : {}),
+    // tool_choice 仅在同时带 tools 时才合法，否则上游会报 400（'tool_choice' is only allowed when 'tools' are specified）
+    ...(opts.tools && opts.toolChoice ? { tool_choice: opts.toolChoice } : {}),
   })
 }
 

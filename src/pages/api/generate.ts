@@ -100,6 +100,57 @@ interface AgentLoopArgs {
   dispatcher?: any
 }
 
+const mergeToolCallDelta = (toolCalls: any[], deltaToolCalls: any[]) => {
+  deltaToolCalls.forEach((deltaCall) => {
+    const index = deltaCall.index ?? toolCalls.length
+    const current = toolCalls[index] || { function: {} }
+    toolCalls[index] = {
+      ...current,
+      ...deltaCall,
+      function: {
+        ...current.function,
+        ...deltaCall.function,
+        arguments: `${current.function?.arguments || ''}${deltaCall.function?.arguments || ''}`,
+      },
+    }
+  })
+}
+
+const parseAgentProbeResponse = (rawText: string) => {
+  if (!rawText.split('\n').some(line => line.startsWith('data: ')))
+    return JSON.parse(rawText)
+
+  const message: any = { role: 'assistant', content: '' }
+  const toolCalls: any[] = []
+  let reasoningContent = ''
+
+  rawText.split('\n').forEach((line) => {
+    if (!line.startsWith('data: ')) return
+    const data = line.slice(6).trim()
+    if (!data || data === '[DONE]') return
+
+    const json = JSON.parse(data)
+    const choice = json.choices?.[0]
+    const completeMessage = choice?.message
+    if (completeMessage) {
+      Object.assign(message, completeMessage)
+      return
+    }
+
+    const delta = choice?.delta
+    if (!delta) return
+    if (delta.role) message.role = delta.role
+    if (delta.content) message.content += delta.content
+    if (delta.reasoning_content) reasoningContent += delta.reasoning_content
+    if (delta.tool_calls) mergeToolCallDelta(toolCalls, delta.tool_calls)
+  })
+
+  if (toolCalls.length) message.tool_calls = toolCalls
+  if (reasoningContent) message.reasoning_content = reasoningContent
+
+  return { choices: [{ message }] }
+}
+
 const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArgs): Response => {
   const encoder = new TextEncoder()
   // 把项目内的 ChatMessage 转成 OpenAI 协议消息后作为初始 workingMessages
@@ -147,15 +198,8 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
             return
           }
           const rawText = await resp.text()
-          // 部分 provider 忽略 stream:false，仍返回 SSE 格式；兼容处理：
-          // 取第一行以 "data: {" 开头的行解析，否则直接 JSON.parse
-          let json: any
-          const sseLine = rawText.split('\n').find(l => l.startsWith('data: {'))
-          if (sseLine) {
-            json = JSON.parse(sseLine.slice(6))
-          } else {
-            json = JSON.parse(rawText)
-          }
+          // 部分 provider 忽略 stream:false，仍返回 SSE；这里合并 delta，得到等价非流式 message。
+          const json: any = parseAgentProbeResponse(rawText)
           const choice = json.choices?.[0]
           const msg = choice?.message
 

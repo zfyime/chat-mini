@@ -1,4 +1,4 @@
-import { Show, createSignal, onCleanup, onMount } from 'solid-js'
+import { Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import MarkdownIt from 'markdown-it'
 import mdKatex from 'markdown-it-katex'
 import mdHighlight from 'markdown-it-highlightjs'
@@ -17,6 +17,19 @@ const md = new MarkdownIt({
   linkify: true,
   breaks: true,
 }).use(mdKatex).use(mdHighlight)
+
+// 让 markdown 渲染出的链接（含联网搜索结果标题）在新标签页打开，避免点击后当前页面整体跳转。
+const openLinkInNewTab = (instance: MarkdownIt) => {
+  const defaultLinkOpen = instance.renderer.rules.link_open
+    || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
+  instance.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    token.attrSet('target', '_blank')
+    token.attrSet('rel', 'noopener noreferrer')
+    return defaultLinkOpen(tokens, idx, options, env, self)
+  }
+}
+openLinkInNewTab(md)
 
 const defaultFence = md.renderer.rules.fence!
 md.renderer.rules.fence = (...args) => {
@@ -49,10 +62,20 @@ const mdLight = new MarkdownIt({
   linkify: true,
   breaks: true,
 })
+openLinkInNewTab(mdLight)
 
 const renderLight = (content: Accessor<string> | string) => {
   const text = typeof content === 'function' ? content() : content
   return mdLight.render(text || '')
+}
+
+const HtmlBlock = (props: { html: () => string }) => {
+  let el: HTMLDivElement
+  createEffect(() => {
+    // 手动写入 HTML，避免旧版 solid-js 运行时缺少 setProperty 导致生产构建失败。
+    if (el) el.innerHTML = props.html()
+  })
+  return <div ref={el!} />
 }
 
 interface Props {
@@ -167,6 +190,10 @@ export default ({
     return !!v && v !== ''
   }
 
+  const setInitialDetailsOpen = (el: HTMLDetailsElement) => {
+    if (!onRetry) el.open = true
+  }
+
   const handleCopyClick = (e: MouseEvent) => {
     const el = e.target as HTMLElement
     const btn = (el.matches('div.copy-btn') ? el : el.closest('div.copy-btn')) as HTMLElement | null
@@ -194,8 +221,9 @@ export default ({
         <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? `max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 ${isEditing() ? ' w-[85%]' : ''}` : 'flex-1'}`}>
           <Show when={isEditing()}>
             <textarea
-              value={editContent()}
               ref={(el) => {
+                // textarea 用 DOM 初始赋值，避免旧版 Solid 编译出运行时不支持的 setProperty。
+                el.value = editContent()
                 setTimeout(() => {
                   el.style.height = 'auto'
                   el.style.height = `${el.scrollHeight}px`
@@ -221,18 +249,18 @@ export default ({
           </Show>
           <Show when={!isEditing()}>
             {hasToolMessage() && (
-              <details open={!onRetry}>
+              <details ref={setInitialDetailsOpen}>
                 <summary>🔍 联网搜索</summary>
-                <div innerHTML={toolHtmlString()} />
+                <HtmlBlock html={toolHtmlString} />
               </details>
             )}
             {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
-              <details open={!onRetry}>
+              <details ref={setInitialDetailsOpen}>
                 <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
-                <div innerHTML={thinkHtmlString()} />
+                <HtmlBlock html={thinkHtmlString} />
               </details>
             )}
-            <div innerHTML={htmlString()} />
+            <HtmlBlock html={htmlString} />
 
             {/* Show attachments if present */}
             <Show when={attachments && attachments.length > 0}>
