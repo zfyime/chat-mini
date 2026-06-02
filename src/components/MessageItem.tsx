@@ -194,9 +194,8 @@ export default ({
         <div ref={messageRef!} class={`message prose break-words overflow-hidden ${isUserMessage ? `max-w-[85%] bg-slate/8 dark:bg-slate/15 rounded-2xl px-4 ${isEditing() ? ' w-[85%]' : ''}` : 'flex-1'}`}>
           <Show when={isEditing()}>
             <textarea
+              value={editContent()}
               ref={(el) => {
-                // 设置初始值并自动调整高度
-                el.value = editContent()
                 setTimeout(() => {
                   el.style.height = 'auto'
                   el.style.height = `${el.scrollHeight}px`
