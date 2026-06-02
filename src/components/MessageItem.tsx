@@ -45,17 +45,18 @@ export default ({
   const isUserMessage = role === 'user'
   // 仅在组件创建时读取一次 animate，避免后续 prop 变化导致已挂载的旧消息补播动画
   const shouldAnimate = animate
-  const [source, setSource] = createSignal('')
-  const [codeCopied, setCodeCopied] = createSignal(false)
   const [isEditing, setIsEditing] = createSignal(false)
   const [editContent, setEditContent] = createSignal('')
 
-  // Simple clipboard implementation for code blocks
-  const copy = async() => {
+  // 复制代码块：仅更新被点击按钮的 tooltip 文案，不触发整条消息重渲染，也不影响同消息其它代码块。
+  const copyCode = async(code: string, btn: HTMLElement) => {
     try {
-      await navigator.clipboard.writeText(source())
-      setCodeCopied(true)
-      setTimeout(() => setCodeCopied(false), 1000)
+      await navigator.clipboard.writeText(code)
+      const tip = btn.querySelector('.gpt-copy-tips')
+      if (tip) {
+        tip.textContent = '已复制'
+        setTimeout(() => { tip.textContent = '复制' }, 1000)
+      }
     } catch (err) {
       console.error('Failed to copy:', err)
     }
@@ -121,9 +122,7 @@ export default ({
       return `<div class="relative">
         <div data-code="${encodeURIComponent(token.content)}" class="copy-btn gpt-copy-btn group/copy rounded-md">
           <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 32 32"><path fill="currentColor" d="M28 10v18H10V10h18m0-2H10a2 2 0 0 0-2 2v18a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Z" /><path fill="currentColor" d="M4 18H2V4a2 2 0 0 1 2-2h14v2H4Z" /></svg>
-          <div class="group-hover/copy:op-100 gpt-copy-tips">
-            ${codeCopied() ? '已复制' : '复制'}
-          </div>
+          <div class="group-hover/copy:op-100 gpt-copy-tips">复制</div>
         </div>
         ${rawCode}
       </div>`
@@ -143,18 +142,6 @@ export default ({
   const htmlString = () => renderMarkdown(message)
   const thinkHtmlString = () => renderMarkdown(thinkMessage)
   const toolHtmlString = () => toolMessage ? renderMarkdown(toolMessage) : ''
-  const htmlStringWithCopyState = () => {
-    codeCopied()
-    return htmlString()
-  }
-  const thinkHtmlStringWithCopyState = () => {
-    codeCopied()
-    return thinkHtmlString()
-  }
-  const toolHtmlStringWithCopyState = () => {
-    codeCopied()
-    return toolHtmlString()
-  }
 
   const hasToolMessage = () => {
     if (!toolMessage) return false
@@ -164,19 +151,12 @@ export default ({
 
   const handleCopyClick = (e: MouseEvent) => {
     const el = e.target as HTMLElement
-    let code: string | null = null
+    const btn = (el.matches('div.copy-btn') ? el : el.closest('div.copy-btn')) as HTMLElement | null
+    if (!btn) return
 
-    if (el.matches('div.copy-btn')) {
-      code = el.dataset.code ? decodeURIComponent(el.dataset.code) : null
-    } else if (el.closest('div.copy-btn')) {
-      const btn = el.closest('div.copy-btn') as HTMLElement
-      code = btn.dataset.code ? decodeURIComponent(btn.dataset.code) : null
-    }
-
-    if (code) {
-      setSource(code)
-      copy()
-    }
+    const code = btn.dataset.code ? decodeURIComponent(btn.dataset.code) : null
+    if (code)
+      copyCode(code, btn)
   }
 
   // Attach event listener to the message container
@@ -226,16 +206,16 @@ export default ({
             {hasToolMessage() && (
               <details open={!onRetry}>
                 <summary>🔍 联网搜索</summary>
-                <div innerHTML={toolHtmlStringWithCopyState()} />
+                <div innerHTML={toolHtmlString()} />
               </details>
             )}
             {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
               <details open={!onRetry}>
                 <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
-                <div innerHTML={thinkHtmlStringWithCopyState()} />
+                <div innerHTML={thinkHtmlString()} />
               </details>
             )}
-            <div innerHTML={htmlStringWithCopyState()} />
+            <div innerHTML={htmlString()} />
 
             {/* Show attachments if present */}
             <Show when={attachments && attachments.length > 0}>
