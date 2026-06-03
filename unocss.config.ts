@@ -50,6 +50,8 @@ export default defineConfig({
     // 统一输入容器：textarea 与底栏按钮包在一个大圆角框内，聚焦时整体加深
     'gen-input-box': 'flex flex-col gap-1 p-2 rounded-2xl bg-(slate op-15) transition-colors focus-within:bg-op-20',
     'gen-textarea': 'w-full px-2 py-1.5 min-h-11 max-h-52 bg-transparent resize-none outline-none ring-0 placeholder:op-50 dark:(placeholder:op-30) scroll-pa-8px',
+    // 设置表单字段保持独立外观，避免受消息输入框透明样式影响
+    'settings-field': 'w-full px-3 py-3 min-h-12 rounded-lg bg-(slate op-15) resize-none base-focus placeholder:op-50 dark:(placeholder:op-30) scroll-pa-8px',
     // 底栏幽灵工具按钮（附件 / 联网 / 清空）
     'gen-bar-btn': 'fi gap-1 h-9 px-2.5 rounded-lg text-sm transition-colors cursor-pointer hover:bg-slate/10 disabled:(op-40 cursor-not-allowed)',
     // 圆角方形主发送按钮

@@ -64,8 +64,7 @@ export default (props: Props) => {
               autofocus
               rows="3"
               value={props.currentSystemRoleSettings()}
-              class="mt-2 w-full rounded-lg"
-              gen-textarea
+              class="mt-2 settings-field"
             />
           </div>
 
@@ -76,8 +75,7 @@ export default (props: Props) => {
               <select
                 id="select-setting"
                 value={chatModel()}
-                class="w-full rounded-lg p-2 appearance-none"
-                gen-textarea
+                class="settings-field appearance-none"
                 onChange={(e) => {
                   const value = e.currentTarget.value
                   setChatModel(value)
