@@ -335,12 +335,9 @@ export default () => {
             title="回到底部"
             aria-label="回到底部"
             onClick={stickToBottom}
-            class="absolute bottom-full left-1/2 mb-2 z-50 -translate-x-1/2 fcc gap-1 px-4 py-1.5 rounded-full border border-slate/20 bg-[var(--c-bg)] text-sm text-[var(--c-fg)] shadow-sm transition-all duration-200 hover:bg-slate/5 active:scale-95"
+            class="absolute bottom-full left-1/2 mb-2 z-50 -translate-x-1/2 fcc w-9 h-9 rounded-full border border-slate/20 !bg-[var(--c-bg)] text-base text-[var(--c-fg)] shadow-sm transition-all duration-200 hover:!bg-[color-mix(in_srgb,var(--c-bg)_95%,#64748b)] active:scale-95"
           >
-            <span class="fcc text-base leading-none">
-              <IconArrowDown />
-            </span>
-            <span class="font-medium">回到底部</span>
+            <IconArrowDown />
           </button>
         </Show>
         <div class="w-full max-w-[95ch] mx-auto">
