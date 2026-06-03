@@ -343,7 +343,7 @@ export default () => {
             <span class="font-medium">回到底部</span>
           </button>
         </Show>
-        <div class="w-full max-w-[85ch] mx-auto">
+        <div class="w-full max-w-[95ch] mx-auto">
           {(() => {
             const files = pendingAttachments()
             return (
