@@ -77,6 +77,9 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
   }
 
   const requestWithLatestMessage = async() => {
+    // 流式进行中拒绝重复请求，避免并发与前置状态被破坏
+    if (loading()) return { aborted: true }
+
     setLoading(true)
     resetStreamingBuffers()
     setCurrentError(null)

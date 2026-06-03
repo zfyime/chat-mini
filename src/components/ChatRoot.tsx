@@ -134,6 +134,9 @@ export default () => {
   }
 
   const editMessage = (index: number, newContent: string) => {
+    // 流式进行中拒绝操作，避免截断消息列表等破坏性变更
+    if (loading()) return
+
     const messages = messageList()
     for (let i = index + 1; i < messages.length; i++)
       cleanupMessageAttachments(messages[i])
@@ -160,6 +163,9 @@ export default () => {
   }
 
   const handleButtonClick = async() => {
+    // 流式进行中拒绝发送，避免清空输入、追加消息等前置副作用
+    if (loading()) return
+
     const inputValue = inputRef.value
     if (!inputValue && pendingAttachments().length === 0) return
 
@@ -202,6 +208,9 @@ export default () => {
   }
 
   const retryLastFetch = () => {
+    // 流式进行中拒绝重试，避免误删正在生成的回复
+    if (loading()) return
+
     if (messageList().length > 0) {
       const lastMessage = messageList()[messageList().length - 1]
       if (lastMessage.role === 'assistant') {
