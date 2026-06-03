@@ -179,9 +179,12 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
       try {
         let round = 0
         while (round < AGENT.MAX_TOOL_ROUNDS) {
-          // 先用非流式 + tools 探测模型是否要调工具
+          // 用流式 + tools 探测模型是否要调工具。
+          // 必须用流式：非流式请求会挂着连接零字节返回直到补全完成，带 tools 探测耗时长，
+          // 易触发上游 nginx 的 proxy_read_timeout 导致 504。流式首字节快、字节持续流动可避免。
+          // 响应仍整体读取后由 parseAgentProbeResponse 合并 SSE delta 还原为等价的非流式 message。
           const init = generatePayload(apiKey, workingMessages, temperature, model, {
-            stream: false,
+            stream: true,
             tools: AGENT_TOOLS as any[],
             toolChoice: 'auto',
             pretransformed: true,
@@ -198,7 +201,7 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
             return
           }
           const rawText = await resp.text()
-          // 部分 provider 忽略 stream:false，仍返回 SSE；这里合并 delta，得到等价非流式 message。
+          // 整体读取流式 SSE 后合并 delta，还原为等价的非流式 message。
           const json: any = parseAgentProbeResponse(rawText)
           const choice = json.choices?.[0]
           const msg = choice?.message
