@@ -381,3 +381,69 @@ html.dark .message table tbody tr:hover {
     animation: none;
   }
 }
+
+/* ----------------------------------------
+   14. 思考过程 / 联网搜索 可折叠面板
+   ---------------------------------------- */
+
+/* 整体定位：辅助信息，比正文低调，不加容器背景/边框 */
+.message details {
+  margin: 0.5em 0;
+}
+
+/* 标题栏：去掉原生三角，压成低调的小灰字 */
+.message summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: 0.95em;
+  color: var(--c-fg);
+  opacity: 0.5;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.message summary:hover {
+  opacity: 0.75;
+}
+
+/* 隐藏各浏览器默认的展开标记 */
+.message summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 自定义箭头：闭合时朝右，展开时朝下 */
+.message summary::after {
+  content: '';
+  box-sizing: border-box;
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-0.05em) rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.message details[open] summary::after {
+  transform: translateY(-0.1em) rotate(45deg);
+}
+
+/* 内容区：左侧细线引导 + 略小字号并降透明度，明显次于正文 */
+.message details > div {
+  margin-top: 0.4em;
+  padding-left: 0.8em;
+  border-left: 2px solid #64748b29;
+  font-size: 0.95em;
+  opacity: 0.7;
+}
+
+/* 去掉内容首尾元素的外边距，使其紧贴引导线起止 */
+.message details > div > :first-child {
+  margin-top: 0;
+}
+
+.message details > div > :last-child {
+  margin-bottom: 0;
+}

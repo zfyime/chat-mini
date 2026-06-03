@@ -256,7 +256,7 @@ export default ({
             )}
             {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
               <details ref={setInitialDetailsOpen}>
-                <summary>{message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
+                <summary>💭 {message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
                 <HtmlBlock html={thinkHtmlString} />
               </details>
             )}
