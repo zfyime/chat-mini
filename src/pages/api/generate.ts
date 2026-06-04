@@ -73,7 +73,7 @@ export const post: APIRoute = async(context) => {
       }), { status: 500 })
     }) as Response
 
-    return parseOpenAIStream(response) as Response
+    return await parseOpenAIStream(response) as Response
   }
 
   // 联网开但未配置 Tavily key
@@ -149,6 +149,40 @@ const normalizeToolCalls = (toolCalls: any[], round: number) => {
     .filter(Boolean)
 }
 
+const decodeXmlText = (value: string) => value
+  .replace(/&quot;/g, '"')
+  .replace(/&apos;/g, '\'')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&amp;/g, '&')
+
+const parseXmlStyleToolCalls = (content: string) => {
+  const calls: any[] = []
+  const cleanedContent = content.replace(/<tool_call>([\s\S]*?)<\/tool_call>/g, (_full, body) => {
+    const name = body.split('<arg_key>')[0].trim()
+    if (!name) return ''
+
+    const args: Record<string, string> = {}
+    body.replace(/<arg_key>([\s\S]*?)<\/arg_key>\s*<arg_value>([\s\S]*?)<\/arg_value>/g, (_argFull, key, value) => {
+      const argKey = decodeXmlText(key.trim())
+      if (argKey) args[argKey] = decodeXmlText(value.trim())
+      return ''
+    })
+
+    // 兼容部分上游把工具调用当正文 XML 输出，而不是返回 OpenAI 标准 tool_calls 字段。
+    calls.push({
+      type: 'function',
+      function: {
+        name,
+        arguments: JSON.stringify(args),
+      },
+    })
+    return ''
+  }).trim()
+
+  return { calls, cleanedContent }
+}
+
 const parseAgentProbeResponse = (rawText: string) => {
   if (!rawText.split('\n').some(line => line.startsWith('data: ')))
     return JSON.parse(rawText)
@@ -178,7 +212,15 @@ const parseAgentProbeResponse = (rawText: string) => {
     if (delta.tool_calls) mergeToolCallDelta(toolCalls, delta.tool_calls)
   })
 
-  if (toolCalls.length) message.tool_calls = toolCalls
+  if (toolCalls.length) {
+    message.tool_calls = toolCalls
+  } else if (message.content) {
+    const parsed = parseXmlStyleToolCalls(message.content)
+    if (parsed.calls.length) {
+      message.tool_calls = parsed.calls
+      message.content = parsed.cleanedContent
+    }
+  }
   if (reasoningContent) message.reasoning_content = reasoningContent
 
   return { choices: [{ message }] }

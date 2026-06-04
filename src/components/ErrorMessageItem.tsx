@@ -39,6 +39,7 @@ export default ({ data, onRetry }: Props) => {
         <details class="text-xs op-60 cursor-pointer">
           <summary class="hover:op-80">技术详情</summary>
           <div class="mt-1 text-red/70">
+            {data.status && <div>状态码: {data.status}</div>}
             <div>错误码: {data.code}</div>
             <div>原始信息: {data.message}</div>
           </div>

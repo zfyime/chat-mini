@@ -22,6 +22,8 @@ export interface ChatMessage {
 export interface ErrorMessage {
   code: string
   message: string
+  // 上游真实 HTTP 状态码，便于区分 4xx（请求问题）与 5xx（上游故障）
+  status?: number
 }
 
 export interface ChatHistory {

@@ -128,9 +128,21 @@ export const generatePayload = (
   })
 }
 
-export const parseOpenAIStream = (rawResponse: Response) => {
+export const parseOpenAIStream = async(rawResponse: Response) => {
   if (!rawResponse.ok) {
-    return new Response(rawResponse.body, {
+    // 透传上游错误，并把上游真实 HTTP 状态码注入 error 对象，便于前端区分 4xx/5xx。
+    // 上游 body 可能是 JSON（{ error: {...} }）也可能是纯文本，做兼容解析。
+    const text = await rawResponse.text().catch(() => '')
+    let errorBody: any
+    try {
+      const parsed = JSON.parse(text)
+      errorBody = parsed.error ?? parsed
+    } catch {
+      errorBody = { code: rawResponse.statusText || 'UpstreamError', message: text || '上游返回错误' }
+    }
+    return new Response(JSON.stringify({
+      error: { ...errorBody, status: rawResponse.status },
+    }), {
       status: rawResponse.status,
       statusText: rawResponse.statusText,
     })
