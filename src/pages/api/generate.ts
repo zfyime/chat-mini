@@ -104,16 +104,49 @@ const mergeToolCallDelta = (toolCalls: any[], deltaToolCalls: any[]) => {
   deltaToolCalls.forEach((deltaCall) => {
     const index = deltaCall.index ?? toolCalls.length
     const current = toolCalls[index] || { function: {} }
+    const currentFunction = current.function || {}
+    const deltaFunction = deltaCall.function || {}
+    const functionName = typeof deltaFunction.name === 'string' && deltaFunction.name.trim()
+      ? deltaFunction.name
+      : currentFunction.name
+    const functionArguments = deltaFunction.arguments === undefined
+      ? currentFunction.arguments || ''
+      : `${currentFunction.arguments || ''}${typeof deltaFunction.arguments === 'string' ? deltaFunction.arguments : JSON.stringify(deltaFunction.arguments)}`
+
+    // 部分 OpenAI 兼容上游会在后续分片里发空 name/id/type，不能覆盖首个有效分片。
     toolCalls[index] = {
       ...current,
       ...deltaCall,
+      id: deltaCall.id || current.id,
+      type: deltaCall.type || current.type,
       function: {
-        ...current.function,
-        ...deltaCall.function,
-        arguments: `${current.function?.arguments || ''}${deltaCall.function?.arguments || ''}`,
+        ...currentFunction,
+        ...deltaFunction,
+        name: functionName,
+        arguments: functionArguments,
       },
     }
   })
+}
+
+const normalizeToolCalls = (toolCalls: any[], round: number) => {
+  return toolCalls
+    .map((call, index) => {
+      const name = call?.function?.name?.trim()
+      if (!name) return null
+
+      return {
+        ...call,
+        id: call.id || `call_${round}_${index}`,
+        type: call.type || 'function',
+        function: {
+          ...call.function,
+          name,
+          arguments: typeof call.function?.arguments === 'string' ? call.function.arguments : '{}',
+        },
+      }
+    })
+    .filter(Boolean)
 }
 
 const parseAgentProbeResponse = (rawText: string) => {
@@ -213,7 +246,9 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
           }
 
           // 模型不再调用工具：先flush搜索上下文，再用流式重新请求以获得逐字输出
-          if (!msg.tool_calls || msg.tool_calls.length === 0) {
+          const toolCalls = msg.tool_calls ? normalizeToolCalls(msg.tool_calls, round) : []
+
+          if (toolCalls.length === 0) {
             flushToolContext()
             const streamInit = generatePayload(apiKey, workingMessages, temperature, model, {
               stream: true,
@@ -241,10 +276,10 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
           workingMessages.push({
             role: 'assistant',
             content: msg.content ?? '',
-            tool_calls: msg.tool_calls,
+            tool_calls: toolCalls,
           })
 
-          for (const call of msg.tool_calls) {
+          for (const call of toolCalls) {
             if (call?.function?.name !== 'web_search') {
               writeToolTag(`⚠️ 未知工具: ${call?.function?.name}`)
               workingMessages.push({
