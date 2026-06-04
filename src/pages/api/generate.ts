@@ -217,6 +217,9 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
             flushToolContext()
             const streamInit = generatePayload(apiKey, workingMessages, temperature, model, {
               stream: true,
+              // 必须继续带上 tools：此时 workingMessages 含 tool_calls / role:'tool' 历史，
+              // 部分上游在缺失 tools schema 时会拒绝校验该历史而报 400。tool_choice:'none' 保证不再触发调用。
+              tools: AGENT_TOOLS as any[],
               toolChoice: 'none',
               pretransformed: true,
             })
@@ -322,6 +325,8 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
         flushToolContext()
         const finalInit = generatePayload(apiKey, workingMessages, temperature, model, {
           stream: true,
+          // 同上：workingMessages 已含 tool_calls / role:'tool'，必须带 tools schema 才能通过上游校验
+          tools: AGENT_TOOLS as any[],
           toolChoice: 'none',
           pretransformed: true,
         })
