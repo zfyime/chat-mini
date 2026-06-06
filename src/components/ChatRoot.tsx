@@ -184,6 +184,7 @@ export default () => {
     setMessageList([...messageList(), newMessage])
     markModified()
     setStick(true)
+    window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: true } }))
     requestWithLatestMessage().then((res) => {
       if (!res?.aborted) instantToBottom()
     })
@@ -206,6 +207,7 @@ export default () => {
 
     setStick(false)
     resetCurrentChat()
+    window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: false } }))
   }
 
   const retryLastFetch = () => {
@@ -245,6 +247,7 @@ export default () => {
       setEntranceReady(true)
       instantToBottom()
       setStick(true)
+      window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: messages.length > 0 } }))
     }, CONFIG.LOAD_SCROLL_DELAY)
   }
 
