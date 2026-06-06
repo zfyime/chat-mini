@@ -87,11 +87,13 @@ import ModelSelector from './ModelSelector'
   const header = document.getElementById('page-header')
   const logoContainer = document.getElementById('logo-container')
 
-  // 有消息时吸顶（sticky top:0），无消息时恢复文档流
+  const main = document.querySelector('main')
+
+  // 有消息时吸顶（header is-scrolled + main 去掉 padding-top），无消息时恢复
   window.addEventListener('has-messages', (e: CustomEvent) => {
     const has = e.detail.hasMessages
     header?.classList.toggle('is-scrolled', has)
-    if (header) header.style.top = has ? '0px' : ''
+    main?.classList.toggle('has-messages', has)
   })
 
   logoContainer?.addEventListener('click', () => {

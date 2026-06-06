@@ -92,8 +92,10 @@ export default () => {
   onMount(() => {
     const loadSessionData = async() => {
       const session = await loadChatSession()
-      if (session.messageList?.length)
+      if (session.messageList?.length) {
         setMessageList(session.messageList)
+        window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: true } }))
+      }
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
       // 初始消息不做入场动画，加载完成后再开启，使后续新消息才有动画
