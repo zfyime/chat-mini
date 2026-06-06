@@ -170,6 +170,7 @@ export default () => {
     if (!inputValue && pendingAttachments().length === 0) return
 
     inputRef.value = ''
+    inputRef.style.height = 'auto'
     const attachments = [...pendingAttachments()]
     setPendingAttachments([])
 
