@@ -4,7 +4,7 @@ import ThemeSwitch from './ThemeSwitch.astro'
 import ModelSelector from './ModelSelector'
 ---
 
-<header id="page-header" class="sticky top-0 z-30 border-b border-transparent overflow-x-clip">
+<header id="page-header" class="sticky z-30 border-b border-transparent overflow-x-clip">
   <!-- 动态背景层：在吸顶时通过脚本显示，并利用负边距实现全屏遮罩 -->
   <div id="header-bg" class="absolute inset-0 bg-[var(--c-bg)]/80 backdrop-blur-md opacity-0 transition-opacity duration-300"></div>
 
@@ -87,9 +87,11 @@ import ModelSelector from './ModelSelector'
   const header = document.getElementById('page-header')
   const logoContainer = document.getElementById('logo-container')
 
-  // 有消息时吸顶，无消息时展开
+  // 有消息时吸顶（sticky top:0），无消息时恢复文档流
   window.addEventListener('has-messages', (e: CustomEvent) => {
-    header?.classList.toggle('is-scrolled', e.detail.hasMessages)
+    const has = e.detail.hasMessages
+    header?.classList.toggle('is-scrolled', has)
+    if (header) header.style.top = has ? '0px' : ''
   })
 
   logoContainer?.addEventListener('click', () => {
