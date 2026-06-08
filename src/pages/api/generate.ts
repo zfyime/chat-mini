@@ -332,7 +332,7 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
               continue
             }
 
-            let args: { query?: string } = {}
+            let args: { query?: any } = {}
             try {
               args = JSON.parse(call.function.arguments || '{}')
             } catch (e) {
@@ -345,7 +345,9 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
               continue
             }
 
-            const query = (args.query || '').trim()
+            // args.query 可能被上游返回成数组/对象（模型不严格遵守 string schema），统一归一为字符串
+            const rawQuery = args.query
+            const query = (Array.isArray(rawQuery) ? rawQuery.join(' ') : String(rawQuery ?? '')).trim()
             if (!query) {
               writeToolTag('⚠️ 空 query')
               workingMessages.push({
