@@ -196,7 +196,13 @@ const parseAgentProbeResponse = (rawText: string) => {
     const data = line.slice(6).trim()
     if (!data || data === '[DONE]') return
 
-    const json = JSON.parse(data)
+    // 单帧解析失败不应拖垮整轮 agent：与流式解析器一致，跳过异常/非 JSON 帧（如 keep-alive、半截内容）。
+    let json: any
+    try {
+      json = JSON.parse(data)
+    } catch {
+      return
+    }
     const choice = json.choices?.[0]
     const completeMessage = choice?.message
     if (completeMessage) {
@@ -237,7 +243,10 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const writeToolTag = (body: string) => {
-        controller.enqueue(encoder.encode(`<tool>${body}\n</tool>`))
+        // body 可能含 Tavily 抓取的外部网页标题/URL，里面的 '<' 会伪造出 </tool> 等闭合标签，
+        // 让客户端 tagParser 提前结束面板。转成 HTML 实体 &lt; 既阻断越狱，又能在 markdown 渲染后正常显示为 '<'。
+        const safe = body.replace(/</g, '&lt;')
+        controller.enqueue(encoder.encode(`<tool>${safe}\n</tool>`))
       }
 
       // 把本轮 agent 中间协议消息以 <tool_data> 标签透传给客户端（非展示，纯数据），
