@@ -21,7 +21,7 @@ import type { ChatMessage, FileAttachment } from '@/types'
 
 export default () => {
   let inputRef: HTMLTextAreaElement
-  const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal('')
+  const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal(CONFIG.DEFAULT_SYSTEM_ROLE)
   const [systemRoleEditing, setSystemRoleEditing] = createSignal(false)
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
   // 入场动画开关：初始加载/切换历史期间为 false，避免整屏消息一起淡入；加载完成后开启，只有之后的新消息才有动画
