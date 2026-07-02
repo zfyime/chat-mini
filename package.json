@@ -42,5 +42,10 @@
     "eslint-plugin-astro": "^0.27.1",
     "punycode": "^2.3.0",
     "unocss": "^0.50.8"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "astro@2.7.0": "patches/astro@2.7.0.patch"
+    }
   }
 }
