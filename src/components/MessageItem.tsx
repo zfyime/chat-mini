@@ -1,7 +1,7 @@
 import { Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import MarkdownIt from 'markdown-it'
-import mdKatex from 'markdown-it-katex'
 import mdHighlight from 'markdown-it-highlightjs'
+import markdownKatex from '@/utils/markdownKatex'
 import IconRefresh from './icons/Refresh'
 import IconExport from './icons/Export'
 import IconCopy from './icons/Copy'
@@ -16,7 +16,7 @@ import type { ChatMessage } from '@/types'
 const md = new MarkdownIt({
   linkify: true,
   breaks: true,
-}).use(mdKatex).use(mdHighlight)
+}).use(markdownKatex).use(mdHighlight)
 
 // 让 markdown 渲染出的链接（含联网搜索结果标题）在新标签页打开，避免点击后当前页面整体跳转。
 const openLinkInNewTab = (instance: MarkdownIt) => {

@@ -2,15 +2,14 @@ diff --git a/dist/runtime/server/render/component.js b/dist/runtime/server/rende
 index 26d6c8b..fd28f57 100644
 --- a/dist/runtime/server/render/component.js
 +++ b/dist/runtime/server/render/component.js
-@@ -1,6 +1,6 @@
- import { createRenderInstruction } from "./instruction.js";
+@@ -1,5 +1,5 @@
  import { AstroError, AstroErrorData } from "../../../core/errors/index.js";
 -import { markHTMLString } from "../escape.js";
 +import { escapeHTML, markHTMLString } from "../escape.js";
  import { extractDirectives, generateHydrateScript } from "../hydration.js";
  import { serializeProps } from "../serialize.js";
  import { shorthash } from "../shorthash.js";
-@@ -276,7 +276,7 @@ async function renderFrameworkComponent(result, displayName, Component, _props, 
+@@ -256,7 +256,7 @@ async function renderFrameworkComponent(result, displayName, Component, _props, 
      unrenderedSlots = Object.keys(children);
    }
    const template = unrenderedSlots.length > 0 ? unrenderedSlots.map(
