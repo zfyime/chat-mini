@@ -106,7 +106,7 @@
 
 > 原则沿用安全清单：每批只动一小组依赖，先过渲染链再过网络链。
 
-1. **批次 A — 部署面收敛（可独立先做）**：移除 Netlify（依赖 + `netlify.toml` + config 分支 + 文档）。此步不依赖 Astro 升级，先落地可缩小后续迁移面。
+1. **批次 A — 部署面收敛（可独立先做）✅ 已落地（2026-07-06）**：移除 Netlify（依赖 + `netlify.toml` + config 分支 + ignore 残留 + 文档）。此步不依赖 Astro 升级，先落地缩小后续迁移面。已通过 `pnpm build`（Node）+ `OUTPUT=vercel astro build`（Vercel edge）双构建验证。注意：`disableBlocks` 插件与 vercel edge 判断仍保留，留待批次 B 一并删除。
 2. **批次 B — Astro 核心 + 适配器**：`npx @astrojs/upgrade` 对齐 `astro@5` 与 `@astrojs/node@9`、`@astrojs/vercel@8`、`@astrojs/solid-js@5`；改 config 的 vercel 入口为 serverless；删 `disableBlocks` 插件与 `generate.ts` 的 vercel 标记；删本地 patch。
 3. **批次 C — 构建链**：UnoCSS 0.50→66、`@unocss/reset` 同步；核对 vite 字段。
 4. **批次 D — 组件链**：`solid-js` 抬到 1.8.x；Zag slider 0.16→1.x 重写滑块接线。

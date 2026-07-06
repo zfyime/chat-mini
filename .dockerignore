@@ -10,7 +10,6 @@ Dockerfile.dev
 docker-compose.yml
 docker-compose.dev.yml
 .dockerignore
-netlify.toml
 vercel.json
 
 # 依赖与构建产物
@@ -18,7 +17,6 @@ node_modules
 dist
 .astro
 .vercel
-.netlify
 .output
 
 # 本地环境与日志（避免把 .env 烤进镜像）

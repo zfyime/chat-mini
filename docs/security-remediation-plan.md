@@ -115,6 +115,9 @@
   - Vercel 从 edge 迁到 serverless，顺带可删 `disableBlocks` hack 并让 `HTTPS_PROXY` 在 Vercel 生效
   - 无阻塞级风险；剩余主要是 Zag slider 重写与 UnoCSS 视觉漂移，均可控
   - 本轮仅交付评估，未改代码
+- **落地进展**：
+  - 批次 A（移除 Netlify）✅ 已完成（2026-07-06）：删除 `@astrojs/netlify` 依赖与 `build:netlify` 脚本、`netlify.toml`、`astro.config.mjs` 的 netlify 分支、ignore 残留，并同步 README/CLAUDE/AGENTS/GEMINI 文档。已通过 Node + Vercel edge 双构建验证。
+  - 批次 B–F（Astro 核心升级 / 构建链 / 组件链 / PWA / 工具链）：待处理。
 
 ## 当前可暂缓项
 

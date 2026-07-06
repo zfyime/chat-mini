@@ -6,7 +6,7 @@
 
 ## ✨ 功能特性
 
-- **多平台部署**: 支持通过 Docker、Vercel 和 Netlify 进行一键部署。
+- **多平台部署**: 支持通过 Docker 和 Vercel 进行一键部署。
 - **模型动态切换**: 无需修改环境变量，直接在 UI 上选择并切换对话模型。
 - **思维过程可视化**: 支持渲染特殊的 `<think>` 标签，直观展示模型的思考步骤。
 - **文件上传与分析**: 支持上传图片、PDF、文档、代码文件等多种类型，AI 可对文件内容进行分析和回答。
@@ -122,17 +122,13 @@
 
 ## 🚢 部署
 
-你可以通过以下三种方式部署此应用：
+你可以通过以下两种方式部署此应用：
 
 ### 1. Vercel
 
 项目已配置为可直接部署到 Vercel Edge。只需将你的仓库导入 Vercel，它将自动识别 `vercel.json` 和 `package.json` 中的构建命令 `build:vercel` 并完成部署。
 
-### 2. Netlify
-
-项目同样支持一键部署到 Netlify Edge Functions。将仓库导入 Netlify，它会使用 `netlify.toml` 中的配置和 `build:netlify` 命令进行构建和部署。
-
-### 3. Docker
+### 2. Docker
 
 你可以使用项目根目录下的 `Dockerfile` 和 `docker-compose.yml` 来构建和运行 Docker 容器。
 
@@ -150,7 +146,6 @@ docker-compose down
 - `pnpm dev`: 启动开发服务器。
 - `pnpm build`: 为 Node.js 环境构建生产版本。
 - `pnpm build:vercel`: 为 Vercel 平台构建。
-- `pnpm build:netlify`: 为 Netlify 平台构建。
 - `pnpm preview`: 在本地预览构建后的产物。
 - `pnpm lint`: 检查代码风格。
 - `pnpm lint:fix`: 自动修复代码风格问题。
