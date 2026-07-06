@@ -2,5 +2,7 @@ allowBuilds:
   esbuild: true
 overrides:
   babel-preset-solid: 1.7.7
+  # 统一服务端 fetch 底层库版本，避免 Astro 传递依赖继续锁在 5.x 漏洞链。
+  undici: 6.27.0
 patchedDependencies:
   astro@2.7.0: patches/astro@2.7.0.patch

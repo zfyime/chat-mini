@@ -9,6 +9,7 @@
 - 其中 `astro` 相关告警数量最多，但多数属于“版本命中”，不等于“当前代码已可利用”。
 - 已处理一项：`GHSA-8hv8-536x-4wqp`，通过本地补丁修复 Astro slot name 反射型 XSS。
 - P1 已完成：`markdown-it` 已升级到 `14.2.0`，KaTeX 渲染链已切到顶层 `katex@0.16.47`，并移除存在高危告警的 `markdown-it-katex`。
+- P2 已完成：项目直接依赖和 Astro 传递依赖中的 `undici` 已统一到 `6.27.0`，安装环境已统一到 `pnpm@11.7.0`。
 
 ## 已完成
 
@@ -57,34 +58,39 @@
   - 仓库中不再存在 `markdown-it-katex` 和 `katex@0.6.0`
   - P1 相关 `pnpm audit --prod --json` 过滤结果为空
 
-## 待处理项
+### 4. P2：升级 undici
 
-### P2：升级 undici
-
-- 当前版本：`5.29.0`
-- 建议版本：`6.27.0` 或更高
+- 状态：已完成
+- 原版本：直接依赖 `5.22.1`，Astro 传递依赖中存在 `5.22.1`
+- 当前版本：`6.27.0`
 - 原因：
   - OSV 中有多条 5.x 命中的请求走私、响应队列污染、Header 注入、DoS 类问题
   - 项目服务端 API 直接使用 `undici` 的 `fetch`
+- 处理方式：
+  - 将 `package.json` 直接依赖 `undici` 升级到 `6.27.0`
+  - 在 `pnpm-workspace.yaml` 中通过 `overrides.undici` 统一传递依赖版本，避免 Astro 旧依赖链继续锁在 5.x
 - 相关代码：
   - `src/pages/api/generate.ts`
   - `src/utils/tavily.ts`
-- 风险判断：
-  - 当前代码没有明显使用 WebSocket / upgrade 等高风险接口
-  - 但属于服务端基础网络库，仍建议尽快升级
+- 验证：
+  - `pnpm list undici --depth 4` 显示所有路径均为 `undici@6.27.0`
+  - `pnpm build` 通过
+  - `pnpm audit --prod --json` 输出中不再包含 `undici` 告警
 
-### P2：梳理 pnpm / 锁文件 / 安装环境
+### 5. P2：统一 pnpm / 锁文件 / 安装环境
 
-- 当前现象：
-  - `package.json` 声明 `pnpm@7.28.0`
-  - `pnpm audit` 本地执行报 `ERR_INVALID_THIS`
-  - 当前安装结果与声明版本链存在不一致
-- 风险判断：
-  - 这不是直接安全漏洞
-  - 但会阻碍后续依赖升级、审计和验证
-- 建议：
-  - 明确项目应使用的 pnpm 主版本
-  - 统一锁文件与实际安装环境
+- 状态：已完成
+- 当前版本：`pnpm@11.7.0`
+- 处理方式：
+  - `package.json` 保持 `packageManager: pnpm@11.7.0`
+  - `pnpm-lock.yaml` 保持 lockfile v9，并由 `pnpm@11.7.0` 重新生成
+  - Docker 构建镜像和开发镜像中的全局 pnpm 版本统一为 `11.7.0`
+- 验证：
+  - `pnpm --version` 输出 `11.7.0`
+  - `pnpm install` 可正常同步安装结果
+  - `pnpm audit --prod --json` 可正常执行；仍有非 undici 告警，归入后续 Astro / Solid / Zag 等升级批次
+
+## 待处理项
 
 ### P3：统一处理 Astro 安全升级
 
@@ -122,9 +128,9 @@
 
 ## 建议执行顺序
 
-1. 升级 `undici`
-2. 统一 `pnpm` 与锁文件环境
-3. 单独规划 Astro 升级
+1. 单独规划 Astro 升级
+2. 评估 Solid / Seroval / Zag 升级链路
+3. 评估 Vite / esbuild / adapter 传递依赖告警
 
 ## 执行注意事项
 
@@ -134,16 +140,17 @@
   - 代码块高亮
   - 数学公式
   - 流式输出中的轻量渲染
-- 升级 `undici` 后重点验证：
+- 后续升级 Astro / adapter 后重点验证：
   - OpenAI 请求
   - Tavily 搜索请求
   - 代理配置 `HTTPS_PROXY`
+  - Docker 构建与运行
 - Astro 升级建议单开分支处理，不与日常小修复混提。
 
 ## 后续行动
 
 - 第一批 `markdown-it` + `katex` 已完成。
-- 第二批处理：`undici` + `pnpm` 环境整理。
+- 第二批 `undici` + `pnpm` 环境整理已完成。
 - 第三批处理：Astro 升级评估与迁移。
 
 ## 参考来源

@@ -31,7 +31,7 @@
     "markdown-it-highlightjs": "4.0.1",
     "solid-js": "1.7.6",
     "solidjs-use": "2.1.0",
-    "undici": "5.22.1"
+    "undici": "6.27.0"
   },
   "devDependencies": {
     "@evan-yang/eslint-config": "1.0.9",

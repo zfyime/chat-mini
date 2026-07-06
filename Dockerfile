@@ -4,7 +4,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /usr/src
 
-RUN npm install -g pnpm@7
+RUN npm install -g pnpm@11.7.0
 
 # 先拷依赖描述文件，最大化利用 layer 缓存
 COPY package.json pnpm-lock.yaml .npmrc ./
