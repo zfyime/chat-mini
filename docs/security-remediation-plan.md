@@ -94,7 +94,8 @@
 
 ### P3：统一处理 Astro 安全升级
 
-- 当前实际版本：`2.10.15`
+- 当前实际版本：`2.7.0`（带本地补丁）。
+  - 注：本节此前记录的 `2.10.15` 有误，`package.json` / `pnpm-lock.yaml` / `patches/astro@2.7.0.patch` 三处一致为 `2.7.0`。
 - 当前策略：局部补丁止血
 - 风险判断：
   - Astro 相关 advisory 数量较多
@@ -107,6 +108,13 @@
 - 建议：
   - 不再继续堆零散补丁
   - 单独开一次 Astro 大版本升级评估与迁移
+- **评估进展（已完成评估文档）**：
+  - 详见 `docs/astro-upgrade-evaluation.md`
+  - 目标版本：**Astro 5.x（5.18.2）**（求稳，PWA 官方支持、Node 底线宽、Vite 只到 6）
+  - 仅保留 Vercel + Node/Docker，移除 Netlify
+  - Vercel 从 edge 迁到 serverless，顺带可删 `disableBlocks` hack 并让 `HTTPS_PROXY` 在 Vercel 生效
+  - 无阻塞级风险；剩余主要是 Zag slider 重写与 UnoCSS 视觉漂移，均可控
+  - 本轮仅交付评估，未改代码
 
 ## 当前可暂缓项
 
