@@ -90,6 +90,38 @@
   - `pnpm install` 可正常同步安装结果
   - `pnpm audit --prod --json` 可正常执行；仍有非 undici 告警，归入后续 Astro / Solid / Zag 等升级批次
 
+### 6. P3 批次 D：升级 Zag.js slider
+
+- 状态：已完成（2026-07-06）
+- 原版本：`@zag-js/slider@0.16.0`、`@zag-js/solid@0.16.0`
+- 当前版本：`@zag-js/slider@1.42.0`、`@zag-js/solid@1.42.0`
+- 原因：
+  - 0.16.0 依赖的 `@zag-js/core@0.16.0` 存在 high severity advisory
+  - 项目实际使用 Zag slider 实现 temperature 参数调节滑块
+- 处理方式：
+  - 升级 `@zag-js/slider` 和 `@zag-js/solid` 到 1.42.0（跨大版本）
+  - 重写 `src/components/Slider.tsx` 适配 1.x API 变化：
+    - `useMachine` 从一参数 `useMachine(slider.machine({ ... }))` 改为两参数 `useMachine(slider.machine, { ... })`
+    - Props 方法从属性改为函数调用：`api().rootProps` → `api().getRootProps()`
+    - `value` 从单个数字改为数组：`value: props.value()` → `value: [props.value()]`
+    - 回调从 `onChange` 改为 `onValueChange`，`details.value` 从数字改为数组
+    - Thumb 和 hiddenInput props 需传入 `{ index: 0 }` 参数
+    - `outputProps` 改为 `getValueTextProps()`
+  - 同步更新 `src/styles/slider.css` 的 anatomy part 名称：`data-part='output'` → `data-part='valueText'`
+- 相关代码：
+  - `src/components/Slider.tsx`
+  - `src/components/SettingsSlider.tsx`（调用方，无需修改）
+  - `src/styles/slider.css`
+- 验证：
+  - `pnpm list @zag-js/slider @zag-js/solid @zag-js/core --depth 3` 显示全部为 1.42.0
+  - `pnpm build` 通过（Node standalone）
+  - `OUTPUT=vercel astro build` 通过（Vercel serverless）
+  - `pnpm lint` 通过
+  - `pnpm audit --prod` 中 `@zag-js` 相关告警清零
+- 限制：
+  - 当前环境无浏览器自动化工具，未进行实际滑块拖动的运行时验证
+  - 建议在本地浏览器手动测试 temperature 滑块的交互行为
+
 ## 待处理项
 
 ### P3：统一处理 Astro 安全升级
@@ -118,7 +150,7 @@
 - **落地进展**：
   - 批次 A（移除 Netlify）✅ 已完成（2026-07-06）：删除 `@astrojs/netlify` 依赖与 `build:netlify` 脚本、`netlify.toml`、`astro.config.mjs` 的 netlify 分支、ignore 残留，并同步 README/CLAUDE/AGENTS/GEMINI 文档。已通过 Node + Vercel edge 双构建验证。
   - 批次 B（折叠 C+E，Astro 5 + UnoCSS 66 + PWA 1.x + Solid 1.9）✅ 已完成（2026-07-06）：升级 astro@5.18.2、@astrojs/node@9.5.5、@astrojs/vercel@8.2.11(serverless)、@astrojs/solid-js@5.1.3、solid-js@1.9.14、unocss@66.7.4、@vite-pwa/astro@1.2.0；删除 astro@2.7.0 本地补丁与 `disableBlocks` 插件；Vercel 从 edge 迁到 serverless，`HTTPS_PROXY` 在 Vercel 上生效；API 方法名大写(`POST`)；`presetUno` 改名 `presetWind3`。已通过 Node + Vercel serverless 双构建 + lint + 关键路径回归。**注**：Astro 5 线未修复部分 6.x+ advisory(define:vars XSS、server islands DoS、x-astro-path override 等)，但项目未使用这些功能，无实际利用面。
-  - 批次 D–F（Zag slider / 工具链）：待处理。
+  - 批次 D–F（Zag slider / 工具链）：**批次 D 已完成（2026-07-06）**，见下方独立说明。批次 F 待处理。
 
 ## 当前可暂缓项
 

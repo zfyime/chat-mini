@@ -73,7 +73,7 @@
    @apply w-full;
 }
 
-[data-scope='slider'][data-part='output'] {
+[data-scope='slider'][data-part='valueText'] {
   margin-inline-start: 12px;
 }
 
