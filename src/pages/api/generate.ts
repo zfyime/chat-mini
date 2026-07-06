@@ -1,6 +1,4 @@
-// #vercel-disable-blocks
 import { ProxyAgent, fetch } from 'undici'
-// #vercel-end
 import { buildOpenAIMessages, generatePayload, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/chatCompletion'
 import { verifySignature } from '@/utils/auth'
 import { tavilySearch } from '@/utils/tavily'
@@ -17,7 +15,7 @@ const passList = sitePassword.split(',') || []
 const allowedModels = AVAILABLE_MODELS.map(m => m.id)
 const apiModel = CONFIG.DEFAULT_MODEL
 
-export const post: APIRoute = async(context) => {
+export const POST: APIRoute = async(context) => {
   const body = await context.request.json()
   const { sign, time, messages, pass, temperature, model, webSearch } = body
   if (!messages) {
@@ -57,9 +55,7 @@ export const post: APIRoute = async(context) => {
   // 联网搜索开关关闭：走原有的单次流式逻辑
   if (!webSearch) {
     const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
-    // #vercel-disable-blocks
     if (dispatcher) initOptions.dispatcher = dispatcher
-    // #vercel-end
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error

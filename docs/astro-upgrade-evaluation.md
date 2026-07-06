@@ -107,11 +107,11 @@
 > 原则沿用安全清单：每批只动一小组依赖，先过渲染链再过网络链。
 
 1. **批次 A — 部署面收敛（可独立先做）✅ 已落地（2026-07-06）**：移除 Netlify（依赖 + `netlify.toml` + config 分支 + ignore 残留 + 文档）。此步不依赖 Astro 升级，先落地缩小后续迁移面。已通过 `pnpm build`（Node）+ `OUTPUT=vercel astro build`（Vercel edge）双构建验证。注意：`disableBlocks` 插件与 vercel edge 判断仍保留，留待批次 B 一并删除。
-2. **批次 B — Astro 核心 + 适配器**：`npx @astrojs/upgrade` 对齐 `astro@5` 与 `@astrojs/node@9`、`@astrojs/vercel@8`、`@astrojs/solid-js@5`；改 config 的 vercel 入口为 serverless；删 `disableBlocks` 插件与 `generate.ts` 的 vercel 标记；删本地 patch。
-3. **批次 C — 构建链**：UnoCSS 0.50→66、`@unocss/reset` 同步；核对 vite 字段。
-4. **批次 D — 组件链**：`solid-js` 抬到 1.8.x；Zag slider 0.16→1.x 重写滑块接线。
-5. **批次 E — PWA**：`@vite-pwa/astro` → 1.2.0，对照新版校验 config，回归安装/更新。
-6. **批次 F — 工具链与运行时**：eslint 相关升级；重估 `pnpm-workspace.yaml` overrides；如求稳可选升 Docker `node:22`。
+2. **批次 B — Astro 核心 + 适配器 + UnoCSS + PWA + Solid（折叠 C+E）✅ 已落地（2026-07-06）**：升级 `astro@5.18.2`、`@astrojs/node@9.5.5`、`@astrojs/vercel@8.2.11`、`@astrojs/solid-js@5.1.3`、`solid-js@1.9.14`、`unocss`/`@unocss/reset@66.7.4`、`@vite-pwa/astro@1.2.0`。折叠 C+E 的原因：旧 UnoCSS 0.50 / PWA 0.1 无法在 Astro 5 内置的 Vite 6 下工作，冻旧版会导致双构建失败。改动：config vercel 入口改 serverless（`@astrojs/vercel@8` 无 `/edge` 导出）；删 `disableBlocks` 插件与 `generate.ts` 的 vercel 标记（`HTTPS_PROXY` 现于 Vercel 生效）；删 `astro@2.7.0` 本地 patch；`export const post`→`POST`（Astro 3+ 方法名必须大写，评估遗漏点）；`presetUno`→`presetWind3`；显式加 `@unocss/astro` 依赖（66 拆包）；overrides 加 `vite-plugin-pwa@1.3.0`、`typescript@5.9.3`，移除 `babel-preset-solid`。**已核实**：UnoCSS 66 保留 arbitrary value 内字面逗号（`min()`/`color-mix()` 无需改）。已通过 Node + Vercel serverless 双构建 + lint 通过。
+3. ~~批次 C — 构建链（UnoCSS）~~：已并入批次 B。
+4. **批次 D — 组件链（Zag slider）**：Zag slider `0.16→1.x` 重写滑块接线（solid-js 已在 B 抬到 1.9.14）。`@zag-js/core` 仍有 high advisory，此批处理。
+5. ~~批次 E — PWA~~：已并入批次 B。
+6. **批次 F — 工具链与运行时**：eslint 相关升级；如求稳可选升 Docker `node:22`。
 
 每批后跑 `pnpm build`（Node）+ `OUTPUT=vercel astro build`（Vercel）双构建 + 关键路径回归。
 

@@ -117,7 +117,8 @@
   - 本轮仅交付评估，未改代码
 - **落地进展**：
   - 批次 A（移除 Netlify）✅ 已完成（2026-07-06）：删除 `@astrojs/netlify` 依赖与 `build:netlify` 脚本、`netlify.toml`、`astro.config.mjs` 的 netlify 分支、ignore 残留，并同步 README/CLAUDE/AGENTS/GEMINI 文档。已通过 Node + Vercel edge 双构建验证。
-  - 批次 B–F（Astro 核心升级 / 构建链 / 组件链 / PWA / 工具链）：待处理。
+  - 批次 B（折叠 C+E，Astro 5 + UnoCSS 66 + PWA 1.x + Solid 1.9）✅ 已完成（2026-07-06）：升级 astro@5.18.2、@astrojs/node@9.5.5、@astrojs/vercel@8.2.11(serverless)、@astrojs/solid-js@5.1.3、solid-js@1.9.14、unocss@66.7.4、@vite-pwa/astro@1.2.0；删除 astro@2.7.0 本地补丁与 `disableBlocks` 插件；Vercel 从 edge 迁到 serverless，`HTTPS_PROXY` 在 Vercel 上生效；API 方法名大写(`POST`)；`presetUno` 改名 `presetWind3`。已通过 Node + Vercel serverless 双构建 + lint + 关键路径回归。**注**：Astro 5 线未修复部分 6.x+ advisory(define:vars XSS、server islands DoS、x-astro-path override 等)，但项目未使用这些功能，无实际利用面。
+  - 批次 D–F（Zag slider / 工具链）：待处理。
 
 ## 当前可暂缓项
 

@@ -1,8 +1,11 @@
 allowBuilds:
   esbuild: true
+  # Astro 5 默认图像服务依赖 sharp；项目未用图像优化，但允许其构建以避免运行时报错。
+  sharp: true
 overrides:
-  babel-preset-solid: 1.7.7
   # 统一服务端 fetch 底层库版本，避免 Astro 传递依赖继续锁在 5.x 漏洞链。
   undici: 6.27.0
-patchedDependencies:
-  astro@2.7.0: patches/astro@2.7.0.patch
+  # @vite-pwa/astro@1.2.0 声明 peer vite-plugin-pwa ^1.2.0，显式抬到 1.x 满足要求。
+  vite-plugin-pwa: 1.3.0
+  # auto-install-peers 会拉最新 TS 6，但 Astro 内部工具(tsconfck)与 eslint 链均期望 TS 5.x，锁到 5.9.3。
+  typescript: 5.9.3
