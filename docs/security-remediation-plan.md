@@ -8,6 +8,7 @@
 - 当前最值得优先处理的是：`markdown-it`、`katex`、`undici`、`astro` 升级链路。
 - 其中 `astro` 相关告警数量最多，但多数属于“版本命中”，不等于“当前代码已可利用”。
 - 已处理一项：`GHSA-8hv8-536x-4wqp`，通过本地补丁修复 Astro slot name 反射型 XSS。
+- P1 已完成：`markdown-it` 已升级到 `14.2.0`，KaTeX 渲染链已切到顶层 `katex@0.16.47`，并移除存在高危告警的 `markdown-it-katex`。
 
 ## 已完成
 
@@ -22,33 +23,41 @@
   - 这是依赖层真实存在的问题。
   - 当前仓库已通过本地补丁止血，但这不是长期方案，后续仍应升级 Astro。
 
-## 待处理项
+### 2. P1：升级 markdown-it
 
-### P1：升级 markdown-it
-
-- 当前版本：`13.0.1`
-- 建议版本：`14.2.0` 或更高
+- 状态：已完成
+- 原版本：`13.0.1`
+- 当前版本：`14.2.0`
 - 原因：
   - 命中公开 ReDoS / 复杂度 DoS 漏洞
   - 项目实际会把用户消息和模型返回内容送入 Markdown 渲染
 - 相关代码：
   - `src/components/MessageItem.tsx`
-- 风险判断：
-  - 这是当前仓库最接近真实攻击面的依赖之一，应优先处理
+- 验证：
+  - `pnpm list markdown-it katex markdown-it-katex --depth 4`
+  - P1 相关 `pnpm audit --prod --json` 过滤结果为空
 
-### P1：升级 KaTeX
+### 3. P1：升级 KaTeX 渲染链
 
-- 当前版本：`0.16.7`
-- 建议版本：`0.16.21` 或更高
+- 状态：已完成
+- 原版本：`0.16.7`
+- 当前版本：`0.16.47`
 - 原因：
   - 命中多条公开漏洞
   - 当前项目实际启用了公式渲染，输入面与 Markdown 渲染链一致
+- 处理方式：
+  - 移除 `markdown-it-katex@2.0.3`，避免运行时继续加载其嵌套的 `katex@0.6.0`
+  - 新增本地轻量插件 `src/utils/markdownKatex.ts`，直接调用顶层 `katex@0.16.47`
 - 相关代码：
   - `src/components/MessageItem.tsx`
   - `src/utils/markdownKatex.ts`
   - `src/pages/index.astro`
-- 风险判断：
-  - 与 Markdown 渲染链共用同一输入面，优先级高
+- 验证：
+  - `pnpm list markdown-it katex markdown-it-katex --depth 4` 只显示 `markdown-it@14.2.0` 和 `katex@0.16.47`
+  - 仓库中不再存在 `markdown-it-katex` 和 `katex@0.6.0`
+  - P1 相关 `pnpm audit --prod --json` 过滤结果为空
+
+## 待处理项
 
 ### P2：升级 undici
 
@@ -113,11 +122,9 @@
 
 ## 建议执行顺序
 
-1. 升级 `markdown-it`
-2. 升级 `katex`
-3. 升级 `undici`
-4. 统一 `pnpm` 与锁文件环境
-5. 单独规划 Astro 升级
+1. 升级 `undici`
+2. 统一 `pnpm` 与锁文件环境
+3. 单独规划 Astro 升级
 
 ## 执行注意事项
 
@@ -135,9 +142,9 @@
 
 ## 后续行动
 
-- 第一批建议直接落地：`markdown-it` + `katex`
-- 第二批处理：`undici` + `pnpm` 环境整理
-- 第三批处理：Astro 升级评估与迁移
+- 第一批 `markdown-it` + `katex` 已完成。
+- 第二批处理：`undici` + `pnpm` 环境整理。
+- 第三批处理：Astro 升级评估与迁移。
 
 ## 参考来源
 
