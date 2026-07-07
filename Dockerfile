@@ -7,7 +7,7 @@ WORKDIR /usr/src
 RUN npm install -g pnpm@11.7.0
 
 # 先拷依赖描述文件，最大化利用 layer 缓存
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 # 再拷源码进行构建

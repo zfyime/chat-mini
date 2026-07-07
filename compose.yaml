@@ -14,7 +14,7 @@ services:
       VIRTUAL_PROTO: http
       VIRTUAL_PORT: 3000
     networks:
-      - nginx-proxy_nginx-proxy
+      - nginx-proxy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
       interval: 30s
@@ -22,5 +22,5 @@ services:
       retries: 3
       start_period: 20s
 networks:
-  nginx-proxy_nginx-proxy:
+  nginx-proxy:
     external: true
