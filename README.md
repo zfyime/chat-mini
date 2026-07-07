@@ -37,6 +37,8 @@
 
 ## 快速开始
 
+本地、Docker 与 Vercel Serverless 统一使用 Node.js 24。
+
 1. **安装依赖**
 
    ```bash
