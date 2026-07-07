@@ -10,6 +10,7 @@
 - 已处理一项：`GHSA-8hv8-536x-4wqp`，通过本地补丁修复 Astro slot name 反射型 XSS。
 - P1 已完成：`markdown-it` 已升级到 `14.2.0`，KaTeX 渲染链已切到顶层 `katex@0.16.47`，并移除存在高危告警的 `markdown-it-katex`。
 - P2 已完成：项目直接依赖和 Astro 传递依赖中的 `undici` 已统一到 `6.27.0`，安装环境已统一到 `pnpm@11.7.0`。
+- P3 已完成：Astro 升级链路已落地到 Astro 5，Zag slider、ESLint 工具链与 Docker Node 运行时已同步处理。
 
 ## 已完成
 
@@ -150,7 +151,35 @@
 - **落地进展**：
   - 批次 A（移除 Netlify）✅ 已完成（2026-07-06）：删除 `@astrojs/netlify` 依赖与 `build:netlify` 脚本、`netlify.toml`、`astro.config.mjs` 的 netlify 分支、ignore 残留，并同步 README/CLAUDE/AGENTS/GEMINI 文档。已通过 Node + Vercel edge 双构建验证。
   - 批次 B（折叠 C+E，Astro 5 + UnoCSS 66 + PWA 1.x + Solid 1.9）✅ 已完成（2026-07-06）：升级 astro@5.18.2、@astrojs/node@9.5.5、@astrojs/vercel@8.2.11(serverless)、@astrojs/solid-js@5.1.3、solid-js@1.9.14、unocss@66.7.4、@vite-pwa/astro@1.2.0；删除 astro@2.7.0 本地补丁与 `disableBlocks` 插件；Vercel 从 edge 迁到 serverless，`HTTPS_PROXY` 在 Vercel 上生效；API 方法名大写(`POST`)；`presetUno` 改名 `presetWind3`。已通过 Node + Vercel serverless 双构建 + lint + 关键路径回归。**注**：Astro 5 线未修复部分 6.x+ advisory(define:vars XSS、server islands DoS、x-astro-path override 等)，但项目未使用这些功能，无实际利用面。
-  - 批次 D–F（Zag slider / 工具链）：**批次 D 已完成（2026-07-06）**，见下方独立说明。批次 F 待处理。
+  - 批次 D–F（Zag slider / 工具链）：**批次 D 已完成（2026-07-06）**，见下方独立说明。**批次 F 已完成（2026-07-07）**：升级 ESLint 8 最后一版、`@typescript-eslint/parser` 8.x、`eslint-plugin-astro` 1.x，并将 Docker / Docker dev 基础镜像升到 Node 22。
+
+### 7. P3 批次 F：工具链与运行时
+
+- 状态：已完成（2026-07-07）
+- 原版本：
+  - `eslint@8.43.0`
+  - `@typescript-eslint/parser@5.60.0`
+  - `eslint-plugin-astro@0.27.1`
+  - Docker / Docker dev 基础镜像：`node:20-alpine`
+- 当前版本：
+  - `eslint@8.57.1`
+  - `@typescript-eslint/parser@8.62.1`
+  - `eslint-plugin-astro@1.7.0`
+  - Docker / Docker dev 基础镜像：`node:22-alpine`
+- 处理方式：
+  - 保留现有 `.eslintrc.js` 配置体系，不迁移到 ESLint flat config。
+  - `@evan-yang/eslint-config@1.0.9` 仅支持 ESLint 8，因此没有升级到 ESLint 10。
+  - `eslint-plugin-astro@1.7.0` 是仍兼容 ESLint 8 的高版本；`2.x` 要求 ESLint 10，暂不适合本项目当前 lint 体系。
+- 相关文件：
+  - `package.json`
+  - `pnpm-lock.yaml`
+  - `Dockerfile`
+  - `Dockerfile.dev`
+- 验证：
+  - `pnpm install` 通过并同步锁文件
+  - `pnpm lint` 通过
+  - `pnpm build` 通过（Node standalone）
+  - `OUTPUT=vercel astro build` 通过（Vercel serverless）
 
 ## 当前可暂缓项
 

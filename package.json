@@ -20,7 +20,7 @@
     "@zag-js/slider": "1.42.0",
     "@zag-js/solid": "1.42.0",
     "astro": "5.18.2",
-    "eslint": "8.43.0",
+    "eslint": "8.57.1",
     "eventsource-parser": "1.0.0",
     "highlight.js": "11.8.0",
     "js-sha256": "0.9.0",
@@ -35,10 +35,10 @@
     "@evan-yang/eslint-config": "1.0.9",
     "@iconify-json/carbon": "1.1.18",
     "@types/markdown-it": "12.2.3",
-    "@typescript-eslint/parser": "5.60.0",
+    "@typescript-eslint/parser": "8.62.1",
     "@unocss/astro": "66.7.4",
     "@vite-pwa/astro": "1.2.0",
-    "eslint-plugin-astro": "0.27.1",
+    "eslint-plugin-astro": "1.7.0",
     "punycode": "2.3.0",
     "unocss": "66.7.4"
   }

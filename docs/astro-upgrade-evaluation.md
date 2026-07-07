@@ -111,7 +111,7 @@
 3. ~~批次 C — 构建链（UnoCSS）~~：已并入批次 B。
 4. **批次 D — 组件链（Zag slider）✅ 已完成（2026-07-06）**：升级 `@zag-js/slider@1.42.0`、`@zag-js/solid@1.42.0`（0.16→1.42，跨大版本）。重写 `src/components/Slider.tsx` 适配新 API：`useMachine` 改为两参数 `(machine, props)`、props 方法从属性改为函数调用（`getRootProps()`/`getControlProps()`/`getTrackProps()`/`getRangeProps()`）、`value` 改为数组、`onChange`→`onValueChange`（`details.value` 为数组）、thumb/hiddenInput 需传 `{ index: 0 }`、`outputProps`→`getValueTextProps()`。同步更新 `src/styles/slider.css` 的 `data-part='output'`→`data-part='valueText'`（anatomy part 改名）。已通过 Node + Vercel serverless 双构建 + lint；`pnpm audit --prod` 中 `@zag-js` 相关告警清零。
 5. ~~批次 E — PWA~~：已并入批次 B。
-6. **批次 F — 工具链与运行时**：eslint 相关升级；如求稳可选升 Docker `node:22`。
+6. **批次 F — 工具链与运行时 ✅ 已完成（2026-07-07）**：升级 `eslint@8.57.1`、`@typescript-eslint/parser@8.62.1`、`eslint-plugin-astro@1.7.0`，并将 Docker / Docker dev 基础镜像升到 `node:22-alpine`。保留 `.eslintrc.js`，未迁移到 ESLint flat config；原因是 `@evan-yang/eslint-config@1.0.9` 仅支持 ESLint 8，而 `eslint-plugin-astro@2.x` 要求 ESLint 10。
 
 每批后跑 `pnpm build`（Node）+ `OUTPUT=vercel astro build`（Vercel）双构建 + 关键路径回归。
 
@@ -136,7 +136,7 @@
 
 - [ ] `pnpm build`（Node standalone）产物可 `pnpm preview`
 - [ ] `OUTPUT=vercel astro build` 通过，Vercel 预览环境流式与超时正常
-- [ ] Docker（`node:20` 或选升 `node:22`）构建 + `docker-entrypoint.sh` 启动正常
+- [ ] Docker（已选升 `node:22`）构建 + `docker-entrypoint.sh` 启动正常
 - [ ] Netlify 相关物已彻底移除，无残留 import/配置
 
 前端功能：
