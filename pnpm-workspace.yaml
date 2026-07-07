@@ -12,3 +12,5 @@ overrides:
   vite-plugin-pwa: 1.3.0
   # auto-install-peers 会拉最新 TS 6，但 Astro 内部工具(tsconfck)与 eslint 链均期望 TS 5.x，锁到 5.9.3。
   typescript: 5.9.3
+  # @vercel/routing-utils 仍依赖存在 ReDoS 漏洞的 path-to-regexp@6.1.0，统一抬到修复版本。
+  path-to-regexp: 6.3.0

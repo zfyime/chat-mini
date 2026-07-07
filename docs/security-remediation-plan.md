@@ -5,7 +5,7 @@
 ## 当前结论
 
 - P1、P2、P3 安全修复均已完成。
-- 项目已从 `astro@2.7.0` + 本地补丁升级到 `astro@5.18.2`。
+- 项目已从 `astro@2.7.0` + 本地补丁升级到 `astro@5.18.2`，并在 2026-07-07 继续升级到 `astro@7.0.6`。
 - Vercel 已从 Edge 迁移到 Serverless，`HTTPS_PROXY` 在 Vercel、Node/Docker 上均可用于 OpenAI 和 Tavily 请求。
 - Netlify 部署面已移除，仅保留 Vercel Serverless 和 Node/Docker。
 - `markdown-it`、`katex`、`undici`、`@zag-js/*` 相关高优先级告警已通过升级或替换依赖处理。
@@ -44,12 +44,16 @@
 - `pnpm-lock.yaml` 使用 lockfile v9
 - Docker 构建环境中的 pnpm 同步为 `11.7.0`
 
-### 4. Astro 5 升级
+### 4. Astro 5 / Astro 7 升级
 
 - `astro`：`2.7.0` → `5.18.2`
+- `astro`：`5.18.2` → `7.0.6`
 - `@astrojs/node`：`5.3.0` → `9.5.5`
+- `@astrojs/node`：`9.5.5` → `11.0.2`
 - `@astrojs/vercel`：`3.5.0` → `8.2.11`
+- `@astrojs/vercel`：`8.2.11` → `11.0.2`
 - `@astrojs/solid-js`：`2.2.0` → `5.1.3`
+- `@astrojs/solid-js`：`5.1.3` → `7.0.1`
 - `solid-js`：`1.7.6` → `1.9.14`
 - `@vite-pwa/astro`：`0.1.1` → `1.2.0`
 - `unocss` / `@unocss/reset`：`0.50.8` → `66.7.4`
@@ -100,10 +104,10 @@
 
 | 依赖 | 当前版本 |
 | :--- | :--- |
-| `astro` | `5.18.2` |
-| `@astrojs/node` | `9.5.5` |
-| `@astrojs/vercel` | `8.2.11` |
-| `@astrojs/solid-js` | `5.1.3` |
+| `astro` | `7.0.6` |
+| `@astrojs/node` | `11.0.2` |
+| `@astrojs/vercel` | `11.0.2` |
+| `@astrojs/solid-js` | `7.0.1` |
 | `solid-js` | `1.9.14` |
 | `unocss` / `@unocss/reset` | `66.7.4` |
 | `@zag-js/slider` / `@zag-js/solid` | `1.42.0` |
@@ -129,7 +133,7 @@
 
 ## 后续关注
 
-- Astro 5 线未覆盖部分 Astro 6+ advisory，但当前项目没有使用对应触发面，例如 server islands、`server:defer`、自定义预渲染错误页、`image.remotePatterns`。
+- Astro 7 升级已完成，相关记录见 `docs/astro-7-upgrade-plan.md`。
 - 如未来启用这些 Astro 功能，需要重新做安全评估。
 - Vercel Serverless 与旧 Edge 运行时的超时、冷启动和流式行为不同，长链路联网搜索仍建议在线上预览环境做回归。
 

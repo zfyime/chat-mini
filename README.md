@@ -22,7 +22,7 @@
 
 ## 技术栈
 
-- **核心框架**：[Astro](https://astro.build/) v5.18.2
+- **核心框架**：[Astro](https://astro.build/) v7.0.6
 - **UI 框架**：[Solid.js](https://www.solidjs.com/) v1.9.14
 - **CSS 方案**：[UnoCSS](https://unocss.dev/) v66.7.4
 - **UI 组件**：[@zag-js/slider](https://zagjs.com/) v1.42.0
@@ -146,7 +146,7 @@ docker-compose down
 
 ## 开发说明
 
-编码规范和协作要求见 `AGENTS.md`。升级和安全修复记录见 `docs/security-remediation-plan.md` 与 `docs/astro-upgrade-evaluation.md`。
+编码规范和协作要求见 `AGENTS.md`。升级和安全修复记录见 `docs/security-remediation-plan.md`、`docs/astro-upgrade-evaluation.md` 与 `docs/astro-7-upgrade-plan.md`。
 
 ## 许可证
 

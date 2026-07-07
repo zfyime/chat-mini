@@ -1,12 +1,22 @@
-# Astro 7 升级计划
+# Astro 7 升级归档
 
-本文档记录 Chat Mini 从 `astro@5.18.2` 升级到 Astro 7 的目标、影响范围、风险判断和验证清单。当前文档是升级前计划，不代表代码依赖已经完成升级。
+本文档记录 Chat Mini 从 `astro@5.18.2` 升级到 `astro@7.0.6` 的目标、影响范围、最终改动和验证结果。升级已完成，Docker 启动后经用户测试未发现问题。
 
 调研时间：2026-07-07
+执行时间：2026-07-07
+
+## 执行结果
+
+- 已升级 `astro@7.0.6`、`@astrojs/node@11.0.2`、`@astrojs/vercel@11.0.2`、`@astrojs/solid-js@7.0.1`。
+- 已重新生成 `pnpm-lock.yaml`。
+- 已通过 `pnpm lint`、`pnpm build`、`pnpm build:vercel`、`pnpm audit --prod`。
+- `@vite-pwa/astro@1.2.0` 仍只声明支持 Astro 1-5，`pnpm peers check` 会保留 peer 警告；当前构建未受影响。
+- 本地终端当前是 Node.js 26，执行 pnpm 命令会提示不匹配；项目、Docker 和 Vercel 目标仍是 Node.js 24。
+- `@vercel/routing-utils` 的 `path-to-regexp@6.1.0` 漏洞已通过 `pnpm-workspace.yaml` override 固定到 `6.3.0`。
 
 ## 升级结论
 
-- 推荐直接升级到 Astro 7，不再单独落地 Astro 6。
+- 已直接升级到 Astro 7，没有单独落地 Astro 6。
 - 本项目 Astro 用法较轻，主要是页面、Layout、Solid 组件、API Route、Node standalone 和 Vercel Serverless adapter，未使用 server islands、`server:defer`、Content Collections、Astro Image 等高迁移成本能力。
 - Astro 7 的主要变化集中在构建工具链：Astro 7、官方 adapter 11.x、Solid 集成 7.x、Vite 8。
 - `@vite-pwa/astro@1.2.0` 未声明支持 Astro 6/7，但当前 PWA 不是核心使用路径，影响范围较低。升级时先保留现状，后续等插件补齐兼容声明或项目真正需要 PWA 深度验证时再处理。
@@ -36,7 +46,7 @@
 - `Dockerfile.dev`：使用 `node:24-alpine`
 - Vercel：项目设置已切换到 Node.js 24
 
-## 预计改动
+## 实际改动
 
 ### 1. 升级 Astro 主链路
 
@@ -83,7 +93,7 @@
 
 ## 验证清单
 
-升级后必须执行：
+已执行：
 
 - `pnpm install`
 - `pnpm lint`
@@ -91,6 +101,7 @@
 - `pnpm build:vercel`
 - `pnpm audit --prod`
 - `pnpm list astro @astrojs/node @astrojs/vercel @astrojs/solid-js --depth 1`
+- Docker 构建、启动和页面回归由用户完成，当前未发现问题
 
 手动回归重点：
 
@@ -116,7 +127,7 @@ PWA 回归放到低优先级：
 
 ## 回滚策略
 
-如果 Astro 7 升级卡在 PWA 或 Vite 8 兼容问题上，优先做小范围修复。若超过预期时间仍无法稳定构建，则回退到当前 Astro 5 基线，或临时选择 Astro 6.4.x 作为过渡版本。
+当前升级已完成且构建验证通过，暂无回滚需求。若后续发现 Astro 7、Vite 8 或 PWA 兼容问题，优先做小范围修复；若无法稳定构建，再回退到升级前的 Astro 5 基线，或临时选择 Astro 6.4.x 作为过渡版本。
 
 ## 参考
 
