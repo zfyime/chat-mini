@@ -1,3 +1,6 @@
+packages:
+  - '.'
+
 allowBuilds:
   esbuild: true
   # Astro 5 默认图像服务依赖 sharp；项目未用图像优化，但允许其构建以避免运行时报错。
