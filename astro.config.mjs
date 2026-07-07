@@ -59,6 +59,9 @@ export default defineConfig({
   output: 'server',
   adapter: envAdapter(),
   vite: {
+    server: {
+      allowedHosts: ['chat.local', 'chat.ferris.cc'],
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
