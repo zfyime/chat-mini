@@ -29,31 +29,36 @@ export const Slider = (selectProps: Props) => {
     return Number.isInteger(value) ? value : parseFloat(value.toFixed(2))
   }
 
-  const [state, send] = useMachine(slider.machine({
+  // Zag 1.x: useMachine 接受两个参数，value 必须是数组
+  const service = useMachine(slider.machine, {
     id: createUniqueId(),
-    value: props.value(),
+    value: [props.value()],
     min: props.min,
     max: props.max,
     step: props.step,
     disabled: props.disabled,
-    onChange: (details) => {
-      if (details && typeof details.value === 'number')
-        props.setValue(formatSliderValue(details.value))
+    // Zag 1.x: onChange → onValueChange，details.value 是数组
+    onValueChange: (details) => {
+      if (details?.value?.[0] !== undefined)
+        props.setValue(formatSliderValue(details.value[0]))
     },
-  }))
-  const api = createMemo(() => slider.connect(state, send, normalizeProps))
+  })
+  const api = createMemo(() => slider.connect(service, normalizeProps))
+
   return (
-    <div {...api().rootProps}>
+    <div {...api().getRootProps()}>
       <div class="text-xs op-50 fb items-center">
         <span>{props.name}</span>
-        <output {...api().outputProps}>{formatSliderValue(api().value)}</output>
+        {/* Zag 1.x: outputProps → getValueTextProps()，value 是数组 */}
+        <output {...api().getValueTextProps()}>{formatSliderValue(api().value[0])}</output>
       </div>
-      <div class="mt-2" {...api().controlProps}>
-        <div {...api().trackProps}>
-          <div {...api().rangeProps} />
+      <div class="mt-2" {...api().getControlProps()}>
+        <div {...api().getTrackProps()}>
+          <div {...api().getRangeProps()} />
         </div>
-        <div {...api().thumbProps}>
-          <input {...api().hiddenInputProps} />
+        {/* Zag 1.x: thumbProps/hiddenInputProps 需要传 { index: 0 } */}
+        <div {...api().getThumbProps({ index: 0 })}>
+          <input {...api().getHiddenInputProps({ index: 0 })} />
         </div>
       </div>
     </div>

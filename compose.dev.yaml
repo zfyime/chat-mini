@@ -15,14 +15,14 @@ services:
       VIRTUAL_PROTO: http
       VIRTUAL_PORT: 3000
     networks:
-      - nginx-proxy_nginx-proxy
+      - nginx-proxy
     volumes:
       # 整个项目挂进去，源码改动即时生效
       - .:/usr/src
       # 屏蔽宿主机 node_modules，使用镜像里安装好的依赖
       - /usr/src/node_modules
     working_dir: /usr/src
-    command: pnpm run dev --host 0.0.0.0
+    command: pnpm run dev --host 0.0.0.0 --port 3000
 networks:
-  nginx-proxy_nginx-proxy:
+  nginx-proxy:
     external: true

@@ -1,12 +1,11 @@
 import { defineConfig } from 'astro/config'
 import { fileURLToPath } from 'node:url'
-import unocss from 'unocss/astro'
+import unocss from '@unocss/astro'
 import solidJs from '@astrojs/solid-js'
 
 import node from '@astrojs/node'
 import AstroPWA from '@vite-pwa/astro'
-import vercel from '@astrojs/vercel/edge'
-import disableBlocks from './plugins/disableBlocks'
+import vercel from '@astrojs/vercel'
 
 const envAdapter = () => {
   switch (process.env.OUTPUT) {
@@ -60,13 +59,13 @@ export default defineConfig({
   output: 'server',
   adapter: envAdapter(),
   vite: {
+    server: {
+      allowedHosts: ['chat.local', 'chat.ferris.cc'],
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
-    plugins: [
-      process.env.OUTPUT === 'vercel' && disableBlocks(),
-    ],
   },
 })
