@@ -16,6 +16,8 @@
 /* 代码高亮背景透明化（避免与 pre 背景冲突） */
 .message .hljs {
   background-color: transparent;
+  /* 覆盖 prose 对代码块的颜色重置，让 highlight.js 默认前景色生效 */
+  color: #abb2bf;
 }
 
 /* ----------------------------------------
