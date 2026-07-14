@@ -72,11 +72,11 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-5.4', name: 'GPT-5.4' },
   { id: 'gpt-5.5', name: 'GPT-5.5' },
-  { id: 'claude-sonnet-4-6', name: 'Claude-4.6-Sonnet' },
+  { id: 'gpt-5.6-sol', name: 'GPT-5.6-Sol' },
+  { id: 'claude-sonnet-5', name: 'Claude-5-Sonnet' },
   { id: 'gemini-3.1-pro', name: 'Gemini-3.1-Pro' },
-  { id: 'glm-5.1', name: 'GLM-5.1' },
+  { id: 'glm-5.2', name: 'GLM-5.2' },
   { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
 ] as const
 
