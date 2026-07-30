@@ -99,6 +99,7 @@
 | `OPENAI_API_BASE_URL` | OpenAI 兼容接口基础 URL，用于代理或私有化部署。 |
 | `HEAD_SCRIPTS` | 注入到页面 `</head>` 前的脚本。 |
 | `TAVILY_API_KEY` | Tavily 搜索 API key。配置后才能使用“联网”开关。 |
+| `STREAM_TIMEOUT_MS` | 流式响应看门狗（毫秒），超时主动截断并提示，防止平台墙钟（如 Vercel `maxDuration`）强杀导致回答无收尾。未配置时 Vercel 默认 `55000`，自托管默认禁用；设 `0` 显式禁用。 |
 
 ### 应用内常量
 

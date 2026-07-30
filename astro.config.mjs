@@ -9,7 +9,8 @@ import vercel from '@astrojs/vercel'
 
 const envAdapter = () => {
   switch (process.env.OUTPUT) {
-    case 'vercel': return vercel()
+    // Hobby 计划 function 墙钟上限 60s（默认仅 10s，思考型模型流式极易被强杀，表现为只有思考没有正文）
+    case 'vercel': return vercel({ maxDuration: 60 })
     default: return node({ mode: 'standalone' })
   }
 }

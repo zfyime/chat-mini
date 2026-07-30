@@ -15,6 +15,14 @@ const passList = sitePassword.split(',') || []
 const allowedModels = AVAILABLE_MODELS.map(m => m.id)
 const apiModel = CONFIG.DEFAULT_MODEL
 
+// 流式响应看门狗时长（毫秒）：到点主动截断并给出提示，防止平台墙钟（Vercel Hobby 60s，
+// 见 astro.config.mjs maxDuration）强杀 function 后前端拿到无收尾残流（只有思考没有正文）。
+// 显式配置 STREAM_TIMEOUT_MS 优先（0 为禁用）；未配置时 Vercel 环境默认 55s（预留 5s 收尾余量），自托管默认禁用。
+const rawStreamTimeout = import.meta.env.STREAM_TIMEOUT_MS
+const streamTimeoutMs = rawStreamTimeout !== undefined && String(rawStreamTimeout).trim() !== ''
+  ? Math.max(0, Number(rawStreamTimeout) || 0)
+  : (import.meta.env.VERCEL ? 55_000 : 0)
+
 export const POST: APIRoute = async(context) => {
   const body = await context.request.json()
   const { sign, time, messages, pass, temperature, model, webSearch } = body
@@ -69,7 +77,7 @@ export const POST: APIRoute = async(context) => {
       }), { status: 500 })
     }) as Response
 
-    return await parseOpenAIStream(response) as Response
+    return await parseOpenAIStream(response, { timeoutMs: streamTimeoutMs }) as Response
   }
 
   // 联网开但未配置 Tavily key
@@ -86,6 +94,7 @@ export const POST: APIRoute = async(context) => {
     temperature,
     model: modelToUse,
     dispatcher,
+    streamTimeoutMs,
   })
 }
 
@@ -94,6 +103,7 @@ interface AgentLoopArgs {
   temperature: number
   model: string
   dispatcher?: any
+  streamTimeoutMs?: number
 }
 
 const mergeToolCallDelta = (toolCalls: any[], deltaToolCalls: any[]) => {
@@ -228,7 +238,7 @@ const parseAgentProbeResponse = (rawText: string) => {
   return { choices: [{ message }] }
 }
 
-const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArgs): Response => {
+const runAgentLoop = ({ messages, temperature, model, dispatcher, streamTimeoutMs = 0 }: AgentLoopArgs): Response => {
   const encoder = new TextEncoder()
   // 把项目内的 ChatMessage 转成 OpenAI 协议消息后作为初始 workingMessages
   const workingMessages: any[] = buildOpenAIMessages(messages)
@@ -255,6 +265,17 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
           controller.enqueue(encoder.encode(`<tool_data>${json}</tool_data>`))
         }
       }
+
+      // 外层看门狗：覆盖整个 agent 循环（多次探测 + 搜索 + 末轮流式），到点主动收尾，
+      // 让前端拿到完整的流结束。触发后循环内后续 enqueue 会抛错并被下方 catch 兜住，循环自然终止。
+      const watchdog = streamTimeoutMs > 0
+        ? setTimeout(() => {
+          try {
+            controller.enqueue(encoder.encode('\n\n_⚠️ 响应超时中断，请重试_'))
+            controller.close()
+          } catch { /* 流已正常关闭，忽略 */ }
+        }, streamTimeoutMs)
+        : undefined
 
       try {
         let round = 0
@@ -428,6 +449,8 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher }: AgentLoopArg
       } catch (e) {
         controller.enqueue(encoder.encode(`\n\n[agent 异常] ${(e as Error).message}`))
         controller.close()
+      } finally {
+        if (watchdog) clearTimeout(watchdog)
       }
     },
   })

@@ -128,7 +128,7 @@ export const generatePayload = (
   })
 }
 
-export const parseOpenAIStream = async(rawResponse: Response) => {
+export const parseOpenAIStream = async(rawResponse: Response, opts: PipeOptions = {}) => {
   if (!rawResponse.ok) {
     // 透传上游错误，并把上游真实 HTTP 状态码注入 error 对象，便于前端区分 4xx/5xx。
     // 上游 body 可能是 JSON（{ error: {...} }）也可能是纯文本，做兼容解析。
@@ -150,7 +150,7 @@ export const parseOpenAIStream = async(rawResponse: Response) => {
 
   const stream = new ReadableStream({
     async start(controller) {
-      await pipeOpenAIStreamToController(rawResponse, controller, { closeWhenDone: true })
+      await pipeOpenAIStreamToController(rawResponse, controller, { closeWhenDone: true, ...opts })
     },
   })
 
@@ -160,6 +160,10 @@ export const parseOpenAIStream = async(rawResponse: Response) => {
 interface PipeOptions {
   // 末轮流式结束时是否关闭 controller。在 agent 聚合流里调多次时应传 false
   closeWhenDone?: boolean
+  // 看门狗（毫秒）：超过该时长流仍未正常结束时，主动补 </think>、追加中断提示并关闭流。
+  // 防止平台墙钟（如 Vercel maxDuration）直接强杀进程，导致前端拿到无收尾的残流（只有思考没有正文）。
+  // 0 或缺省表示禁用。
+  timeoutMs?: number
 }
 
 // 把一次 OpenAI 流式响应的内容解析后写入给定的 controller。
@@ -167,7 +171,7 @@ interface PipeOptions {
 export const pipeOpenAIStreamToController = async(
   rawResponse: Response,
   controller: ReadableStreamDefaultController<Uint8Array>,
-  { closeWhenDone = true }: PipeOptions = {},
+  { closeWhenDone = true, timeoutMs = 0 }: PipeOptions = {},
 ): Promise<void> => {
   const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
   if (!reader) {
@@ -177,6 +181,28 @@ export const pipeOpenAIStreamToController = async(
 
   let isThinking = false
   const encoder = new TextEncoder()
+
+  // 幂等收尾：补 think 闭合标签、按需追加提示文本，然后关闭流。
+  // [DONE] 帧、上游无 [DONE] 自然断开、看门狗超时三条路径共用，保证前端总能拿到完整的流结束。
+  let finalized = false
+  const finalize = (notice?: string) => {
+    if (finalized) return
+    finalized = true
+    if (isThinking) {
+      controller.enqueue(encoder.encode('</think>'))
+      isThinking = false
+    }
+    if (notice) controller.enqueue(encoder.encode(notice))
+    if (closeWhenDone) controller.close()
+  }
+
+  // 看门狗：到点先正常收尾，再取消上游读取让下面 while 循环退出
+  const watchdog = timeoutMs > 0
+    ? setTimeout(() => {
+      finalize('\n\n_⚠️ 响应超时中断，请重试_')
+      reader.cancel().catch(() => {})
+    }, timeoutMs)
+    : undefined
 
   const extractTextContent = (content: unknown): string => {
     if (!content) return ''
@@ -197,11 +223,11 @@ export const pipeOpenAIStreamToController = async(
 
   const parser = createParser((event: ParsedEvent | ReconnectInterval) => {
     if (event.type === 'event') {
+      // 已收尾（[DONE]/看门狗）后忽略上游迟到的帧，避免向已关闭的流 enqueue
+      if (finalized) return
       const data = event.data
       if (data === '[DONE]') {
-        if (isThinking)
-          controller.enqueue(encoder.encode('</think>'))
-        if (closeWhenDone) controller.close()
+        finalize()
         return
       }
       try {
@@ -244,8 +270,13 @@ export const pipeOpenAIStreamToController = async(
       if (done) break
       parser.feed(value)
     }
+    // 上游无 [DONE] 自然断开（中转网关掐流、网络中断等）：
+    // 必须主动收尾，否则前端流永不关闭、think 标签不闭合，消息一直转圈且正文丢失
+    finalize()
   } catch (error) {
     if (closeWhenDone) controller.error(error)
     else throw error
+  } finally {
+    if (watchdog) clearTimeout(watchdog)
   }
 }

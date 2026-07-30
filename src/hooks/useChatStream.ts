@@ -139,10 +139,15 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
         }
         done = readerDone
       }
+      // TextDecoder 内部可能残留半截 UTF-8 字节，最终 flush 出来喂给 parser，避免丢末尾字符
+      const tail = decoder.decode()
+      if (tail) thinkParser.process(tail)
     } catch (e) {
       aborted = (e as Error)?.name === 'AbortError'
       if (!aborted) console.error(e)
     } finally {
+      // 归档前把 parser 缓冲区残留（半截标签前缀、未闭合的 think 内容）分发出去，保证已收内容不丢
+      thinkParser.flush()
       archiveCurrentMessage()
       setLoading(false)
       dispatchStreamingState(false)

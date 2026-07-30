@@ -12,6 +12,9 @@ interface TagParserOptions {
 
 interface TagParser {
   process: (chunk: string) => void
+  // 流结束时把缓冲区里残留的半截内容（如未闭合的标签前缀、未等到闭合标签的 tag 内容）
+  // 按当前状态分发出去，避免归档时静默丢尾巴
+  flush: () => void
   reset: () => void
 }
 
@@ -95,10 +98,17 @@ export const createTagParser = ({ tags, onText, onTag }: TagParserOptions): TagP
     }
   }
 
+  const flush = () => {
+    if (!buffer) return
+    if (inTag) onTag(inTag, buffer)
+    else onText(buffer)
+    buffer = ''
+  }
+
   const reset = () => {
     buffer = ''
     inTag = null
   }
 
-  return { process, reset }
+  return { process, flush, reset }
 }
