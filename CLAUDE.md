@@ -44,7 +44,7 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 - **代码高亮**：[highlight.js](https://highlightjs.org/) v11.8.0
 - **数学公式**：[KaTeX](https://katex.org/) v0.16.47
 - **工具库**：[solidjs-use](https://github.com/solidjs-use/solidjs-use) v2.1.0
-- **文件处理**：原生 File API + Base64 编码
+- **文件处理**：原生 File API；PDF 用 [pdfjs-dist](https://mozilla.github.io/pdf.js/) 提取文本，Word 用 [mammoth](https://github.com/mwilliamson/mammoth.js) 转纯文本，图片 canvas 压缩后 Base64
 - **存储方案**：IndexedDB，带 localStorage 降级
 - **流解析**：[eventsource-parser](https://github.com/rexxars/eventsource-parser) v1.0.0
 - **加密签名**：[js-sha256](https://github.com/emn178/js-sha256) v0.9.0
@@ -81,7 +81,7 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 
 - **支持类型**：JPEG、PNG、GIF、WebP、PDF、Word、Plain Text、Markdown、JavaScript、HTML、CSS、PHP、Go、Python、Java、C/C++、C#、JSON、XML、YAML、Log。
 - **上传方式**：点击附件按钮选择文件，或将文件拖拽到浏览器页面任意位置。
-- **文件限制**：常规文本类文件最大 `50MB`，图片最大 `10MB`，需 Base64 编码的非图片二进制文件最大 `5MB`。
+- **文件限制**：文本与文档类文件最大 `50MB`（PDF/Word 客户端解析为纯文本），图片最大 `10MB`（上传时自动压缩）。
 
 ## 对话导出
 
@@ -117,7 +117,6 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | `DEFAULT_MODEL` | `'gpt-5.6-sol'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
-| `MAX_BINARY_FILE_SIZE` | `5MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
 | `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |

@@ -4,15 +4,25 @@ import type { ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import type { ChatMessage } from '@/types'
 
 const transformMessagesForAPI = (messages: ChatMessage[]) => {
+  // 只有最后一条用户消息保留附件全文，更早消息的附件替换为占位符，
+  // 避免大文件内容随上下文窗口在后续每轮对话中被反复重发
+  const lastUserIdx = messages.findLastIndex(m => m.role === 'user')
   // assistant 消息若带 toolContext（上一轮 agent 的 tool_calls + tool 结果），
   // 展开为标准 OpenAI 协议序列放在该消息之前，让后续轮次复用已搜到的内容。
-  return messages.flatMap((msg) => {
-    const single = transformOne(msg)
+  return messages.flatMap((msg, i) => {
+    const single = transformOne(msg, i === lastUserIdx)
     return msg.toolContext?.length ? [...msg.toolContext, single] : single
   })
 }
 
-const transformOne = (msg: ChatMessage) => {
+// 历史消息的附件降级为占位符文本，只保留文件名信息
+const buildAttachmentPlaceholder = (msg: ChatMessage): string => {
+  return msg.attachments!
+    .map(att => `[文件: ${att.name}（历史附件，内容已省略）]`)
+    .join('\n')
+}
+
+const transformOne = (msg: ChatMessage, keepAttachments: boolean) => {
   const baseMessage = {
     role: msg.role,
     content: msg.content,
@@ -20,6 +30,13 @@ const transformOne = (msg: ChatMessage) => {
 
   // If message has attachments, include them in the content
   if (msg.attachments && msg.attachments.length > 0) {
+    if (!keepAttachments) {
+      return {
+        ...baseMessage,
+        content: `${msg.content ?? ''}\n\n${buildAttachmentPlaceholder(msg)}`,
+      }
+    }
+
     const hasImages = msg.attachments.some(att => isImageFile(att.type))
 
     if (hasImages && msg.role === 'user') {

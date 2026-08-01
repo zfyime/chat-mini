@@ -28,8 +28,10 @@
     "highlight.js": "11.8.0",
     "js-sha256": "0.9.0",
     "katex": "0.16.47",
+    "mammoth": "^1.12.0",
     "markdown-it": "14.2.0",
     "markdown-it-highlightjs": "4.0.1",
+    "pdfjs-dist": "^6.2.108",
     "solid-js": "1.9.14",
     "solidjs-use": "2.1.0",
     "undici": "6.27.0"

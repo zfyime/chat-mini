@@ -74,9 +74,8 @@
 
 ### 限制
 
-- 常规文本类文件最大 `50MB`
-- 图片文件最大 `10MB`
-- 需要 Base64 编码的非图片二进制文件最大 `5MB`
+- 文本与文档类文件（含 PDF/Word，客户端解析为纯文本）最大 `50MB`
+- 图片文件最大 `10MB`（上传时自动压缩，长边超过 1568px 会缩放并重编码为 JPEG）
 
 ## 对话导出
 
@@ -114,7 +113,6 @@
 | `DEFAULT_MODEL` | `'gpt-5.6-sol'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
-| `MAX_BINARY_FILE_SIZE` | `5MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
 | `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |

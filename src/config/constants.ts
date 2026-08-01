@@ -21,10 +21,9 @@ export const CONFIG = {
   DEFAULT_MODEL: 'ggpt-5.6-sol', // 默认模型
   DEFAULT_SYSTEM_ROLE: '你是一个有用的助手。默认回复中文，回答短一点。直接、冷静、少废话、高效、专业。', // 系统角色预设初始值
 
-  // 文件上传限制
-  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB（文本类）
+  // 文件上传限制（PDF/Word 在客户端解析为纯文本，与文本文件共用同一限制）
+  MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB（文本与文档类）
   MAX_IMAGE_SIZE: 10 * 1024 * 1024, // 10MB
-  MAX_BINARY_FILE_SIZE: 5 * 1024 * 1024, // 5MB（需 base64 编码的非图片文件，限制更小以控制内存峰值）
   ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
   ALLOWED_DOCUMENT_TYPES: [
     'application/pdf',

@@ -1,4 +1,5 @@
 import { CONFIG } from '@/config/constants'
+import { extractDocumentText, isExtractableDocument } from './documentExtract'
 import type { FileAttachment } from '@/types'
 
 const EXTENSION_TYPE_MAP: Record<string, string> = {
@@ -22,26 +23,6 @@ const EXTENSION_TYPE_MAP: Record<string, string> = {
   yml: 'application/yaml',
 }
 
-const TEXTUAL_MIME_TYPES = new Set([
-  'application/json',
-  'application/xml',
-  'text/xml',
-  'application/yaml',
-  'application/x-yaml',
-  'text/yaml',
-  'text/x-yaml',
-  'application/javascript',
-  'application/php',
-  'application/x-httpd-php',
-  'application/x-go',
-  'application/x-python',
-  'application/x-java',
-  'application/x-c',
-  'application/x-c++',
-  'application/x-csharp',
-  'application/x-log',
-])
-
 // 某些浏览器不会为部分文本文件提供 MIME 类型，按扩展名兜底
 const resolveFileType = (file: File): string => {
   if (file.type)
@@ -52,14 +33,6 @@ const resolveFileType = (file: File): string => {
     return ''
 
   return EXTENSION_TYPE_MAP[extension] ?? ''
-}
-
-const isTextFileType = (fileType: string): boolean => {
-  if (!fileType)
-    return false
-  if (fileType.startsWith('text/'))
-    return true
-  return TEXTUAL_MIME_TYPES.has(fileType)
 }
 
 export const generateFileId = (): string => {
@@ -87,11 +60,8 @@ export const validateFile = (file: File): { valid: boolean, error?: string } => 
     }
   }
 
-  // 文本文件可直接读取，沿用大限制；图片次之；其余需 base64 编码的二进制文件控制内存峰值
-  let maxSize: number
-  if (isImage) maxSize = CONFIG.MAX_IMAGE_SIZE
-  else if (isTextFileType(fileType)) maxSize = CONFIG.MAX_FILE_SIZE
-  else maxSize = CONFIG.MAX_BINARY_FILE_SIZE
+  // 文档类会在客户端解析成纯文本，与文本文件共用大限制；图片单独限制
+  const maxSize = isImage ? CONFIG.MAX_IMAGE_SIZE : CONFIG.MAX_FILE_SIZE
 
   if (file.size > maxSize) {
     return {
@@ -126,6 +96,42 @@ export const readFileAsText = (file: File): Promise<string> => {
   })
 }
 
+// 图片压缩：长边超过 IMAGE_MAX_DIMENSION 时按比例缩小并重编码为 JPEG，
+// 减少请求体积和 vision 接口按分辨率切 tile 的数量。
+// GIF 保留动画不处理；小尺寸小体积、或重编码后反而更大的图返回 null（调用方走原始 base64）。
+const IMAGE_MAX_DIMENSION = 1568
+const IMAGE_COMPRESS_QUALITY = 0.85
+const IMAGE_COMPRESS_MIN_SIZE = 512 * 1024 // 小于 512KB 且尺寸达标的图不重编码
+
+const compressImage = async(file: File): Promise<{ content: string, type: string } | null> => {
+  if (file.type === 'image/gif')
+    return null
+
+  const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+  if (scale === 1 && file.size <= IMAGE_COMPRESS_MIN_SIZE) {
+    bitmap.close()
+    return null
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(bitmap.width * scale)
+  canvas.height = Math.round(bitmap.height * scale)
+  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+  bitmap.close()
+
+  // JPEG 兼容性最好（Safari 不支持 canvas 编码 WebP），透明背景会变白/黑，可接受
+  const dataUrl = canvas.toDataURL('image/jpeg', IMAGE_COMPRESS_QUALITY)
+  const base64 = dataUrl.split(',')[1]
+
+  // 重编码可能反向膨胀（原图本身是高压缩 JPEG 时），此时返回 null 让调用方用原图
+  // base64 长度 * 0.75 ≈ 编码前字节数
+  if (base64.length * 0.75 >= file.size)
+    return null
+
+  return { content: base64, type: 'image/jpeg' }
+}
+
 export const createFileAttachment = async(file: File): Promise<FileAttachment> => {
   const validation = validateFile(file)
   if (!validation.valid)
@@ -133,27 +139,35 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
 
   const fileType = resolveFileType(file)
   const isImage = CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number])
-  const isTextFile = isTextFileType(fileType)
   let content: string
+  let type = fileType
   let url: string | undefined
   let encoding: 'base64' | 'text'
 
   if (isImage) {
-    content = await readFileAsBase64(file)
+    // 先尝试压缩，压缩失败或无需压缩时回退到原图 base64
+    const compressed = await compressImage(file).catch(() => null)
+    if (compressed) {
+      content = compressed.content
+      type = compressed.type
+    } else {
+      content = await readFileAsBase64(file)
+    }
     url = URL.createObjectURL(file) // For preview
     encoding = 'base64'
-  } else if (isTextFile) {
-    content = await readFileAsText(file)
+  } else if (isExtractableDocument(fileType)) {
+    // PDF / Word 解析成纯文本，避免 base64 浪费 token 且模型无法解读
+    content = await extractDocumentText(file, fileType)
     encoding = 'text'
   } else {
-    content = await readFileAsBase64(file)
-    encoding = 'base64'
+    content = await readFileAsText(file)
+    encoding = 'text'
   }
 
   return {
     id: generateFileId(),
     name: file.name,
-    type: fileType,
+    type,
     size: file.size,
     content,
     url,
