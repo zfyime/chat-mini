@@ -80,7 +80,7 @@ export default () => {
         </svg>
       </button>
       <Show when={isOpen()}>
-        <div class="absolute top-full right-0 mt-1 py-1 min-w-[160px] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
+        <div class="absolute top-full right-0 mt-1 py-1 min-w-[170px] rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-50">
           <For each={AVAILABLE_MODELS}>
             {model => (
               <button

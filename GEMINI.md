@@ -15,7 +15,7 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 ## 功能特性
 
 - **多平台部署**：支持 Vercel Serverless 和 Docker。
-- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.4、GPT-5.5、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro。
+- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro。
 - **联网搜索 Agent**：在输入框底栏启用“联网”后，服务端可调用 Tavily 搜索实时信息，并在消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`。
 - **思维过程可视化**：支持渲染特殊的 `<think>` 标签，内容可折叠显示。
 - **文件上传与分析**：支持图片、PDF、Word、文本、Markdown、代码、配置和日志文件。
@@ -84,13 +84,13 @@ pnpm dev
 | `CONTEXT_WINDOW_SIZE` | `9` |
 | `HISTORY_LIST_LIMIT` | `25` |
 | `DEFAULT_TEMPERATURE` | `0.6` |
-| `DEFAULT_MODEL` | `'gpt-5.5'` |
+| `DEFAULT_MODEL` | `'gpt-5.6-sol'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
 | `MAX_BINARY_FILE_SIZE` | `5MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
-| `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.5、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
+| `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
 | `AGENT.MAX_TOOL_ROUNDS` | `3` |
 | `AGENT.TAVILY_MAX_RESULTS` | `5` |
 | `AGENT.TAVILY_SEARCH_DEPTH` | `'basic'` |

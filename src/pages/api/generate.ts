@@ -2,6 +2,7 @@ import { ProxyAgent, fetch } from 'undici'
 import { buildOpenAIMessages, generatePayload, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/chatCompletion'
 import { verifySignature } from '@/utils/auth'
 import { tavilySearch } from '@/utils/tavily'
+import { searxngSearch } from '@/utils/searxng'
 import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import { AGENT_TOOLS } from '@/config/tools'
 import type { APIRoute } from 'astro'
@@ -9,6 +10,7 @@ import type { APIRoute } from 'astro'
 const apiKey = import.meta.env.OPENAI_API_KEY
 const httpsProxy = import.meta.env.HTTPS_PROXY
 const tavilyApiKey = import.meta.env.TAVILY_API_KEY
+const searxngBaseUrl = (import.meta.env.SEARXNG_BASE_URL || '').trim().replace(/\/$/, '')
 const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
 const sitePassword = import.meta.env.SITE_PASSWORD || ''
 const passList = sitePassword.split(',') || []
@@ -80,11 +82,11 @@ export const POST: APIRoute = async(context) => {
     return await parseOpenAIStream(response, { timeoutMs: streamTimeoutMs }) as Response
   }
 
-  // 联网开但未配置 Tavily key
-  if (!tavilyApiKey) {
+  // 联网开但 Tavily 和 SearXNG 都未配置
+  if (!tavilyApiKey && !searxngBaseUrl) {
     return new Response(JSON.stringify({
       error: {
-        message: '未配置 TAVILY_API_KEY，无法使用联网搜索。',
+        message: '未配置 TAVILY_API_KEY 或 SEARXNG_BASE_URL，无法使用联网搜索。',
       },
     }), { status: 400 })
   }
@@ -386,11 +388,23 @@ const runAgentLoop = ({ messages, temperature, model, dispatcher, streamTimeoutM
 
             writeToolTag(`🔍 搜索: ${query}`)
             try {
-              const search = await tavilySearch(query, tavilyApiKey, {
-                maxResults: AGENT.TAVILY_MAX_RESULTS,
-                searchDepth: AGENT.TAVILY_SEARCH_DEPTH,
-                dispatcher,
-              }, fetch as any)
+              // Tavily 优先；失败（网络错误、限流等）且配置了 SearXNG 时自动降级
+              let search
+              try {
+                if (!tavilyApiKey) throw new Error('未配置 TAVILY_API_KEY')
+                search = await tavilySearch(query, tavilyApiKey, {
+                  maxResults: AGENT.TAVILY_MAX_RESULTS,
+                  searchDepth: AGENT.TAVILY_SEARCH_DEPTH,
+                  dispatcher,
+                }, fetch as any)
+              } catch (tavilyErr) {
+                if (!searxngBaseUrl) throw tavilyErr
+                writeToolTag(`⚠️ Tavily 失败（${(tavilyErr as Error).message}），降级到 SearXNG`)
+                search = await searxngSearch(query, searxngBaseUrl, {
+                  maxResults: AGENT.SEARXNG_MAX_RESULTS,
+                  dispatcher,
+                }, fetch as any)
+              }
 
               writeToolTag(`✅ 共 ${search.results.length} 条结果`)
               // 来源以 Markdown 链接列表透出到展示面板，供用户点击溯源；

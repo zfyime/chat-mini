@@ -7,8 +7,8 @@
 ## 功能特性
 
 - **多平台部署**：支持 Vercel Serverless 和 Docker。
-- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.4、GPT-5.5、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro。
-- **联网搜索 Agent**：在输入框底栏启用“联网”后，服务端可调用 Tavily 搜索实时信息，并在消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`。
+- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro。
+- **联网搜索 Agent**：在输入框底栏启用“联网”后，服务端可调用 Tavily 搜索实时信息，并在消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`；Tavily 调用失败或限流时，可自动降级到自部署的 SearXNG（配置 `SEARXNG_BASE_URL`）。
 - **思维过程可视化**：支持渲染特殊的 `<think>` 标签，内容可折叠显示。
 - **文件上传与分析**：支持图片、PDF、Word、文本、Markdown、代码、配置和日志文件。
 - **拖拽上传体验**：可将文件直接拖拽到浏览器页面任意位置上传。
@@ -98,7 +98,8 @@
 | `HTTPS_PROXY` | OpenAI 和 Tavily 请求代理，例如 `http://127.0.0.1:7890`。 |
 | `OPENAI_API_BASE_URL` | OpenAI 兼容接口基础 URL，用于代理或私有化部署。 |
 | `HEAD_SCRIPTS` | 注入到页面 `</head>` 前的脚本。 |
-| `TAVILY_API_KEY` | Tavily 搜索 API key。配置后才能使用“联网”开关。 |
+| `TAVILY_API_KEY` | Tavily 搜索 API key。 |
+| `SEARXNG_BASE_URL` | 自部署 SearXNG 实例地址，例如 `https://searx.example.com`。作为 Tavily 失败时的自动降级来源；实例需在 `settings.yml` 启用 `json` 输出格式。两者至少配置一个才能使用“联网”开关。 |
 | `STREAM_TIMEOUT_MS` | 流式响应看门狗（毫秒），超时主动截断并提示，防止平台墙钟（如 Vercel `maxDuration`）强杀导致回答无收尾。未配置时 Vercel 默认 `55000`，自托管默认禁用；设 `0` 显式禁用。 |
 
 ### 应用内常量
@@ -110,13 +111,13 @@
 | `CONTEXT_WINDOW_SIZE` | `9` |
 | `HISTORY_LIST_LIMIT` | `25` |
 | `DEFAULT_TEMPERATURE` | `0.6` |
-| `DEFAULT_MODEL` | `'gpt-5.5'` |
+| `DEFAULT_MODEL` | `'gpt-5.6-sol'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
 | `MAX_BINARY_FILE_SIZE` | `5MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
-| `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.5、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
+| `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
 | `AGENT.MAX_TOOL_ROUNDS` | `3` |
 | `AGENT.TAVILY_MAX_RESULTS` | `5` |
 | `AGENT.TAVILY_SEARCH_DEPTH` | `'basic'` |

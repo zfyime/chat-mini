@@ -18,7 +18,7 @@ export const CONFIG = {
 
   // 模型和温度默认值
   DEFAULT_TEMPERATURE: 0.6, // 默认温度
-  DEFAULT_MODEL: 'gpt-5.5', // 默认模型
+  DEFAULT_MODEL: 'ggpt-5.6-sol', // 默认模型
   DEFAULT_SYSTEM_ROLE: '你是一个有用的助手。默认回复中文，回答短一点。直接、冷静、少废话、高效、专业。', // 系统角色预设初始值
 
   // 文件上传限制
@@ -72,12 +72,11 @@ export const CONFIG = {
 
 // 可选的模型列表
 export const AVAILABLE_MODELS = [
-  { id: 'gpt-5.5', name: 'GPT-5.5' },
-  { id: 'gpt-5.6-sol', name: 'GPT-5.6-Sol' },
-  { id: 'claude-sonnet-5', name: 'Claude-5-Sonnet' },
-  { id: 'gemini-3.1-pro', name: 'Gemini-3.1-Pro' },
-  { id: 'glm-5.2', name: 'GLM-5.2' },
+  { id: 'ggpt-5.6-sol', name: 'GPT-5.6-Sol' },
+  { id: 'claude-sonnet-5', name: 'Claude-Sonnet-5' },
   { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+  { id: 'glm-5.2', name: 'GLM-5.2' },
+  { id: 'hy3', name: 'Hunyuan-3' },
 ] as const
 
 // 错误消息
@@ -93,4 +92,5 @@ export const AGENT = {
   MAX_TOOL_ROUNDS: 3, // 服务端最多执行的工具循环轮数
   TAVILY_MAX_RESULTS: 5,
   TAVILY_SEARCH_DEPTH: 'basic' as 'basic' | 'advanced',
+  SEARXNG_MAX_RESULTS: 5, // SearXNG 降级搜索的结果条数
 } as const
