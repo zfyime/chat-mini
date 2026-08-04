@@ -120,7 +120,6 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
 | `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
-| `AGENT.MAX_TOOL_ROUNDS` | `3` |
 | `AGENT.TAVILY_MAX_RESULTS` | `5` |
 | `AGENT.TAVILY_SEARCH_DEPTH` | `'basic'` |
 | `AGENT.SEARXNG_MAX_RESULTS` | `5` |

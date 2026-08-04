@@ -4,7 +4,7 @@
 
 ## 目标
 
-在保持项目轻量的前提下，引入一个最小化 agent 循环，仅提供 `web_search` 工具，基于 Tavily 获取实时信息。
+在保持项目轻量的前提下，引入一次规划、并行搜索、一次最终生成的联网搜索流程，仅提供 `web_search` 工具，通过 Tavily 获取实时信息，并支持降级到 SearXNG。
 
 ## 用户体验
 
@@ -21,19 +21,17 @@
 
 ```bash
 TAVILY_API_KEY=
+SEARXNG_BASE_URL=
 ```
 
-未配置 `TAVILY_API_KEY` 时，开启联网搜索会返回 400：
+搜索渠道支持以下配置：
 
-```json
-{
-  "error": {
-    "message": "未配置 TAVILY_API_KEY，无法使用联网搜索。"
-  }
-}
-```
+- 配置 `TAVILY_API_KEY` 时优先使用 Tavily。
+- 同时配置 `SEARXNG_BASE_URL` 时，Tavily 请求失败会自动降级到 SearXNG。
+- 仅配置 `SEARXNG_BASE_URL` 时直接使用 SearXNG。
+- 两项均未配置时，开启联网搜索会返回 400。
 
-`HTTPS_PROXY` 会同时作用于 OpenAI 兼容接口和 Tavily 请求。
+`HTTPS_PROXY` 会同时作用于 OpenAI 兼容接口、Tavily 和 SearXNG 请求。
 
 ### 应用常量
 
@@ -41,32 +39,33 @@ TAVILY_API_KEY=
 
 ```ts
 export const AGENT = {
-  MAX_TOOL_ROUNDS: 3,
   TAVILY_MAX_RESULTS: 5,
   TAVILY_SEARCH_DEPTH: 'basic' as 'basic' | 'advanced',
+  SEARXNG_MAX_RESULTS: 5,
 } as const
 ```
 
 ## 后端实现
 
-### Tavily 客户端
+### 搜索客户端
 
-文件：`src/utils/tavily.ts`
+文件：`src/utils/tavily.ts`、`src/utils/searxng.ts`
 
-- 调用 `https://api.tavily.com/search`
-- 默认 `max_results = 5`
-- 默认 `search_depth = 'basic'`
-- 支持透传 `dispatcher`，复用 `HTTPS_PROXY`
+- Tavily 调用 `https://api.tavily.com/search`，默认 `max_results = 5`、`search_depth = 'basic'`。
+- SearXNG 调用自部署实例的 `/search` JSON API，并在客户端截取指定数量的结果。
+- Tavily 不可用时可降级到 SearXNG，也支持仅配置 SearXNG。
+- 两个客户端都支持透传 `dispatcher` 和 `AbortSignal`，复用代理并在流程超时时中止请求。
 
 ### 工具定义
 
 文件：`src/config/tools.ts`
 
-当前仅有一个工具：
+最终生成阶段仅保留 `web_search` schema，用于兼容严格校验历史工具消息的上游，并通过 `tool_choice: none` 禁止再次调用。
 
-- `web_search`
-- 参数：`query: string`
-- 说明：用于搜索互联网获取实时信息、事实核查或模型不确定的问题
+规划阶段提供两个工具：
+
+- `web_search`：参数为 `query: string`，一次规划可返回多个调用。
+- `skip_web_search`：表示当前问题无需联网，服务端直接进入最终生成。
 
 ### API 路由
 
@@ -76,18 +75,20 @@ export const AGENT = {
 
 1. 校验输入、访问密码、签名和模型白名单。
 2. `webSearch` 关闭时，走原有单次流式请求。
-3. `webSearch` 开启时，检查 `TAVILY_API_KEY`。
-4. 进入 agent 循环，最多执行 `AGENT.MAX_TOOL_ROUNDS` 轮。
-5. 中间轮请求 OpenAI 兼容接口并解析 `tool_calls`。
-6. 执行 Tavily 搜索，将结果作为 `role: 'tool'` 消息回灌给模型。
-7. 向前端输出 `<tool>` 展示信息和 `<tool_data>` 协议数据。
-8. 模型不再调用工具或触达轮次上限后，输出最终答案。
+3. `webSearch` 开启时，检查 Tavily 或 SearXNG 是否至少配置一项。
+4. 发起一次规划请求，要求模型调用 `web_search` 或 `skip_web_search`。
+5. 模型可一次返回多个 `web_search`，服务端并行执行，并将结果作为 `role: 'tool'` 消息回灌。
+6. 规划请求失败或响应没有工具调用时，按 `skip_web_search` 降级，避免兼容上游不支持或忽略 `tool_choice: required` 后产生硬错误。
+7. 向前端输出带查询词的 `<tool>` 展示信息，以及 `<tool_data>` 协议数据。
+8. 发起唯一一次最终流式生成，并通过 `tool_choice: none` 禁止再次调用工具。
+9. 流程超时时关闭用户流并中止仍在进行的规划、搜索或最终生成请求。
 
 兼容处理：
 
 - 支持标准 OpenAI `tool_calls`。
 - 兼容部分上游把工具调用输出为 XML 风格 `<tool_call>` 正文的情况。
 - 兼容流式分片中的 `tool_calls` 合并。
+- 兼容部分上游不支持 `tool_choice: required` 或忽略它并返回纯文本的情况，此时跳过搜索并进入最终生成。
 - 搜索结果中的 `<` 会被转义，避免破坏前端 tag parser。
 
 ## 前端实现
@@ -140,18 +141,22 @@ export const AGENT = {
 ## 验证重点
 
 - 联网关闭时，普通聊天仍走原有流式路径。
-- 未配置 `TAVILY_API_KEY` 且开启联网时，返回明确错误。
-- 开启联网后，搜索过程显示在折叠面板中。
+- Tavily 和 SearXNG 均未配置且开启联网时，返回明确错误。
+- 仅配置 SearXNG 时可以正常搜索，Tavily 失败时可以自动降级。
+- 规划请求失败或没有返回工具调用时，仍能进入最终生成并返回回答。
+- 多个搜索并行执行时，成功、失败和降级提示都能通过查询词区分。
 - 搜索结果可被模型用于最终回答。
 - 历史会话恢复后，联网搜索折叠面板仍可显示。
 - 后续追问能复用本轮 `tool_data` 上下文。
-- `HTTPS_PROXY` 对 Tavily 请求生效。
+- `HTTPS_PROXY` 对 Tavily 和 SearXNG 请求生效。
+- watchdog 超时后，不再继续发起后续请求，并会取消仍在进行的请求。
 
 ## 相关文件
 
 - `src/config/tools.ts`
 - `src/config/constants.ts`
 - `src/utils/tavily.ts`
+- `src/utils/searxng.ts`
 - `src/utils/tagParser.ts`
 - `src/pages/api/generate.ts`
 - `src/hooks/useChatStream.ts`

@@ -90,7 +90,6 @@ export const ERROR_MESSAGES = {
 
 // Agent / 工具调用相关
 export const AGENT = {
-  MAX_TOOL_ROUNDS: 3, // 服务端最多执行的工具循环轮数
   TAVILY_MAX_RESULTS: 5,
   TAVILY_SEARCH_DEPTH: 'basic' as 'basic' | 'advanced',
   SEARXNG_MAX_RESULTS: 5, // SearXNG 降级搜索的结果条数

@@ -19,6 +19,7 @@ export interface TavilySearchResponse {
 export interface TavilySearchOptions {
   maxResults?: number
   searchDepth?: 'basic' | 'advanced'
+  signal?: AbortSignal
   // 透传 undici 代理 dispatcher，复用 generate.ts 现有代理配置
   dispatcher?: any
 }
@@ -40,6 +41,7 @@ export const tavilySearch = async(
       include_answer: false,
     }),
   }
+  if (opts.signal) init.signal = opts.signal
   if (opts.dispatcher) init.dispatcher = opts.dispatcher
 
   const res = await fetchImpl(TAVILY_ENDPOINT, init) as Response

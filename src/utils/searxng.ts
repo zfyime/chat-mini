@@ -5,6 +5,7 @@ import type { TavilyResult, TavilySearchResponse } from './tavily'
 
 export interface SearxngSearchOptions {
   maxResults?: number
+  signal?: AbortSignal
   // 透传 undici 代理 dispatcher，复用 generate.ts 现有代理配置
   dispatcher?: any
 }
@@ -22,6 +23,7 @@ export const searxngSearch = async(
     categories: 'general',
   })}`
   const init: any = { method: 'GET' }
+  if (opts.signal) init.signal = opts.signal
   if (opts.dispatcher) init.dispatcher = opts.dispatcher
 
   const res = await fetchImpl(url, init) as Response
