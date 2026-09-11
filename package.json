@@ -18,12 +18,11 @@
   "dependencies": {
     "@astrojs/node": "11.0.2",
     "@astrojs/solid-js": "7.0.1",
-    "@astrojs/vercel": "11.0.2",
+    "@astrojs/vercel": "11.0.3",
     "@unocss/reset": "66.7.4",
     "@zag-js/slider": "1.42.0",
     "@zag-js/solid": "1.42.0",
-    "astro": "7.0.6",
-    "eslint": "8.57.1",
+    "astro": "7.2.8",
     "eventsource-parser": "1.0.0",
     "highlight.js": "11.8.0",
     "js-sha256": "0.9.0",
@@ -34,9 +33,10 @@
     "pdfjs-dist": "^6.2.108",
     "solid-js": "1.9.14",
     "solidjs-use": "2.1.0",
-    "undici": "6.27.0"
+    "undici": "6.28.0"
   },
   "devDependencies": {
+    "eslint": "8.57.1",
     "@evan-yang/eslint-config": "1.0.9",
     "@iconify-json/carbon": "1.1.18",
     "@types/markdown-it": "12.2.3",

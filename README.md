@@ -22,7 +22,7 @@
 
 ## 技术栈
 
-- **核心框架**：[Astro](https://astro.build/) v7.0.6
+- **核心框架**：[Astro](https://astro.build/) v7.2.8
 - **UI 框架**：[Solid.js](https://www.solidjs.com/) v1.9.14
 - **CSS 方案**：[UnoCSS](https://unocss.dev/) v66.7.4
 - **UI 组件**：[@zag-js/slider](https://zagjs.com/) v1.42.0
