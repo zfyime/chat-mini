@@ -7,7 +7,7 @@
 ## 功能特性
 
 - **多平台部署**：支持 Vercel Serverless 和 Docker。
-- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro。
+- **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.6-Terra、Claude-Sonnet-5、DeepSeek-Pro、DeepSeek-Flash、GLM-5.3。
 - **联网搜索 Agent**：在输入框底栏启用“联网”后，服务端可调用 Tavily 搜索实时信息，并在消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`；Tavily 调用失败或限流时，可自动降级到自部署的 SearXNG（配置 `SEARXNG_BASE_URL`）。
 - **思维过程可视化**：支持渲染特殊的 `<think>` 标签，内容可折叠显示。
 - **文件上传与分析**：支持图片、PDF、Word、文本、Markdown、代码、配置和日志文件。
@@ -29,6 +29,8 @@
 - **Markdown 渲染**：[markdown-it](https://github.com/markdown-it/markdown-it) v14.2.0
 - **代码高亮**：[highlight.js](https://highlightjs.org/) v11.8.0
 - **数学公式**：[KaTeX](https://katex.org/) v0.16.47
+- **工具库**：[solidjs-use](https://github.com/solidjs-use/solidjs-use) v2.1.0
+- **文件处理**：原生 File API；PDF 用 [pdfjs-dist](https://mozilla.github.io/pdf.js/) 提取文本，Word 用 [mammoth](https://github.com/mwilliamson/mammoth.js) 转纯文本，图片 canvas 压缩后 Base64
 - **存储方案**：IndexedDB，带 localStorage 降级
 - **流解析**：[eventsource-parser](https://github.com/rexxars/eventsource-parser) v1.0.0
 - **加密签名**：[js-sha256](https://github.com/emn178/js-sha256) v0.9.0
@@ -110,14 +112,15 @@
 | `CONTEXT_WINDOW_SIZE` | `9` |
 | `HISTORY_LIST_LIMIT` | `25` |
 | `DEFAULT_TEMPERATURE` | `0.6` |
-| `DEFAULT_MODEL` | `'gpt-5.6-sol'` |
+| `DEFAULT_MODEL` | `'deepseek-v4-flash'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
 | `SAVE_DEBOUNCE_TIME` | `500ms` |
-| `AVAILABLE_MODELS` | `GPT-5.4、GPT-5.6-sol、Claude-4.6-Sonnet、Gemini-3.1-Pro、GLM-5.1、DeepSeek-V4-Pro` |
+| `AVAILABLE_MODELS` | `GPT-5.6-Terra、Claude-Sonnet-5、DeepSeek-Pro、DeepSeek-Flash、GLM-5.3` |
 | `AGENT.TAVILY_MAX_RESULTS` | `5` |
 | `AGENT.TAVILY_SEARCH_DEPTH` | `'basic'` |
+| `AGENT.SEARXNG_MAX_RESULTS` | `5` |
 
 ## 部署
 
@@ -145,7 +148,7 @@ docker-compose down
 
 ## 开发说明
 
-编码规范和协作要求见 `AGENTS.md`。升级和安全修复记录见 `docs/security-remediation-plan.md`、`docs/astro-upgrade-evaluation.md` 与 `docs/astro-7-upgrade-plan.md`。
+编码规范和协作要求见 `AGENTS.md`。升级和安全修复记录见 `docs/security-remediation-plan.md`、`docs/astro-upgrade-evaluation.md` 与 `docs/astro-7-upgrade-plan.md`。联网搜索实现记录见 `docs/web-search-agent-plan.md`，Zag slider 手动测试指南见 `docs/manual-test-slider.md`。
 
 ## 许可证
 
