@@ -89,10 +89,22 @@ interface WebSearchFlowArgs {
 // 解析 planner 响应（非流式，标准 JSON），提取 assistant message。
 // 兼容两类非标准输出：流式 SSE 帧（部分上游无视 stream:false）与 XML 风格工具调用。
 const parseAgentProbeResponse = (rawText: string) => {
-  if (rawText.split('\n').some(line => line.startsWith('data: ')))
-    return parseSseAgentResponse(rawText)
+  const json = rawText.split('\n').some(line => line.startsWith('data: '))
+    ? parseSseAgentResponse(rawText)
+    : JSON.parse(rawText)
 
-  return JSON.parse(rawText)
+  // XML 风格的工具调用两种响应格式下都可能出现，统一在这一层兜底，
+  // 否则非流式分支（JSON）会漏掉这类上游，静默降级成不搜索。
+  const message = json?.choices?.[0]?.message
+  if (message && !message.tool_calls?.length && message.content) {
+    const parsed = parseXmlStyleToolCalls(message.content)
+    if (parsed.calls.length) {
+      message.tool_calls = parsed.calls
+      message.content = parsed.cleanedContent
+    }
+  }
+
+  return json
 }
 
 // 部分兼容上游会无视 stream:false 仍按 SSE 返回，这里聚合出完整 message。
@@ -128,15 +140,8 @@ const parseSseAgentResponse = (rawText: string) => {
     if (delta.tool_calls) mergeToolCallDelta(toolCalls, delta.tool_calls)
   })
 
-  if (toolCalls.length) {
-    message.tool_calls = toolCalls
-  } else if (message.content) {
-    const parsed = parseXmlStyleToolCalls(message.content)
-    if (parsed.calls.length) {
-      message.tool_calls = parsed.calls
-      message.content = parsed.cleanedContent
-    }
-  }
+  // XML 风格兜底由 parseAgentProbeResponse 统一处理，这里只汇总标准 tool_calls
+  if (toolCalls.length) message.tool_calls = toolCalls
   if (reasoningContent) message.reasoning_content = reasoningContent
 
   return { choices: [{ message }] }
