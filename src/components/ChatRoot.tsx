@@ -19,6 +19,8 @@ import IconClear from './icons/Clear'
 import IconArrowDown from './icons/ArrowDown'
 import IconArrowUp from './icons/ArrowUp'
 import IconStop from './icons/Stop'
+import IconExport from './icons/Export'
+import IconGlobe from './icons/Globe'
 import MessageItem from './MessageItem'
 import TypingIndicator from './TypingIndicator'
 import SystemRoleSettings from './SystemRoleSettings'
@@ -50,8 +52,8 @@ export default () => {
 
   const {
     isCurrentChatModified,
+    currentChatHistoryId,
     persist,
-    persistImmediate,
     resetCurrentChat,
     adoptHistory,
     markModified,
@@ -82,7 +84,7 @@ export default () => {
     },
   })
 
-  const { showExportMenu, toggleExportMenu, handleExport } = useExportMenu(messageList, currentSystemRoleSettings)
+  const { showExportMenu, setShowExportMenu, menuRef, handleExport } = useExportMenu(messageList, currentSystemRoleSettings)
 
   // 联网搜索开关：编辑系统角色或正在流式输出时禁用（持久化由 uiStore 负责）
   const toggleWebSearch = () => {
@@ -108,6 +110,9 @@ export default () => {
         setMessageList(session.messageList)
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
+      // 上次会话对应的历史条目存在时直接采纳，让后续修改更新同一条而非新建
+      if (session.historyId)
+        adoptHistory(session.historyId)
       // 初始消息不做入场动画，加载完成后再开启，使后续新消息才有动画
       setTimeout(() => {
         setStick(isAtBottom())
@@ -147,17 +152,19 @@ export default () => {
     const updatedMessages = [...messages.slice(0, index), updatedMessage]
     setMessageList(updatedMessages)
 
+    // 编辑后同样即时持久化，随后截断的上下文以这条消息为最新
     markModified()
+    persist(updatedMessages, currentSystemRoleSettings())
     setStick(true)
     requestWithLatestMessage()
     instantToBottom()
   }
 
-  // pagehide 触发时无法 await 异步写盘：会话数据用 sessionStorage 同步落盘；
-  // 历史对话已在每次修改后由 saveOrUpdateChat 立即持久化，这里不再重复。
+  // pagehide 触发时无法 await 异步写盘，只同步写入轻量指针（historyId + systemRole）。
+  // 消息本体在每次发送/归档时已即时持久化到 IndexedDB，刷新后由 loadChatSession 取回。
   const handleBeforeUnload = () => {
     try {
-      sessionStorage.setItem('messageList', JSON.stringify(messageList()))
+      sessionStorage.setItem('currentChatHistoryId', currentChatHistoryId() || '')
       sessionStorage.setItem('systemRoleSettings', currentSystemRoleSettings())
     } catch (error) {
       console.error('Failed to persist chat session:', error)
@@ -183,19 +190,20 @@ export default () => {
       attachments: attachments.length > 0 ? attachments : undefined,
     }
 
-    setMessageList([...messageList(), newMessage])
+    const updatedMessages = [...messageList(), newMessage]
+    setMessageList(updatedMessages)
+    // 发送时立即持久化：流式中途刷新也能从 IndexedDB 恢复这条用户消息
     markModified()
+    persist(updatedMessages, currentSystemRoleSettings())
     setStick(true)
-    requestWithLatestMessage().then((res) => {
-      if (!res?.aborted) instantToBottom()
-    })
+    requestWithLatestMessage()
     instantToBottom()
   }
 
   const clear = async() => {
     const currentMessages = messageList()
     if (currentMessages.length > 0 && isCurrentChatModified())
-      await persistImmediate(currentMessages, currentSystemRoleSettings())
+      await persist(currentMessages, currentSystemRoleSettings())
 
     cleanupMessageListAttachments(currentMessages)
 
@@ -208,6 +216,9 @@ export default () => {
 
     setStick(false)
     resetCurrentChat()
+    // 清掉会话恢复指针，否则刷新后会把刚清空的对话从 IndexedDB 恢复回来
+    sessionStorage.removeItem('currentChatHistoryId')
+    sessionStorage.removeItem('systemRoleSettings')
   }
 
   const retryLastFetch = () => {
@@ -291,14 +302,11 @@ export default () => {
           <MessageItem
             role={message().role}
             message={() => message().content}
-            thinkMessage={() => message().think}
+            thinkMessage={() => message().think || ''}
             toolMessage={() => message().toolTrace || ''}
             attachments={message().attachments}
             showRetry={() => (message().role === 'assistant' && index === messageList().length - 1)}
             onRetry={retryLastFetch}
-            showExportMenu={showExportMenu}
-            onToggleExportMenu={toggleExportMenu}
-            onExport={handleExport}
             onDeleteMessage={() => deleteMessage(index)}
             onEditMessage={newContent => editMessage(index, newContent)}
             animate={entranceReady() && message().role === 'user'}
@@ -342,16 +350,11 @@ export default () => {
           </button>
         </Show>
         <div class="w-full max-w-[95ch] mx-auto">
-          {(() => {
-            const files = pendingAttachments()
-            return (
-              <FilePreview
-                files={files}
-                onRemoveFile={removeFile}
-                onClearAll={clearAllFiles}
-              />
-            )
-          })()}
+          <FilePreview
+            files={pendingAttachments()}
+            onRemoveFile={removeFile}
+            onClearAll={clearAllFiles}
+          />
           {/* 统一输入容器：textarea 透明嵌入，操作按钮沉到底栏 */}
           <div class="gen-input-box">
             <textarea
@@ -384,29 +387,49 @@ export default () => {
                   class="gen-bar-btn select-none"
                   classList={{ 'text-blue-600 bg-blue-500/10 hover:bg-blue-500/15': webSearchEnabled() }}
                 >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    class="flex-shrink-0"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
+                  <IconGlobe />
                   <span class="text-xs">联网</span>
                 </button>
               </div>
-              {/* 右侧操作：清空 + 发送 */}
+              {/* 右侧操作：清空 + 导出 + 发送 */}
               <div class="fi gap-1">
                 <button title="清空" onClick={clear} disabled={systemRoleEditing() || loading()} class="gen-bar-btn fcc !px-2">
                   <IconClear />
                 </button>
+                {/* 导出对话：有消息才可用，菜单向上弹出避免被输入框裁切 */}
+                <div class="relative inline-fcc" ref={menuRef}>
+                  <button
+                    onClick={() => setShowExportMenu(!showExportMenu())}
+                    disabled={messageList().length === 0 || systemRoleEditing()}
+                    title="导出对话"
+                    aria-label="导出对话"
+                    class="gen-bar-btn fcc !px-2"
+                  >
+                    <IconExport />
+                  </button>
+                  <Show when={showExportMenu()}>
+                    <div class="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[120px] z-50">
+                      <button
+                        class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors text-sm"
+                        onClick={() => handleExport('markdown')}
+                      >
+                        Markdown
+                      </button>
+                      <button
+                        class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
+                        onClick={() => handleExport('json')}
+                      >
+                        JSON
+                      </button>
+                      <button
+                        class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg transition-colors text-sm"
+                        onClick={() => handleExport('text')}
+                      >
+                        纯文本
+                      </button>
+                    </div>
+                  </Show>
+                </div>
                 <Show
                   when={!loading()}
                   fallback={

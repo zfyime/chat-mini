@@ -1,4 +1,5 @@
-import { createSignal, onCleanup, onMount } from 'solid-js'
+import { createSignal } from 'solid-js'
+import { useClickOutside } from '@/hooks/useClickOutside'
 import { exportChat } from '@/utils/exportUtils'
 import type { ChatMessage } from '@/types'
 
@@ -7,21 +8,8 @@ export const useExportMenu = (
   systemRole: () => string,
 ) => {
   const [showExportMenu, setShowExportMenu] = createSignal(false)
-
-  onMount(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('[title="导出对话"]') && !target.closest('.export-menu'))
-        setShowExportMenu(false)
-    }
-    document.addEventListener('click', handleClickOutside)
-    onCleanup(() => document.removeEventListener('click', handleClickOutside))
-  })
-
-  const toggleExportMenu = (e: MouseEvent) => {
-    e.stopPropagation()
-    setShowExportMenu(!showExportMenu())
-  }
+  // 点击菜单外部关闭；ref 绑定到导出按钮 + 菜单的公共容器上
+  const menuRef = useClickOutside(() => setShowExportMenu(false))
 
   const handleExport = (format: 'markdown' | 'json' | 'text') => {
     try {
@@ -33,5 +21,5 @@ export const useExportMenu = (
     }
   }
 
-  return { showExportMenu, toggleExportMenu, handleExport }
+  return { showExportMenu, setShowExportMenu, menuRef, handleExport }
 }

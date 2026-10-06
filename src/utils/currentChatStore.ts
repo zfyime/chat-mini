@@ -1,33 +1,36 @@
+import { getHistoryById, historyLoaded } from '@/store/historyStore'
 import type { ChatMessage } from '@/types'
 
-const MESSAGE_KEY = 'messageList'
 const SYSTEM_ROLE_KEY = 'systemRoleSettings'
+const HISTORY_ID_KEY = 'currentChatHistoryId'
 
 export interface ChatSessionData {
   messageList?: ChatMessage[]
   systemRole?: string
+  historyId?: string
 }
 
-// 当前会话由 ChatRoot 的 pagehide 钩子同步写入 sessionStorage（见 ChatRoot.handleBeforeUnload），
-// 这里只负责读回来。历史对话走 historyStore -> IndexedDB，不在此处理。
+// 恢复上次会话：systemRole 与 historyId 由 ChatRoot 的 pagehide 钩子写入 sessionStorage，
+// 消息本体从 IndexedDB 的历史记录里取回（发送时已即时持久化，不依赖 pagehide 落盘）。
 export const loadChatSession = async(): Promise<ChatSessionData> => {
   if (typeof sessionStorage === 'undefined')
     return {}
 
-  let messageList: ChatMessage[] | undefined
-  try {
-    const raw = sessionStorage.getItem(MESSAGE_KEY)
-    if (raw) messageList = JSON.parse(raw)
-  } catch (error) {
-    console.error('Failed to read messageList from sessionStorage:', error)
-  }
-
   let systemRole: string | undefined
+  let historyId: string | undefined
   try {
     systemRole = sessionStorage.getItem(SYSTEM_ROLE_KEY) ?? undefined
+    historyId = sessionStorage.getItem(HISTORY_ID_KEY) ?? undefined
   } catch (error) {
-    console.error('Failed to read system role from sessionStorage:', error)
+    console.error('Failed to read session from sessionStorage:', error)
   }
 
-  return { messageList, systemRole }
+  if (!historyId) return { systemRole }
+
+  // 等待历史列表从 IndexedDB 加载完成，否则 getHistoryById 读到的是空列表
+  await historyLoaded
+  const history = getHistoryById(historyId)
+  if (!history) return { systemRole }
+
+  return { messageList: history.messages, systemRole, historyId }
 }

@@ -6,14 +6,8 @@ export const useHistoryPersist = () => {
   const [isCurrentChatModified, setIsCurrentChatModified] = createSignal(false)
   const [currentChatHistoryId, setCurrentChatHistoryId] = createSignal<string>()
 
-  const persist = (messages: ChatMessage[], systemRole: string) => {
-    if (messages.length === 0) return
-    saveOrUpdateChat(messages, systemRole, currentChatHistoryId()).then((historyId) => {
-      if (historyId) setCurrentChatHistoryId(historyId)
-    })
-  }
-
-  const persistImmediate = async(messages: ChatMessage[], systemRole: string) => {
+  // 异步持久化并记住当前会话对应的 historyId；messages 为空时跳过
+  const persist = async(messages: ChatMessage[], systemRole: string) => {
     if (messages.length === 0) return
     const historyId = await saveOrUpdateChat(messages, systemRole, currentChatHistoryId())
     if (historyId) setCurrentChatHistoryId(historyId)
@@ -35,7 +29,6 @@ export const useHistoryPersist = () => {
     isCurrentChatModified,
     currentChatHistoryId,
     persist,
-    persistImmediate,
     resetCurrentChat,
     adoptHistory,
     markModified,

@@ -54,6 +54,7 @@ export const setWebSearchEnabled = (enabled: boolean) => {
 
 export const setStreaming = (streaming: boolean) => isStreaming.set(streaming)
 export const setHasMessages = (has: boolean) => hasMessages.set(has)
+// 温度刻意不持久化：仅当前会话生效，刷新后回到默认值（与 model/webSearchEnabled 的跨会话持久化不同）
 export const setTemperature = (value: number) => temperature.set(value)
 
 export const toggleHistory = () => historyOpen.set(!historyOpen.get())

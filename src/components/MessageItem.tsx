@@ -3,7 +3,6 @@ import MarkdownIt from 'markdown-it'
 import mdHighlight from 'markdown-it-highlightjs'
 import markdownKatex from '@/utils/markdownKatex'
 import IconRefresh from './icons/Refresh'
-import IconExport from './icons/Export'
 import IconCopy from './icons/Copy'
 import IconDelete from './icons/Delete'
 import IconEdit from './icons/Edit'
@@ -46,14 +45,7 @@ md.renderer.rules.fence = (...args) => {
   </div>`
 }
 
-const renderMarkdown = (content: Accessor<string> | string) => {
-  if (typeof content === 'function')
-    return md.render(content() || '')
-  else if (typeof content === 'string')
-    return md.render(content)
-
-  return ''
-}
+const renderMarkdown = (content: Accessor<string>) => md.render(content() || '')
 
 // 流式期间的轻量渲染实例：仍解析 markdown（保留加粗/标题/列表/代码块结构），
 // 但不挂 highlight.js / katex 这两个最贵的插件——它们才是逐 chunk 全量重排导致 O(n²) 卡顿的根源。
@@ -64,10 +56,7 @@ const mdLight = new MarkdownIt({
 })
 openLinkInNewTab(mdLight)
 
-const renderLight = (content: Accessor<string> | string) => {
-  const text = typeof content === 'function' ? content() : content
-  return mdLight.render(text || '')
-}
+const renderLight = (content: Accessor<string>) => mdLight.render(content() || '')
 
 const HtmlBlock = (props: { html: () => string }) => {
   let el: HTMLDivElement
@@ -80,15 +69,12 @@ const HtmlBlock = (props: { html: () => string }) => {
 
 interface Props {
   role: ChatMessage['role']
-  message: Accessor<string> | string
-  thinkMessage: Accessor<string> | string
-  toolMessage?: Accessor<string> | string
+  message: Accessor<string>
+  thinkMessage: Accessor<string>
+  toolMessage?: Accessor<string>
   attachments?: ChatMessage['attachments']
   showRetry?: Accessor<boolean>
   onRetry?: () => void
-  showExportMenu?: Accessor<boolean>
-  onToggleExportMenu?: (e: MouseEvent) => void
-  onExport?: (format: 'markdown' | 'json' | 'text') => void
   onDeleteMessage?: () => void
   onEditMessage?: (newContent: string) => void
   animate?: boolean
@@ -104,9 +90,6 @@ export default ({
   attachments,
   showRetry,
   onRetry,
-  showExportMenu,
-  onToggleExportMenu,
-  onExport,
   onDeleteMessage,
   onEditMessage,
   animate,
@@ -135,8 +118,7 @@ export default ({
   // Copy entire message content
   const copyMessage = async() => {
     try {
-      const content = typeof message === 'function' ? message() : message
-      await navigator.clipboard.writeText(content || '')
+      await navigator.clipboard.writeText(message() || '')
     } catch (err) {
       console.error('Failed to copy message:', err)
     }
@@ -144,8 +126,7 @@ export default ({
 
   // Start editing message
   const startEdit = () => {
-    const content = typeof message === 'function' ? message() : message
-    setEditContent(content || '')
+    setEditContent(message() || '')
     setIsEditing(true)
   }
 
@@ -177,18 +158,15 @@ export default ({
     }
   }
 
-  const htmlString = () => streaming ? renderLight(message) : renderMarkdown(message)
-  const thinkHtmlString = () => streaming ? renderLight(thinkMessage) : renderMarkdown(thinkMessage)
-  const toolHtmlString = () => {
-    if (!toolMessage) return ''
-    return streaming ? renderLight(toolMessage) : renderMarkdown(toolMessage)
-  }
+  // 按 streaming 选择轻量或完整渲染器，三处内容统一走这一个入口
+  const render = (content: Accessor<string>) =>
+    streaming ? renderLight(content) : renderMarkdown(content)
 
-  const hasToolMessage = () => {
-    if (!toolMessage) return false
-    const v = typeof toolMessage === 'function' ? toolMessage() : toolMessage
-    return !!v && v !== ''
-  }
+  const htmlString = () => render(message)
+  const thinkHtmlString = () => render(thinkMessage)
+  const toolHtmlString = () => toolMessage ? render(toolMessage) : ''
+
+  const hasToolMessage = () => !!toolMessage?.()
 
   const setInitialDetailsOpen = (el: HTMLDetailsElement) => {
     if (!onRetry) el.open = true
@@ -254,9 +232,9 @@ export default ({
                 <HtmlBlock html={toolHtmlString} />
               </details>
             )}
-            {thinkMessage && (typeof thinkMessage === 'function' ? thinkMessage() !== '' : thinkMessage !== '') && (
+            {thinkMessage() !== '' && (
               <details ref={setInitialDetailsOpen}>
-                <summary>💭 {message && (typeof message === 'function' ? message() !== '' : message !== '') ? '思考过程' : '思考中...'}</summary>
+                <summary>💭 {message() !== '' ? '思考过程' : '思考中...'}</summary>
                 <HtmlBlock html={thinkHtmlString} />
               </details>
             )}
@@ -305,43 +283,6 @@ export default ({
             >
               <IconRefresh />
             </button>
-          </Show>
-          {/* 导出对话按钮，并入消息操作按钮组，仅保留图标 */}
-          <Show when={showRetry?.() && onExport && onToggleExportMenu && showExportMenu}>
-            <div class="relative inline-fcc">
-              <button
-                onClick={onToggleExportMenu}
-                title="导出对话"
-                class="inline-fcc w-6 h-6 rounded text-sm text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate/10 transition-colors"
-              >
-                <IconExport />
-              </button>
-              <Show when={showExportMenu?.()}>
-                <div
-                  class="export-menu absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[120px] z-50"
-                  onClick={e => e.stopPropagation()}
-                >
-                  <button
-                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg transition-colors text-sm"
-                    onClick={() => onExport?.('markdown')}
-                  >
-                    Markdown
-                  </button>
-                  <button
-                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm"
-                    onClick={() => onExport?.('json')}
-                  >
-                    JSON
-                  </button>
-                  <button
-                    class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-b-lg transition-colors text-sm"
-                    onClick={() => onExport?.('text')}
-                  >
-                    纯文本
-                  </button>
-                </div>
-              </Show>
-            </div>
           </Show>
         </div>
       </Show>

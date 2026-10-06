@@ -69,9 +69,13 @@ const generateUniqueId = () => {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
-// Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
-if (typeof window !== 'undefined')
-  loadHistoryFromStorage()
+// Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部。
+// 导出加载完成的 promise：依赖历史数据的调用方（如会话恢复）需要 await 它，
+// 否则 IndexedDB 尚未读回时读到的 historyList 还是空的。
+export const historyLoaded: Promise<void> = (async() => {
+  if (typeof window !== 'undefined')
+    await loadHistoryFromStorage()
+})()
 
 const saveHistoryList = useDebounceFn(async() => {
   // debounce 触发时直接读最新 historyList()
@@ -100,6 +104,9 @@ const saveHistoryList = useDebounceFn(async() => {
 }, CONFIG.SAVE_DEBOUNCE_TIME)
 
 // --- Public Actions ---
+export const getHistoryById = (id: string): ChatHistory | undefined =>
+  historyList().find(item => item.id === id)
+
 export const deleteHistory = async(id: string) => {
   try {
     // 从 IndexedDB 删除

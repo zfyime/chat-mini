@@ -4,6 +4,7 @@ import { verifySignature } from '@/utils/auth'
 import { isValidPassword } from '@/utils/password'
 import { tavilySearch } from '@/utils/tavily'
 import { searxngSearch } from '@/utils/searxng'
+import { mergeToolCallDelta, normalizeToolCalls, parseXmlStyleToolCalls } from '@/utils/toolCallUtils'
 import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
 import { AGENT_TOOLS, WEB_SEARCH_PLANNER_TOOLS } from '@/config/tools'
 import type { APIRoute } from 'astro'
@@ -14,7 +15,8 @@ const tavilyApiKey = import.meta.env.TAVILY_API_KEY
 const searxngBaseUrl = (import.meta.env.SEARXNG_BASE_URL || '').trim().replace(/\/$/, '')
 const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
 const allowedModels = AVAILABLE_MODELS.map(m => m.id)
-const apiModel = CONFIG.DEFAULT_MODEL
+// 未传 model 时的兜底模型
+const fallbackModel = CONFIG.DEFAULT_MODEL
 
 // 统一的错误响应构造，避免各处手写 Response + JSON.stringify
 const jsonError = (message: string, status: number) =>
@@ -38,7 +40,7 @@ export const POST: APIRoute = async(context) => {
   if (import.meta.env.PROD && !await verifySignature({ t: time, m: messages?.[messages.length - 1]?.content || '' }, sign))
     return jsonError('Invalid signature.', 401)
 
-  const modelToUse = model || apiModel
+  const modelToUse = model || fallbackModel
 
   if (!allowedModels.includes(modelToUse))
     return jsonError(`Model ${modelToUse} is not allowed.`, 400)
@@ -84,93 +86,17 @@ interface WebSearchFlowArgs {
   streamTimeoutMs?: number
 }
 
-const mergeToolCallDelta = (toolCalls: any[], deltaToolCalls: any[]) => {
-  deltaToolCalls.forEach((deltaCall) => {
-    const index = deltaCall.index ?? toolCalls.length
-    const current = toolCalls[index] || { function: {} }
-    const currentFunction = current.function || {}
-    const deltaFunction = deltaCall.function || {}
-    const functionName = typeof deltaFunction.name === 'string' && deltaFunction.name.trim()
-      ? deltaFunction.name
-      : currentFunction.name
-    const functionArguments = deltaFunction.arguments === undefined
-      ? currentFunction.arguments || ''
-      : `${currentFunction.arguments || ''}${typeof deltaFunction.arguments === 'string' ? deltaFunction.arguments : JSON.stringify(deltaFunction.arguments)}`
-
-    // 部分 OpenAI 兼容上游会在后续分片里发空 name/id/type，不能覆盖首个有效分片。
-    toolCalls[index] = {
-      ...current,
-      ...deltaCall,
-      id: deltaCall.id || current.id,
-      type: deltaCall.type || current.type,
-      function: {
-        ...currentFunction,
-        ...deltaFunction,
-        name: functionName,
-        arguments: functionArguments,
-      },
-    }
-  })
-}
-
-const normalizeToolCalls = (toolCalls: any[], round: number) => {
-  return toolCalls
-    .map((call, index) => {
-      const name = call?.function?.name?.trim()
-      if (!name) return null
-
-      return {
-        ...call,
-        id: call.id || `call_${round}_${index}`,
-        type: call.type || 'function',
-        function: {
-          ...call.function,
-          name,
-          arguments: typeof call.function?.arguments === 'string' ? call.function.arguments : '{}',
-        },
-      }
-    })
-    .filter(Boolean)
-}
-
-const decodeXmlText = (value: string) => value
-  .replace(/&quot;/g, '"')
-  .replace(/&apos;/g, '\'')
-  .replace(/&lt;/g, '<')
-  .replace(/&gt;/g, '>')
-  .replace(/&amp;/g, '&')
-
-const parseXmlStyleToolCalls = (content: string) => {
-  const calls: any[] = []
-  const cleanedContent = content.replace(/<tool_call>([\s\S]*?)<\/tool_call>/g, (_full, body) => {
-    const name = body.split('<arg_key>')[0].trim()
-    if (!name) return ''
-
-    const args: Record<string, string> = {}
-    body.replace(/<arg_key>([\s\S]*?)<\/arg_key>\s*<arg_value>([\s\S]*?)<\/arg_value>/g, (_argFull, key, value) => {
-      const argKey = decodeXmlText(key.trim())
-      if (argKey) args[argKey] = decodeXmlText(value.trim())
-      return ''
-    })
-
-    // 兼容部分上游把工具调用当正文 XML 输出，而不是返回 OpenAI 标准 tool_calls 字段。
-    calls.push({
-      type: 'function',
-      function: {
-        name,
-        arguments: JSON.stringify(args),
-      },
-    })
-    return ''
-  }).trim()
-
-  return { calls, cleanedContent }
-}
-
+// 解析 planner 响应（非流式，标准 JSON），提取 assistant message。
+// 兼容两类非标准输出：流式 SSE 帧（部分上游无视 stream:false）与 XML 风格工具调用。
 const parseAgentProbeResponse = (rawText: string) => {
-  if (!rawText.split('\n').some(line => line.startsWith('data: ')))
-    return JSON.parse(rawText)
+  if (rawText.split('\n').some(line => line.startsWith('data: ')))
+    return parseSseAgentResponse(rawText)
 
+  return JSON.parse(rawText)
+}
+
+// 部分兼容上游会无视 stream:false 仍按 SSE 返回，这里聚合出完整 message。
+const parseSseAgentResponse = (rawText: string) => {
   const message: any = { role: 'assistant', content: '' }
   const toolCalls: any[] = []
   let reasoningContent = ''
@@ -180,7 +106,7 @@ const parseAgentProbeResponse = (rawText: string) => {
     const data = line.slice(6).trim()
     if (!data || data === '[DONE]') return
 
-    // 单帧解析失败不应拖垮整轮 agent：与流式解析器一致，跳过异常/非 JSON 帧（如 keep-alive、半截内容）。
+    // 单帧解析失败不应拖垮整轮 agent：跳过异常/非 JSON 帧（如 keep-alive、半截内容）。
     let json: any
     try {
       json = JSON.parse(data)
@@ -260,8 +186,9 @@ const runWebSearchFlow = ({ messages, temperature, model, dispatcher, streamTime
       try {
         // 规划阶段只允许调用 web_search 或 skip_web_search，禁止提前生成完整答案。
         // 一次规划可以返回多个 web_search，搜索完成后直接进入唯一一次最终流式生成。
+        // 非流式请求直接拿聚合 JSON；parseAgentProbeResponse 兼容仍返回 SSE 的上游。
         const plannerInit = generatePayload(apiKey, workingMessages, 0, model, {
-          stream: true,
+          stream: false,
           tools: WEB_SEARCH_PLANNER_TOOLS as any[],
           toolChoice: 'required',
           pretransformed: true,
@@ -275,8 +202,13 @@ const runWebSearchFlow = ({ messages, temperature, model, dispatcher, streamTime
         let plannerCalls: any[] = []
         if (plannerResp.ok) {
           const plannerRawText = await plannerResp.text()
-          const plannerJson: any = parseAgentProbeResponse(plannerRawText)
-          const plannerMessage = plannerJson.choices?.[0]?.message
+          let plannerJson: any
+          try {
+            plannerJson = parseAgentProbeResponse(plannerRawText)
+          } catch (e) {
+            console.error('Failed to parse planner response:', e)
+          }
+          const plannerMessage = plannerJson?.choices?.[0]?.message
           plannerCalls = plannerMessage?.tool_calls
             ? normalizeToolCalls(plannerMessage.tool_calls, 0)
             : []
