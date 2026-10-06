@@ -1,6 +1,7 @@
 import { ProxyAgent, fetch } from 'undici'
 import { buildOpenAIMessages, generatePayload, parseOpenAIStream, pipeOpenAIStreamToController } from '@/utils/chatCompletion'
 import { verifySignature } from '@/utils/auth'
+import { isValidPassword } from '@/utils/password'
 import { tavilySearch } from '@/utils/tavily'
 import { searxngSearch } from '@/utils/searxng'
 import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
@@ -12,10 +13,12 @@ const httpsProxy = import.meta.env.HTTPS_PROXY
 const tavilyApiKey = import.meta.env.TAVILY_API_KEY
 const searxngBaseUrl = (import.meta.env.SEARXNG_BASE_URL || '').trim().replace(/\/$/, '')
 const baseUrl = ((import.meta.env.OPENAI_API_BASE_URL) || 'https://api.openai.com/v1').trim().replace(/\/$/, '')
-const sitePassword = import.meta.env.SITE_PASSWORD || ''
-const passList = sitePassword.split(',') || []
 const allowedModels = AVAILABLE_MODELS.map(m => m.id)
 const apiModel = CONFIG.DEFAULT_MODEL
+
+// 统一的错误响应构造，避免各处手写 Response + JSON.stringify
+const jsonError = (message: string, status: number) =>
+  new Response(JSON.stringify({ error: { message } }), { status })
 
 // 流式响应看门狗时长（毫秒）：到点主动截断并给出提示，防止平台墙钟（Vercel Hobby 60s，
 // 见 astro.config.mjs maxDuration）强杀 function 后前端拿到无收尾残流（只有思考没有正文）。
@@ -28,37 +31,17 @@ const streamTimeoutMs = rawStreamTimeout !== undefined && String(rawStreamTimeou
 export const POST: APIRoute = async(context) => {
   const body = await context.request.json()
   const { sign, time, messages, pass, temperature, model, webSearch } = body
-  if (!messages) {
-    return new Response(JSON.stringify({
-      error: {
-        message: 'No input text.',
-      },
-    }), { status: 400 })
-  }
-  if (sitePassword && !(sitePassword === pass || passList.includes(pass))) {
-    return new Response(JSON.stringify({
-      error: {
-        message: 'Invalid password.',
-      },
-    }), { status: 401 })
-  }
-  if (import.meta.env.PROD && !await verifySignature({ t: time, m: messages?.[messages.length - 1]?.content || '' }, sign)) {
-    return new Response(JSON.stringify({
-      error: {
-        message: 'Invalid signature.',
-      },
-    }), { status: 401 })
-  }
+  if (!messages)
+    return jsonError('No input text.', 400)
+  if (!isValidPassword(pass))
+    return jsonError('Invalid password.', 401)
+  if (import.meta.env.PROD && !await verifySignature({ t: time, m: messages?.[messages.length - 1]?.content || '' }, sign))
+    return jsonError('Invalid signature.', 401)
 
   const modelToUse = model || apiModel
 
-  if (!allowedModels.includes(modelToUse)) {
-    return new Response(JSON.stringify({
-      error: {
-        message: `Model ${modelToUse} is not allowed.`,
-      },
-    }), { status: 400 })
-  }
+  if (!allowedModels.includes(modelToUse))
+    return jsonError(`Model ${modelToUse} is not allowed.`, 400)
 
   const dispatcher = httpsProxy ? new ProxyAgent(httpsProxy) : undefined
 
@@ -67,8 +50,6 @@ export const POST: APIRoute = async(context) => {
     const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
     if (dispatcher) initOptions.dispatcher = dispatcher
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
     const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
       console.error(err)
       return new Response(JSON.stringify({
@@ -83,13 +64,8 @@ export const POST: APIRoute = async(context) => {
   }
 
   // 联网开但 Tavily 和 SearXNG 都未配置
-  if (!tavilyApiKey && !searxngBaseUrl) {
-    return new Response(JSON.stringify({
-      error: {
-        message: '未配置 TAVILY_API_KEY 或 SEARXNG_BASE_URL，无法使用联网搜索。',
-      },
-    }), { status: 400 })
-  }
+  if (!tavilyApiKey && !searxngBaseUrl)
+    return jsonError('未配置 TAVILY_API_KEY 或 SEARXNG_BASE_URL，无法使用联网搜索。', 400)
 
   return runWebSearchFlow({
     messages,

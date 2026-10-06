@@ -2,6 +2,7 @@ import { createSignal } from 'solid-js'
 import { generateSignature } from '@/utils/auth'
 import { CONFIG } from '@/config/constants'
 import { createTagParser } from '@/utils/tagParser'
+import { setStreaming } from '@/store/uiStore'
 import type { ChatMessage, ErrorMessage } from '@/types'
 
 interface UseChatStreamOptions {
@@ -25,10 +26,6 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
 
   // 累积本轮服务端回传的 <tool_data> 原始 JSON（agent 中间协议消息），仅用于持久化回灌，不展示。
   let toolContextRaw = ''
-
-  const dispatchStreamingState = (streaming: boolean) => {
-    window.dispatchEvent(new CustomEvent('streaming-state-change', { detail: { streaming } }))
-  }
 
   const resetStreamingBuffers = () => {
     setCurrentAssistantMessage('')
@@ -130,7 +127,7 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
         const { value, done: readerDone } = await reader.read()
         if (value) {
           if (!streamingLocked) {
-            dispatchStreamingState(true)
+            setStreaming(true)
             streamingLocked = true
           }
           const chunk = decoder.decode(value, { stream: true })
@@ -150,7 +147,7 @@ export const useChatStream = (opts: UseChatStreamOptions) => {
       thinkParser.flush()
       archiveCurrentMessage()
       setLoading(false)
-      dispatchStreamingState(false)
+      setStreaming(false)
       setController(null)
     }
     return { aborted }

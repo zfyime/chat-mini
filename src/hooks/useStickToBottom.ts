@@ -9,7 +9,6 @@ interface StickToBottomResult {
   isStick: Accessor<boolean>
   setStick: Setter<boolean>
   instantToBottom: () => void
-  smoothToBottom: () => void
   isAtBottom: () => boolean
 }
 
@@ -28,15 +27,6 @@ export function useStickToBottom({ threshold }: Options): StickToBottomResult {
         programmaticScroll = false
       })
     })
-  }
-
-  const smoothToBottom = () => {
-    programmaticScroll = true
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
-    // smooth 滚动持续时间较长，延迟重置
-    setTimeout(() => {
-      programmaticScroll = false
-    }, 500)
   }
 
   onMount(() => {
@@ -61,7 +51,6 @@ export function useStickToBottom({ threshold }: Options): StickToBottomResult {
     isStick,
     setStick,
     instantToBottom,
-    smoothToBottom,
     isAtBottom,
   }
 }

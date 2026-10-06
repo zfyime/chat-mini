@@ -1,11 +1,20 @@
-import { Index, Show, createSignal, onCleanup, onMount } from 'solid-js'
+import { Index, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import { CONFIG } from '@/config/constants'
 import { cleanupFileUrl } from '@/utils/fileUtils'
 import { loadChatSession } from '@/utils/currentChatStore'
+import { useAtom } from '@/hooks/useAtom'
 import { useStickToBottom } from '@/hooks/useStickToBottom'
 import { useChatStream } from '@/hooks/useChatStream'
 import { useHistoryPersist } from '@/hooks/useHistoryPersist'
 import { useExportMenu } from '@/hooks/useExportMenu'
+import {
+  currentModel as currentModelAtom,
+  initUiStore,
+  setHasMessages,
+  setWebSearchEnabled,
+  temperature as temperatureAtom,
+  webSearchEnabled as webSearchEnabledAtom,
+} from '@/store/uiStore'
 import IconClear from './icons/Clear'
 import IconArrowDown from './icons/ArrowDown'
 import IconArrowUp from './icons/ArrowUp'
@@ -21,7 +30,8 @@ import type { ChatMessage, FileAttachment } from '@/types'
 
 export default () => {
   let inputRef: HTMLTextAreaElement
-  const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal(CONFIG.DEFAULT_SYSTEM_ROLE)
+  // 显式标注 string：CONFIG 为 as const，不标注会把 signal 收窄成字面量类型
+  const [currentSystemRoleSettings, setCurrentSystemRoleSettings] = createSignal<string>(CONFIG.DEFAULT_SYSTEM_ROLE)
   const [systemRoleEditing, setSystemRoleEditing] = createSignal(false)
   const [messageList, setMessageList] = createSignal<ChatMessage[]>([])
   // 入场动画开关：初始加载/切换历史期间为 false，避免整屏消息一起淡入；加载完成后开启，只有之后的新消息才有动画
@@ -29,10 +39,14 @@ export default () => {
   const { isStick, setStick, instantToBottom, isAtBottom } = useStickToBottom({
     threshold: CONFIG.SCROLL_THRESHOLD,
   })
-  const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
-  const [chatModel, setChatModel] = createSignal(CONFIG.DEFAULT_MODEL)
-  const [webSearchEnabled, setWebSearchEnabled] = createSignal(false)
+  // 温度、模型、联网开关统一由 uiStore 持有，避免与 Header 下拉、设置面板三处各存一份
+  const temperature = useAtom(temperatureAtom)
+  const chatModel = useAtom(currentModelAtom)
+  const webSearchEnabled = useAtom(webSearchEnabledAtom)
   const [pendingAttachments, setPendingAttachments] = createSignal<FileAttachment[]>([])
+
+  // 消息列表非空即让 Header 吸顶；集中派生，替代原先各处手动派发的 has-messages 事件
+  createEffect(() => setHasMessages(messageList().length > 0))
 
   const {
     isCurrentChatModified,
@@ -70,15 +84,10 @@ export default () => {
 
   const { showExportMenu, toggleExportMenu, handleExport } = useExportMenu(messageList, currentSystemRoleSettings)
 
-  const temperatureSetting = (value: number) => { setTemperature(value) }
-  const chatModelSetting = (value: string) => { setChatModel(value) }
-
-  // 联网搜索开关：状态持久化到 localStorage，编辑系统角色或正在流式输出时禁用
+  // 联网搜索开关：编辑系统角色或正在流式输出时禁用（持久化由 uiStore 负责）
   const toggleWebSearch = () => {
     if (systemRoleEditing() || loading()) return
-    const next = !webSearchEnabled()
-    setWebSearchEnabled(next)
-    localStorage.setItem('web-search-enabled', next ? '1' : '0')
+    setWebSearchEnabled(!webSearchEnabled())
   }
 
   const cleanupMessageAttachments = (message: ChatMessage) => {
@@ -90,12 +99,13 @@ export default () => {
   }
 
   onMount(() => {
+    // 恢复上次选择的模型与联网开关（SSR 阶段读不到 localStorage，故在挂载后统一初始化）
+    initUiStore()
+
     const loadSessionData = async() => {
       const session = await loadChatSession()
-      if (session.messageList?.length) {
+      if (session.messageList?.length)
         setMessageList(session.messageList)
-        window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: true } }))
-      }
       if (session.systemRole)
         setCurrentSystemRoleSettings(session.systemRole)
       // 初始消息不做入场动画，加载完成后再开启，使后续新消息才有动画
@@ -106,19 +116,9 @@ export default () => {
     }
     loadSessionData()
 
-    const handleModelChange = ((e: CustomEvent) => {
-      setChatModel(e.detail)
-    }) as EventListener
-    window.addEventListener('model-change', handleModelChange)
-
-    // 联网开关已移入输入框底栏，由 toggleWebSearch 直接维护；此处仅恢复上次状态
-    const savedWebSearch = localStorage.getItem('web-search-enabled')
-    if (savedWebSearch === '1') setWebSearchEnabled(true)
-
     window.addEventListener('pagehide', handleBeforeUnload)
     onCleanup(() => {
       window.removeEventListener('pagehide', handleBeforeUnload)
-      window.removeEventListener('model-change', handleModelChange)
       pendingAttachments().forEach(file => cleanupFileUrl(file.url))
     })
   })
@@ -186,7 +186,6 @@ export default () => {
     setMessageList([...messageList(), newMessage])
     markModified()
     setStick(true)
-    window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: true } }))
     requestWithLatestMessage().then((res) => {
       if (!res?.aborted) instantToBottom()
     })
@@ -209,7 +208,6 @@ export default () => {
 
     setStick(false)
     resetCurrentChat()
-    window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: false } }))
   }
 
   const retryLastFetch = () => {
@@ -249,7 +247,6 @@ export default () => {
       setEntranceReady(true)
       instantToBottom()
       setStick(true)
-      window.dispatchEvent(new CustomEvent('has-messages', { detail: { hasMessages: messages.length > 0 } }))
     }, CONFIG.LOAD_SCROLL_DELAY)
   }
 
@@ -288,8 +285,6 @@ export default () => {
         setSystemRoleEditing={setSystemRoleEditing}
         currentSystemRoleSettings={currentSystemRoleSettings}
         setCurrentSystemRoleSettings={setCurrentSystemRoleSettings}
-        temperatureSetting={temperatureSetting}
-        chatModelSetting={chatModelSetting}
       />
       <Index each={messageList()}>
         {(message, index) => (

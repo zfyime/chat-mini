@@ -1,6 +1,6 @@
 import * as slider from '@zag-js/slider'
 import { normalizeProps, useMachine } from '@zag-js/solid'
-import { createMemo, createUniqueId, mergeProps } from 'solid-js'
+import { createMemo, createUniqueId } from 'solid-js'
 import type { Accessor } from 'solid-js'
 import '../styles/slider.css'
 
@@ -14,15 +14,7 @@ interface Props {
   setValue: (v: number) => void
 }
 
-export const Slider = (selectProps: Props) => {
-  const props = mergeProps({
-    name: 'Temperature',
-    min: 0,
-    max: 2,
-    step: 0.01,
-    disabled: false,
-  }, selectProps)
-
+export const Slider = (props: Props) => {
   const formatSliderValue = (value: number | undefined) => {
     if (value === undefined || value === null || Number.isNaN(value))
       return 0
@@ -36,7 +28,7 @@ export const Slider = (selectProps: Props) => {
     min: props.min,
     max: props.max,
     step: props.step,
-    disabled: props.disabled,
+    disabled: props.disabled ?? false,
     // Zag 1.x: onChange → onValueChange，details.value 是数组
     onValueChange: (details) => {
       if (details?.value?.[0] !== undefined)

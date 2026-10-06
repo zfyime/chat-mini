@@ -36,7 +36,7 @@ const resolveFileType = (file: File): string => {
 }
 
 export const generateFileId = (): string => {
-  return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `file_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 }
 
 export const formatFileSize = (bytes: number): string => {

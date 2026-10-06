@@ -82,8 +82,6 @@ export const AVAILABLE_MODELS = [
 export const ERROR_MESSAGES = {
   NETWORK_ERROR: '网络连接失败，请检查网络后重试',
   AUTH_FAILED: '身份验证失败，请重新登录',
-  SAVE_FAILED: '保存失败，请稍后重试',
-  LOAD_FAILED: '加载失败，请刷新页面重试',
 } as const
 
 // Agent / 工具调用相关

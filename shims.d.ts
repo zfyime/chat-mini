@@ -10,7 +10,4 @@ declare global {
   namespace astroHTML.JSX {
     interface HTMLAttributes extends AttributifyAttributes { }
   }
-  namespace JSX {
-    interface HTMLAttributes<> extends AttributifyAttributes {}
-  }
 }

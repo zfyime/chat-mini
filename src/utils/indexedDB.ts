@@ -1,6 +1,17 @@
 import { CONFIG } from '@/config/constants'
 import type { ChatHistory } from '@/types'
 
+// 统一的 IDBRequest -> Promise 包装，顺带打出上下文相关的错误日志
+const runRequest = <T>(request: IDBRequest<T>, errorLog: string): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => {
+      console.error(errorLog, request.error)
+      reject(request.error)
+    }
+  })
+}
+
 class ChatDatabase {
   private dbName = 'ChatMiniDB'
   private version = 1
@@ -36,10 +47,6 @@ class ChatDatabase {
           historyStore.createIndex('updatedAt', 'updatedAt', { unique: false })
           historyStore.createIndex('createdAt', 'createdAt', { unique: false })
         }
-
-        // 创建设置存储
-        if (!db.objectStoreNames.contains('settings'))
-          db.createObjectStore('settings', { keyPath: 'key' })
       }
     })
 
@@ -55,29 +62,12 @@ class ChatDatabase {
     return this.db
   }
 
-  // 保存或更新对话历史
-  async saveHistory(history: ChatHistory): Promise<void> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['chatHistory'], 'readwrite')
-    const store = tx.objectStore('chatHistory')
-
-    return new Promise((resolve, reject) => {
-      const request = store.put(history)
-      request.onsuccess = () => resolve()
-      request.onerror = () => {
-        console.error('Failed to save history:', request.error)
-        reject(request.error)
-      }
-    })
-  }
-
   // 获取所有历史记录（按更新时间倒序）
   async getAllHistory(limit: number = CONFIG.HISTORY_LIST_LIMIT): Promise<ChatHistory[]> {
     const db = await this.ensureDb()
-    const tx = db.transaction(['chatHistory'], 'readonly')
-    const store = tx.objectStore('chatHistory')
-    const index = store.index('updatedAt')
+    const index = db.transaction(['chatHistory'], 'readonly').objectStore('chatHistory').index('updatedAt')
 
+    // 游标逐条读取，读满 limit 后主动停止，避免把全库都取回来
     return new Promise((resolve, reject) => {
       const request = index.openCursor(null, 'prev') // 按更新时间倒序
       const results: ChatHistory[] = []
@@ -102,69 +92,15 @@ class ChatDatabase {
   // 删除对话历史
   async deleteHistory(id: string): Promise<void> {
     const db = await this.ensureDb()
-    const tx = db.transaction(['chatHistory'], 'readwrite')
-    const store = tx.objectStore('chatHistory')
-
-    return new Promise((resolve, reject) => {
-      const request = store.delete(id)
-      request.onsuccess = () => resolve()
-      request.onerror = () => {
-        console.error('Failed to delete history:', request.error)
-        reject(request.error)
-      }
-    })
+    const store = db.transaction(['chatHistory'], 'readwrite').objectStore('chatHistory')
+    await runRequest(store.delete(id), 'Failed to delete history:')
   }
 
   // 批量保存历史（用于批量更新）
   async bulkSaveHistory(histories: ChatHistory[]): Promise<void> {
     const db = await this.ensureDb()
-    const tx = db.transaction(['chatHistory'], 'readwrite')
-    const store = tx.objectStore('chatHistory')
-
-    const promises = histories.map(history =>
-      new Promise<void>((resolve, reject) => {
-        const request = store.put(history)
-        request.onsuccess = () => resolve()
-        request.onerror = () => reject(request.error)
-      }),
-    )
-
-    await Promise.all(promises)
-  }
-
-  // 保存设置
-  async saveSetting(key: string, value: any): Promise<void> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['settings'], 'readwrite')
-    const store = tx.objectStore('settings')
-
-    return new Promise((resolve, reject) => {
-      const request = store.put({ key, value })
-      request.onsuccess = () => resolve()
-      request.onerror = () => {
-        console.error('Failed to save setting:', request.error)
-        reject(request.error)
-      }
-    })
-  }
-
-  // 获取设置
-  async getSetting(key: string): Promise<any> {
-    const db = await this.ensureDb()
-    const tx = db.transaction(['settings'], 'readonly')
-    const store = tx.objectStore('settings')
-
-    return new Promise((resolve, reject) => {
-      const request = store.get(key)
-      request.onsuccess = () => {
-        const result = request.result
-        resolve(result ? result.value : null)
-      }
-      request.onerror = () => {
-        console.error('Failed to get setting:', request.error)
-        reject(request.error)
-      }
-    })
+    const store = db.transaction(['chatHistory'], 'readwrite').objectStore('chatHistory')
+    await Promise.all(histories.map(history => runRequest(store.put(history), 'Failed to save history:')))
   }
 
   // 清理过期数据
@@ -185,15 +121,6 @@ class ChatDatabase {
   // 检查是否支持 IndexedDB
   isSupported(): boolean {
     return typeof indexedDB !== 'undefined'
-  }
-
-  // 关闭数据库连接
-  close(): void {
-    if (this.db) {
-      this.db.close()
-      this.db = null
-      this.initPromise = null
-    }
   }
 }
 

@@ -1,7 +1,15 @@
 import { createParser } from 'eventsource-parser'
 import { isImageFile } from './fileUtils'
 import type { ParsedEvent, ReconnectInterval } from 'eventsource-parser'
-import type { ChatMessage } from '@/types'
+import type { ChatMessage, FileAttachment } from '@/types'
+
+// 非图片附件统一转成带文件名的文本块（base64 内容额外标注 encoding）
+const buildAttachmentText = (att: FileAttachment): string => {
+  const header = `[文件: ${att.name}]`
+  return att.encoding === 'base64'
+    ? `${header} (Base64)\n${att.content}`
+    : `${header}\n${att.content}`
+}
 
 const transformMessagesForAPI = (messages: ChatMessage[]) => {
   // 只有最后一条用户消息保留附件全文，更早消息的附件替换为占位符，
@@ -62,13 +70,9 @@ const transformOne = (msg: ChatMessage, keepAttachments: boolean) => {
           })
         } else {
           // For non-image files, append content as text
-          const attachmentHeader = `[文件: ${att.name}]`
-          const attachmentBody = att.encoding === 'base64'
-            ? `${attachmentHeader} (Base64)\n${att.content}`
-            : `${attachmentHeader}\n${att.content}`
           content.push({
             type: 'text',
-            text: `\n\n${attachmentBody}`,
+            text: `\n\n${buildAttachmentText(att)}`,
           })
         }
       })
@@ -81,13 +85,8 @@ const transformOne = (msg: ChatMessage, keepAttachments: boolean) => {
       // For non-vision models or assistant messages, append file content as text
       let enhancedContent = msg.content ?? ''
       msg.attachments.forEach((att) => {
-        if (!isImageFile(att.type)) {
-          const attachmentHeader = `[文件: ${att.name}]`
-          const attachmentBody = att.encoding === 'base64'
-            ? `${attachmentHeader} (Base64)\n${att.content}`
-            : `${attachmentHeader}\n${att.content}`
-          enhancedContent += `\n\n${attachmentBody}`
-        }
+        if (!isImageFile(att.type))
+          enhancedContent += `\n\n${buildAttachmentText(att)}`
       })
       return {
         ...baseMessage,

@@ -1,5 +1,7 @@
-import { For, createSignal, onCleanup, onMount } from 'solid-js'
-import { deleteHistory, historyList, loadHistoryFromStorage } from '@/store/historyStore'
+import { For } from 'solid-js'
+import { deleteHistory, historyList } from '@/store/historyStore'
+import { useAtom } from '@/hooks/useAtom'
+import { historyOpen as historyOpenAtom, setHistoryOpen } from '@/store/uiStore'
 import IconDelete from './icons/Delete'
 import type { ChatHistory, ChatMessage } from '@/types'
 
@@ -8,17 +10,8 @@ interface Props {
 }
 
 export default (props: Props) => {
-  const [showHistory, setShowHistory] = createSignal(false)
-
-  // 确保每次组件挂载时都重新加载历史数据，并监听全局切换事件
-  onMount(() => {
-    loadHistoryFromStorage()
-    const handleToggleHistory = () => setShowHistory(!showHistory())
-    window.addEventListener('toggle-history', handleToggleHistory)
-    onCleanup(() => {
-      window.removeEventListener('toggle-history', handleToggleHistory)
-    })
-  })
+  // 抽屉开合状态由 uiStore 持有，Header 的 logo 点击直接切换它
+  const historyOpen = useAtom(historyOpenAtom)
 
   const handleDelete = (id: string, e: Event) => {
     e.stopPropagation()
@@ -27,7 +20,7 @@ export default (props: Props) => {
 
   const loadHistory = (history: ChatHistory) => {
     props.onLoadHistory(history.messages, history.systemRole, history.id)
-    setShowHistory(false)
+    setHistoryOpen(false)
   }
 
   // 格式化时间显示逻辑
@@ -52,14 +45,14 @@ export default (props: Props) => {
       {/* 背景遮罩 - 纯色透明，无模糊 */}
       <div
         class="fixed inset-0 bg-black/40 dark:bg-black/60 z-[60] transition-opacity duration-300 ease-in-out"
-        classList={{ 'opacity-0 pointer-events-none': !showHistory(), 'opacity-100': showHistory() }}
-        onClick={() => setShowHistory(false)}
+        classList={{ 'opacity-0 pointer-events-none': !historyOpen(), 'opacity-100': historyOpen() }}
+        onClick={() => setHistoryOpen(false)}
       />
 
       {/* 侧边抽屉 - 实色背景 */}
       <div
         class="fixed top-0 left-0 bottom-0 z-[70] w-[min(85vw,300px)] bg-[var(--c-bg)] border-r border-slate/10 flex flex-col transition-transform duration-400 cubic-bezier([0.4,0,0.2,1])"
-        classList={{ '-translate-x-full': !showHistory(), 'translate-x-0': showHistory() }}
+        classList={{ '-translate-x-full': !historyOpen(), 'translate-x-0': historyOpen() }}
         onClick={e => e.stopPropagation()}
       >
         {/* 头部 - 标题与关闭按钮 */}
@@ -69,7 +62,7 @@ export default (props: Props) => {
             <span class="text-xl font-bold gpt-subtitle text-slate/60">对话</span>
           </div>
           <button
-            onClick={() => setShowHistory(false)}
+            onClick={() => setHistoryOpen(false)}
             class="p-2 hover:bg-slate/10 rounded-xl transition-all active:scale-90 text-slate/60"
           >
             <svg

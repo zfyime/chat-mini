@@ -84,19 +84,23 @@ import ModelSelector from './ModelSelector'
 </style>
 
 <script>
+  import { hasMessages, toggleHistory } from '@/store/uiStore'
+
   const header = document.getElementById('page-header')
   const logoContainer = document.getElementById('logo-container')
 
   const main = document.querySelector('main')
 
   // 有消息时吸顶（header is-scrolled + main 去掉 padding-top），无消息时恢复
-  window.addEventListener('has-messages', (e: CustomEvent) => {
-    const has = e.detail.hasMessages
+  const applyHasMessages = (has: boolean) => {
     header?.classList.toggle('is-scrolled', has)
     main?.classList.toggle('has-messages', has)
-  })
+  }
+  // 先同步一次初始态（含 SSR 渲染后的首帧），再订阅后续变化
+  applyHasMessages(hasMessages.get())
+  hasMessages.subscribe(applyHasMessages)
 
   logoContainer?.addEventListener('click', () => {
-    window.dispatchEvent(new CustomEvent('toggle-history'))
+    toggleHistory()
   })
 </script>

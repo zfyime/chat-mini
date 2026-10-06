@@ -17,41 +17,33 @@ const sanitizeMessagesForStorage = (messages: ChatMessage[]) =>
 // --- State ---
 const [historyList, setHistoryList] = createSignal<ChatHistory[]>([])
 
+// 读取时同样清洗：库里可能残留 blob: url（页面重载后已失效）
+const sanitizeHistories = (list: ChatHistory[]) =>
+  list.map(history => ({
+    ...history,
+    messages: sanitizeMessagesForStorage(history.messages),
+  }))
+
+const loadFromFallback = () => {
+  const saved = fallbackStorage.getItem('chatHistoryList')
+  // 降级数据可能损坏为非数组，非数组直接视为无历史
+  if (Array.isArray(saved)) setHistoryList(sanitizeHistories(saved))
+}
+
 // --- Effects ---
 // Load from IndexedDB on startup
 const loadHistoryFromStorage = async() => {
   try {
-    // 尝试使用 IndexedDB
+    // 尝试使用 IndexedDB，不支持则降级到 localStorage
     if (chatDB.isSupported()) {
       await chatDB.init()
-      const histories = await chatDB.getAllHistory()
-      const sanitized = histories.map(history => ({
-        ...history,
-        messages: sanitizeMessagesForStorage(history.messages),
-      }))
-      setHistoryList(sanitized)
+      setHistoryList(sanitizeHistories(await chatDB.getAllHistory()))
     } else {
-      // 降级到 localStorage
-      const saved = fallbackStorage.getItem('chatHistoryList')
-      if (saved) {
-        const sanitized = saved.map((history: ChatHistory) => ({
-          ...history,
-          messages: sanitizeMessagesForStorage(history.messages),
-        }))
-        setHistoryList(sanitized)
-      }
+      loadFromFallback()
     }
   } catch (e) {
     console.error('Failed to load chat history:', e)
-    // 降级到 localStorage
-    const saved = fallbackStorage.getItem('chatHistoryList')
-    if (saved) {
-      const sanitized = saved.map((history: ChatHistory) => ({
-        ...history,
-        messages: sanitizeMessagesForStorage(history.messages),
-      }))
-      setHistoryList(sanitized)
-    }
+    loadFromFallback()
   }
 }
 
@@ -74,7 +66,7 @@ const generateUniqueId = () => {
     }
   }
   // Fallback: timestamp + random number for reasonable uniqueness
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
 // Initial load - 在模块初始化时直接调用，避免 createEffect 在 createRoot 外部
@@ -172,4 +164,4 @@ export const saveOrUpdateChat = async(messages: ChatMessage[], systemRole: strin
 }
 
 // --- Exported State ---
-export { historyList, loadHistoryFromStorage }
+export { historyList }

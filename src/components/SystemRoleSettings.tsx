@@ -1,8 +1,14 @@
-import { For, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
-import { useStorage } from 'solidjs-use'
-import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
+import { For, Show } from 'solid-js'
+import { AVAILABLE_MODELS } from '@/config/constants'
+import { useAtom } from '@/hooks/useAtom'
+import {
+  currentModel as currentModelAtom,
+  setModel,
+  setTemperature,
+  temperature as temperatureAtom,
+} from '@/store/uiStore'
 import IconEnv from './icons/Env'
-import SettingsSlider from './SettingsSlider'
+import { Slider } from './Slider'
 import type { Accessor, Setter } from 'solid-js'
 
 interface Props {
@@ -11,33 +17,18 @@ interface Props {
   setSystemRoleEditing: Setter<boolean>
   currentSystemRoleSettings: Accessor<string>
   setCurrentSystemRoleSettings: Setter<string>
-  temperatureSetting: (value: number) => void
-  chatModelSetting: (value: string) => void
 }
 
 export default (props: Props) => {
   let systemInputRef: HTMLTextAreaElement
-  const [temperature, setTemperature] = createSignal(CONFIG.DEFAULT_TEMPERATURE)
-  const [chatModel, setChatModel] = useStorage('selected_model', CONFIG.DEFAULT_MODEL)
-
-  // 监听 header 模型切换，同步本组件状态
-  onMount(() => {
-    const handleModelChange = ((e: CustomEvent) => {
-      setChatModel(e.detail)
-    }) as EventListener
-    window.addEventListener('model-change', handleModelChange)
-    onCleanup(() => window.removeEventListener('model-change', handleModelChange))
-  })
+  // 模型与温度直接读写 uiStore，与 Header 的模型下拉共享同一份状态
+  const currentModel = useAtom(currentModelAtom)
+  const temperature = useAtom(temperatureAtom)
 
   const handleButtonClick = () => {
     props.setCurrentSystemRoleSettings(systemInputRef.value)
     props.setSystemRoleEditing(false)
   }
-
-  createEffect(() => {
-    props.temperatureSetting(temperature())
-    props.chatModelSetting(chatModel())
-  })
 
   return (
     <div class="my-4 mb-8">
@@ -74,13 +65,9 @@ export default (props: Props) => {
               <label for="select-setting" class="fi gap-1 op-50 dark:op-60 text-sm">模型:</label>
               <select
                 id="select-setting"
-                value={chatModel()}
+                value={currentModel()}
                 class="settings-field appearance-none"
-                onChange={(e) => {
-                  const value = e.currentTarget.value
-                  setChatModel(value)
-                  window.dispatchEvent(new CustomEvent('model-change', { detail: value }))
-                }}
+                onChange={e => setModel(e.currentTarget.value)}
               >
                 <For each={AVAILABLE_MODELS}>
                   {model => <option value={model.id}>{model.name}</option>}
@@ -88,15 +75,11 @@ export default (props: Props) => {
               </select>
             </div>
             <div class="space-y-2 pt-6">
-              <SettingsSlider
-                settings={{
-                  name: '温度',
-                  type: 'slider',
-                  min: 0,
-                  max: 2,
-                  step: 0.01,
-                }}
-                editing={() => true}
+              <Slider
+                name="温度"
+                min={0}
+                max={2}
+                step={0.01}
                 value={temperature}
                 setValue={setTemperature}
               />

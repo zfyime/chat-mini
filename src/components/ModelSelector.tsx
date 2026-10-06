@@ -1,55 +1,42 @@
-import { For, Show, createSignal, onCleanup, onMount } from 'solid-js'
-import { AVAILABLE_MODELS, CONFIG } from '@/config/constants'
+import { For, Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
+import { AVAILABLE_MODELS } from '@/config/constants'
+import { useAtom } from '@/hooks/useAtom'
+import {
+  currentModel as currentModelAtom,
+  initUiStore,
+  isStreaming as isStreamingAtom,
+  setModel,
+} from '@/store/uiStore'
 
 export default () => {
   const [isOpen, setIsOpen] = createSignal(false)
-  const [isStreaming, setIsStreaming] = createSignal(false)
-  const [currentModel, setCurrentModel] = createSignal(CONFIG.DEFAULT_MODEL)
+  // 本岛可能先于 ChatRoot 水合，这里也恢复一次已保存的模型（initUiStore 幂等）
+  initUiStore()
+  const currentModel = useAtom(currentModelAtom)
+  const isStreaming = useAtom(isStreamingAtom)
 
   const getModelName = (modelId: string) => {
     return AVAILABLE_MODELS.find(m => m.id === modelId)?.name || modelId
   }
 
   const selectModel = (modelId: string) => {
-    setCurrentModel(modelId)
-    localStorage.setItem('selected_model', modelId)
-    window.dispatchEvent(new CustomEvent('model-change', { detail: modelId }))
+    setModel(modelId)
     setIsOpen(false)
   }
 
+  // 开始流式输出后立即收起下拉，避免切换模型打断当前请求
+  createEffect(() => {
+    if (isStreaming()) setIsOpen(false)
+  })
+
   onMount(() => {
-    // 从 localStorage 恢复上次选择的模型（仅浏览器端）
-    // 必须派发 model-change 通知 ChatRoot 同步，否则刷新后首条消息仍按 DEFAULT_MODEL 发送
-    const saved = localStorage.getItem('selected_model')
-    if (saved) {
-      setCurrentModel(saved)
-      window.dispatchEvent(new CustomEvent('model-change', { detail: saved }))
-    }
-
-    const handleModelChange = ((e: CustomEvent) => {
-      setCurrentModel(e.detail)
-    }) as EventListener
-    window.addEventListener('model-change', handleModelChange)
-
-    // 流式输出时禁用模型切换
-    const handleStreaming = ((e: CustomEvent) => {
-      setIsStreaming(e.detail.streaming)
-      if (e.detail.streaming) setIsOpen(false)
-    }) as EventListener
-    window.addEventListener('streaming-state-change', handleStreaming)
-
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (!target.closest('.model-selector'))
         setIsOpen(false)
     }
     document.addEventListener('click', handleClickOutside)
-
-    onCleanup(() => {
-      window.removeEventListener('model-change', handleModelChange)
-      window.removeEventListener('streaming-state-change', handleStreaming)
-      document.removeEventListener('click', handleClickOutside)
-    })
+    onCleanup(() => document.removeEventListener('click', handleClickOutside))
   })
 
   return (
