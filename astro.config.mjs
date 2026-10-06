@@ -23,6 +23,11 @@ export default defineConfig({
     AstroPWA({
       registerType: 'autoUpdate',
       injectRegister: 'inline',
+      // SSR 模式没有静态 index.html 可预缓存，必须禁用导航回退，
+      // 否则 SW 拦截导航请求时找不到 precache 的 "/"，导致页面空白（non-precached-url 错误）
+      workbox: {
+        navigateFallback: null,
+      },
       manifest: {
         name: 'Chat Mini',
         short_name: 'Chat Mini',
