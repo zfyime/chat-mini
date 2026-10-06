@@ -10,8 +10,6 @@ import {
 
 export default () => {
   const [isOpen, setIsOpen] = createSignal(false)
-  // 本岛可能先于 ChatRoot 水合，这里也恢复一次已保存的模型（initUiStore 幂等）
-  initUiStore()
   const currentModel = useAtom(currentModelAtom)
   const isStreaming = useAtom(isStreamingAtom)
 
@@ -30,6 +28,10 @@ export default () => {
   })
 
   onMount(() => {
+    // 本岛可能先于 ChatRoot 水合，这里也恢复一次已保存的模型（initUiStore 幂等）。
+    // 必须在 onMount 中调用：组件函数体在 SSR 阶段也会执行，服务端没有 localStorage，
+    // 直接调用会让服务端渲染抛错、页面输出空白。
+    initUiStore()
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       if (!target.closest('.model-selector'))
