@@ -146,6 +146,7 @@ docker-compose down
 - `pnpm build`：为 Node.js standalone 环境构建生产版本。
 - `pnpm build:vercel`：为 Vercel Serverless 构建。
 - `pnpm preview`：本地预览构建产物。
+- `pnpm check`：类型检查（Astro 组件 + TypeScript）。
 - `pnpm lint`：检查代码风格。
 - `pnpm lint:fix`：自动修复代码风格问题。
 

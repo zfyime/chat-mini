@@ -10,8 +10,10 @@ const extractPdfText = async(file: File): Promise<string> => {
     import.meta.url,
   ).toString()
 
-  const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise
-  // finally 保证解析中途出错（加密/损坏 PDF）时也释放文档与 worker 内存
+  const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() })
+  const doc = await loadingTask.promise
+  // finally 保证解析中途出错（加密/损坏 PDF）时也释放文档与 worker 内存。
+  // pdfjs v6 的 PDFDocumentProxy 已不提供 destroy，改由 loadingTask.destroy() 终止 worker 并清理。
   try {
     const pages: string[] = []
     for (let i = 1; i <= doc.numPages; i++) {
@@ -28,7 +30,7 @@ const extractPdfText = async(file: File): Promise<string> => {
       throw new Error(`${file.name} 无可提取文本（可能是扫描版 PDF）`)
     return text
   } finally {
-    doc.destroy()
+    await loadingTask.destroy()
   }
 }
 

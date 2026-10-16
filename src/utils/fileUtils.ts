@@ -176,7 +176,7 @@ export const createFileAttachment = async(file: File): Promise<FileAttachment> =
 }
 
 export const getFileIcon = (fileType: string, fileName?: string): string => {
-  if (CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType))
+  if (CONFIG.ALLOWED_IMAGE_TYPES.includes(fileType as typeof CONFIG.ALLOWED_IMAGE_TYPES[number]))
     return '🖼️'
 
   if (fileType === 'application/pdf')

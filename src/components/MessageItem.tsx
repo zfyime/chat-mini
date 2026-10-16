@@ -1,6 +1,7 @@
 import { Show, createEffect, createSignal, onCleanup, onMount } from 'solid-js'
 import MarkdownIt from 'markdown-it'
-import mdHighlight from 'markdown-it-highlightjs'
+import mdHighlight from 'markdown-it-highlightjs/core'
+import hljs from '@/utils/highlight'
 import markdownKatex from '@/utils/markdownKatex'
 import IconRefresh from './icons/Refresh'
 import IconCopy from './icons/Copy'
@@ -12,10 +13,12 @@ import type { ChatMessage } from '@/types'
 
 // 模块级单例：所有 MessageItem 共享同一个 MarkdownIt 实例，避免每条消息重复 new 与插件注册。
 // fence 规则不再读取任何组件级状态（复制反馈改为直接操作被点击按钮的 DOM），因此可安全共享。
+// 走 core 入口并传入自建 hljs 实例（仅注册常用语言），避免默认入口打包全量语言包。
+// auto/code/ignoreIllegals 显式传 true，与插件默认入口的行为保持一致。
 const md = new MarkdownIt({
   linkify: true,
   breaks: true,
-}).use(markdownKatex).use(mdHighlight)
+}).use(markdownKatex).use(mdHighlight, { hljs, auto: true, code: true, ignoreIllegals: true })
 
 // 让 markdown 渲染出的链接（含联网搜索结果标题）在新标签页打开，避免点击后当前页面整体跳转。
 const openLinkInNewTab = (instance: MarkdownIt) => {

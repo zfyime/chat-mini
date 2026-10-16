@@ -27,6 +27,11 @@ export default defineConfig({
       // 否则 SW 拦截导航请求时找不到 precache 的 "/"，导致页面空白（non-precached-url 错误）
       workbox: {
         navigateFallback: null,
+        // PDF/Word 解析库（pdfjs-dist / mammoth）只在用户上传文档时动态 import，
+        // 不参与首屏，也没必要随 SW 安装预缓存，否则首次安装白下载约 900KB。
+        // 这两个 chunk 名由 rollup 依据动态 import 的模块推导而来，若依赖升级后
+        // chunk 命名变化，需要在构建产物里核对 prefetch manifest 是否仍被排除。
+        globIgnores: ['**/pdf.*.js', '**/lib.*.js'],
       },
       manifest: {
         name: 'Chat Mini',

@@ -15,7 +15,8 @@ export default ({ attachments }: Props) => {
     if (attachment.encoding === 'base64' && typeof atob === 'function') {
       // 分块解码避免大文件一次性占用 2~3 倍内存且阻塞 UI
       const CHUNK = 32 * 1024
-      const parts: Uint8Array[] = []
+      // 显式标注 <ArrayBuffer>：TS 5.9 起 Uint8Array 带 buffer 泛型，默认的 ArrayBufferLike 不满足 BlobPart
+      const parts: Uint8Array<ArrayBuffer>[] = []
       for (let offset = 0; offset < attachment.content.length; offset += CHUNK) {
         const slice = attachment.content.slice(offset, offset + CHUNK)
         const binary = atob(slice)
