@@ -112,7 +112,7 @@
 | `CONTEXT_WINDOW_SIZE` | `9` |
 | `HISTORY_LIST_LIMIT` | `25` |
 | `DEFAULT_TEMPERATURE` | `0.6` |
-| `DEFAULT_MODEL` | `'deepseek-v4-flash'` |
+| `DEFAULT_MODEL` | `'deepseek-v4.1-flash'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
 | `AUTH_TIMEOUT` | `5分钟` |

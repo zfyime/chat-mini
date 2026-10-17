@@ -115,7 +115,7 @@ Chat Mini 是一款基于 Astro 和 Solid.js 构建的迷你 AI 聊天 Web 应�
 | `CONTEXT_WINDOW_SIZE` | `9` |
 | `HISTORY_LIST_LIMIT` | `25` |
 | `DEFAULT_TEMPERATURE` | `0.6` |
-| `DEFAULT_MODEL` | `'deepseek-v4-flash'` |
+| `DEFAULT_MODEL` | `'deepseek-v4.1-flash'` |
 | `MAX_FILE_SIZE` | `50MB` |
 | `MAX_IMAGE_SIZE` | `10MB` |
 | `AUTH_TIMEOUT` | `5分钟` |
