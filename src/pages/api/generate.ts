@@ -4,9 +4,8 @@ import { verifySignature } from '@/utils/auth'
 import { isValidPassword } from '@/utils/password'
 import { tavilySearch } from '@/utils/tavily'
 import { searxngSearch } from '@/utils/searxng'
-import { mergeToolCallDelta, normalizeToolCalls, parseXmlStyleToolCalls } from '@/utils/toolCallUtils'
 import { AGENT, AVAILABLE_MODELS, CONFIG } from '@/config/constants'
-import { AGENT_TOOLS, WEB_SEARCH_PLANNER_TOOLS } from '@/config/tools'
+import { AGENT_TOOLS } from '@/config/tools'
 import type { APIRoute } from 'astro'
 
 const apiKey = import.meta.env.OPENAI_API_KEY
@@ -47,35 +46,33 @@ export const POST: APIRoute = async(context) => {
 
   const dispatcher = httpsProxy ? new ProxyAgent(httpsProxy) : undefined
 
-  // 联网搜索开关关闭：走原有的单次流式逻辑
-  if (!webSearch) {
-    const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
-    if (dispatcher) initOptions.dispatcher = dispatcher
-
-    const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
-      console.error(err)
-      return new Response(JSON.stringify({
-        error: {
-          code: err.name,
-          message: err.message,
-        },
-      }), { status: 500 })
-    }) as Response
-
-    return await parseOpenAIStream(response, { timeoutMs: streamTimeoutMs }) as Response
+  // 联网开关打开且至少配置了一种搜索服务：走自动搜索流程。
+  // 其余情况（开关关闭，或开启但未配置搜索服务）都走普通单次流式——
+  // 联网默认开启，未配置时静默降级，不能因此让每条消息都报错。
+  if (webSearch && (tavilyApiKey || searxngBaseUrl)) {
+    return runWebSearchFlow({
+      messages,
+      temperature,
+      model: modelToUse,
+      dispatcher,
+      streamTimeoutMs,
+    })
   }
 
-  // 联网开但 Tavily 和 SearXNG 都未配置
-  if (!tavilyApiKey && !searxngBaseUrl)
-    return jsonError('未配置 TAVILY_API_KEY 或 SEARXNG_BASE_URL，无法使用联网搜索。', 400)
+  const initOptions = generatePayload(apiKey, messages, temperature, modelToUse)
+  if (dispatcher) initOptions.dispatcher = dispatcher
 
-  return runWebSearchFlow({
-    messages,
-    temperature,
-    model: modelToUse,
-    dispatcher,
-    streamTimeoutMs,
-  })
+  const response = await fetch(`${baseUrl}/chat/completions`, initOptions).catch((err: Error) => {
+    console.error(err)
+    return new Response(JSON.stringify({
+      error: {
+        code: err.name,
+        message: err.message,
+      },
+    }), { status: 500 })
+  }) as Response
+
+  return await parseOpenAIStream(response, { timeoutMs: streamTimeoutMs }) as Response
 }
 
 interface WebSearchFlowArgs {
@@ -86,65 +83,18 @@ interface WebSearchFlowArgs {
   streamTimeoutMs?: number
 }
 
-// 解析 planner 响应（非流式，标准 JSON），提取 assistant message。
-// 兼容两类非标准输出：流式 SSE 帧（部分上游无视 stream:false）与 XML 风格工具调用。
-const parseAgentProbeResponse = (rawText: string) => {
-  const json = rawText.split('\n').some(line => line.startsWith('data: '))
-    ? parseSseAgentResponse(rawText)
-    : JSON.parse(rawText)
-
-  // XML 风格的工具调用两种响应格式下都可能出现，统一在这一层兜底，
-  // 否则非流式分支（JSON）会漏掉这类上游，静默降级成不搜索。
-  const message = json?.choices?.[0]?.message
-  if (message && !message.tool_calls?.length && message.content) {
-    const parsed = parseXmlStyleToolCalls(message.content)
-    if (parsed.calls.length) {
-      message.tool_calls = parsed.calls
-      message.content = parsed.cleanedContent
-    }
-  }
-
-  return json
-}
-
-// 部分兼容上游会无视 stream:false 仍按 SSE 返回，这里聚合出完整 message。
-const parseSseAgentResponse = (rawText: string) => {
-  const message: any = { role: 'assistant', content: '' }
-  const toolCalls: any[] = []
-  let reasoningContent = ''
-
-  rawText.split('\n').forEach((line) => {
-    if (!line.startsWith('data: ')) return
-    const data = line.slice(6).trim()
-    if (!data || data === '[DONE]') return
-
-    // 单帧解析失败不应拖垮整轮 agent：跳过异常/非 JSON 帧（如 keep-alive、半截内容）。
-    let json: any
-    try {
-      json = JSON.parse(data)
-    } catch {
-      return
-    }
-    const choice = json.choices?.[0]
-    const completeMessage = choice?.message
-    if (completeMessage) {
-      Object.assign(message, completeMessage)
-      return
-    }
-
-    const delta = choice?.delta
-    if (!delta) return
-    if (delta.role) message.role = delta.role
-    if (delta.content) message.content += delta.content
-    if (delta.reasoning_content) reasoningContent += delta.reasoning_content
-    if (delta.tool_calls) mergeToolCallDelta(toolCalls, delta.tool_calls)
-  })
-
-  // XML 风格兜底由 parseAgentProbeResponse 统一处理，这里只汇总标准 tool_calls
-  if (toolCalls.length) message.tool_calls = toolCalls
-  if (reasoningContent) message.reasoning_content = reasoningContent
-
-  return { choices: [{ message }] }
+// 取最后一条用户消息的纯文本，作为检索词缺失时的兜底 query。
+// 带图片的消息 content 是数组，这里只保留 text 片段；附件全文也在这段文本里，
+// 折叠空白并截断到 200 字符，避免超长内容变成无效检索词或撑爆搜索请求。
+const lastUserText = (messages: any[]): string => {
+  const lastUser = [...messages].reverse().find(m => m.role === 'user')
+  if (!lastUser) return ''
+  const raw = typeof lastUser.content === 'string'
+    ? lastUser.content
+    : Array.isArray(lastUser.content)
+      ? lastUser.content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n')
+      : ''
+  return raw.replace(/\s+/g, ' ').trim().slice(0, 200)
 }
 
 const runWebSearchFlow = ({ messages, temperature, model, dispatcher, streamTimeoutMs = 0 }: WebSearchFlowArgs): Response => {
@@ -189,127 +139,126 @@ const runWebSearchFlow = ({ messages, temperature, model, dispatcher, streamTime
         : undefined
 
       try {
-        // 规划阶段只允许调用 web_search 或 skip_web_search，禁止提前生成完整答案。
-        // 一次规划可以返回多个 web_search，搜索完成后直接进入唯一一次最终流式生成。
-        // 非流式请求直接拿聚合 JSON；parseAgentProbeResponse 兼容仍返回 SSE 的上游。
-        const plannerInit = generatePayload(apiKey, workingMessages, 0, model, {
-          stream: false,
-          tools: WEB_SEARCH_PLANNER_TOOLS as any[],
-          toolChoice: 'required',
+        // 第一轮：auto 模式。模型自主决定是否搜索，不搜索时这一轮就是最终回答。
+        // 正文边解析边透传；一旦上游返回 tool_calls，pipe 会停止透传并交给下面的搜索流程。
+        const firstInit = generatePayload(apiKey, workingMessages, temperature, model, {
+          stream: true,
+          tools: AGENT_TOOLS as any[],
+          toolChoice: 'auto',
           pretransformed: true,
         })
-        plannerInit.signal = requestAbort.signal
-        if (dispatcher) (plannerInit as any).dispatcher = dispatcher
+        firstInit.signal = requestAbort.signal
+        if (dispatcher) (firstInit as any).dispatcher = dispatcher
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        const plannerResp = await fetch(`${baseUrl}/chat/completions`, plannerInit) as Response
-        let plannerCalls: any[] = []
-        if (plannerResp.ok) {
-          const plannerRawText = await plannerResp.text()
-          let plannerJson: any
-          try {
-            plannerJson = parseAgentProbeResponse(plannerRawText)
-          } catch (e) {
-            console.error('Failed to parse planner response:', e)
-          }
-          const plannerMessage = plannerJson?.choices?.[0]?.message
-          plannerCalls = plannerMessage?.tool_calls
-            ? normalizeToolCalls(plannerMessage.tool_calls, 0)
-            : []
-        } else {
-          // required 在部分兼容上游会直接返回错误；释放响应体后按不搜索降级。
-          await plannerResp.text().catch(() => '')
+        const firstResp = await fetch(`${baseUrl}/chat/completions`, firstInit) as Response
+        if (!firstResp.ok) {
+          const text = await firstResp.text().catch(() => '')
+          write(`\n\n[上游错误 ${firstResp.status}] ${text.slice(0, 300)}`)
+          close()
+          return
         }
 
-        // 部分兼容上游会忽略 tool_choice: required 并返回纯文本。
-        // 规划失败或没有工具调用时都按 skip_web_search 降级，确保用户仍能拿到最终回答。
-        const webSearchCalls = plannerCalls.filter(call => call?.function?.name === 'web_search')
+        const firstResult = await pipeOpenAIStreamToController(firstResp, controller, {
+          closeWhenDone: false,
+          collectToolCalls: true,
+        })
+
+        // 没有工具调用：模型选择直接回答，第一轮正文已是最终结果
+        const webSearchCalls = firstResult.toolCalls.filter(call => call?.function?.name === 'web_search')
+        if (!webSearchCalls.length) {
+          close()
+          return
+        }
         if (streamClosed) return
 
-        if (webSearchCalls.length) {
-          // skip_web_search 仅用于表达“不搜索”，不写入最终上下文；真实搜索调用才需要回灌。
-          workingMessages.push({
-            role: 'assistant',
-            content: '',
-            tool_calls: webSearchCalls,
-          })
+        // 回灌首轮 assistant 消息，保证下面的 tool 消息能对应上 tool_calls
+        workingMessages.push({
+          role: 'assistant',
+          content: firstResult.content,
+          tool_calls: webSearchCalls,
+        })
 
-          const toolMessages = await Promise.all(webSearchCalls.map(async(call) => {
-            let args: { query?: any } = {}
+        const toolMessages = await Promise.all(webSearchCalls.map(async(call) => {
+          let args: { query?: any } = {}
+          let parseError = ''
+          try {
+            args = JSON.parse(call.function.arguments || '{}')
+          } catch (e) {
+            parseError = (e as Error).message
+          }
+
+          const rawQuery = args.query
+          let query = (Array.isArray(rawQuery) ? rawQuery.join(' ') : String(rawQuery ?? '')).trim()
+          // 模型给了工具调用却拿不到有效检索词时退回原始问题，避免开关打开却没有真正搜索
+          if (!query) {
+            query = lastUserText(workingMessages)
+            if (query) {
+              writeToolTag(parseError
+                ? `⚠️ 工具参数解析失败（${parseError}），使用原始问题搜索`
+                : '⚠️ 检索词为空，使用原始问题搜索')
+            }
+          }
+          if (!query) {
+            writeToolTag('⚠️ 空 query')
+            return {
+              role: 'tool',
+              tool_call_id: call.id,
+              content: JSON.stringify({ error: 'empty query' }),
+            }
+          }
+
+          writeToolTag(`🔍 搜索: ${query}`)
+          try {
+            let search
             try {
-              args = JSON.parse(call.function.arguments || '{}')
-            } catch (e) {
-              writeToolTag(`⚠️ 工具参数解析失败: ${(e as Error).message}`)
-              return {
-                role: 'tool',
-                tool_call_id: call.id,
-                content: JSON.stringify({ error: 'invalid arguments json' }),
-              }
+              if (!tavilyApiKey) throw new Error('未配置 TAVILY_API_KEY')
+              search = await tavilySearch(query, tavilyApiKey, {
+                maxResults: AGENT.TAVILY_MAX_RESULTS,
+                searchDepth: AGENT.TAVILY_SEARCH_DEPTH,
+                signal: requestAbort.signal,
+                dispatcher,
+              }, fetch as any)
+            } catch (tavilyErr) {
+              if (requestAbort.signal.aborted || !searxngBaseUrl) throw tavilyErr
+              writeToolTag(`⚠️ ${query}：Tavily 失败（${(tavilyErr as Error).message}），降级到 SearXNG`)
+              search = await searxngSearch(query, searxngBaseUrl, {
+                maxResults: AGENT.SEARXNG_MAX_RESULTS,
+                signal: requestAbort.signal,
+                dispatcher,
+              }, fetch as any)
             }
 
-            const rawQuery = args.query
-            const query = (Array.isArray(rawQuery) ? rawQuery.join(' ') : String(rawQuery ?? '')).trim()
-            if (!query) {
-              writeToolTag('⚠️ 空 query')
-              return {
-                role: 'tool',
-                tool_call_id: call.id,
-                content: JSON.stringify({ error: 'empty query' }),
-              }
+            writeToolTag(`✅ ${query}：共 ${search.results.length} 条结果`)
+            if (search.results.length) {
+              const sources = search.results
+                .map((r, i) => `${i + 1}. [${r.title || r.url}](${r.url})`)
+                .join('\n')
+              writeToolTag(sources)
             }
 
-            writeToolTag(`🔍 搜索: ${query}`)
-            try {
-              let search
-              try {
-                if (!tavilyApiKey) throw new Error('未配置 TAVILY_API_KEY')
-                search = await tavilySearch(query, tavilyApiKey, {
-                  maxResults: AGENT.TAVILY_MAX_RESULTS,
-                  searchDepth: AGENT.TAVILY_SEARCH_DEPTH,
-                  signal: requestAbort.signal,
-                  dispatcher,
-                }, fetch as any)
-              } catch (tavilyErr) {
-                if (requestAbort.signal.aborted || !searxngBaseUrl) throw tavilyErr
-                writeToolTag(`⚠️ ${query}：Tavily 失败（${(tavilyErr as Error).message}），降级到 SearXNG`)
-                search = await searxngSearch(query, searxngBaseUrl, {
-                  maxResults: AGENT.SEARXNG_MAX_RESULTS,
-                  signal: requestAbort.signal,
-                  dispatcher,
-                }, fetch as any)
-              }
-
-              writeToolTag(`✅ ${query}：共 ${search.results.length} 条结果`)
-              if (search.results.length) {
-                const sources = search.results
-                  .map((r, i) => `${i + 1}. [${r.title || r.url}](${r.url})`)
-                  .join('\n')
-                writeToolTag(sources)
-              }
-
-              const compact = search.results.map(r => ({
-                title: r.title,
-                url: r.url,
-                snippet: r.content?.slice(0, 600) ?? '',
-              }))
-              return {
-                role: 'tool',
-                tool_call_id: call.id,
-                content: JSON.stringify(compact),
-              }
-            } catch (e) {
-              const errMsg = (e as Error).message
-              if (!streamClosed) writeToolTag(`❌ ${query}：搜索失败，${errMsg}`)
-              return {
-                role: 'tool',
-                tool_call_id: call.id,
-                content: JSON.stringify({ error: errMsg }),
-              }
+            const compact = search.results.map(r => ({
+              title: r.title,
+              url: r.url,
+              snippet: r.content?.slice(0, 600) ?? '',
+            }))
+            return {
+              role: 'tool',
+              tool_call_id: call.id,
+              content: JSON.stringify(compact),
             }
-          }))
-          workingMessages.push(...toolMessages)
-        }
+          } catch (e) {
+            const errMsg = (e as Error).message
+            if (!streamClosed) writeToolTag(`❌ ${query}：搜索失败，${errMsg}`)
+            return {
+              role: 'tool',
+              tool_call_id: call.id,
+              content: JSON.stringify({ error: errMsg }),
+            }
+          }
+        }))
+        workingMessages.push(...toolMessages)
 
         if (streamClosed) return
         flushToolContext()

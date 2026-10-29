@@ -381,7 +381,7 @@ export default () => {
                 <button
                   type="button"
                   onClick={toggleWebSearch}
-                  title={webSearchEnabled() ? '联网搜索：已开启' : '联网搜索：已关闭'}
+                  title={webSearchEnabled() ? '联网搜索：自动（模型按需调用）' : '联网搜索：已关闭'}
                   aria-pressed={webSearchEnabled()}
                   disabled={systemRoleEditing() || loading()}
                   class="gen-bar-btn select-none"

@@ -1,5 +1,6 @@
 import { createParser } from 'eventsource-parser'
 import { isImageFile } from './fileUtils'
+import { mergeToolCallDelta, normalizeToolCalls, parseXmlStyleToolCalls } from './toolCallUtils'
 import type { ParsedEvent, ReconnectInterval } from 'eventsource-parser'
 import type { ChatMessage, FileAttachment } from '@/types'
 
@@ -180,6 +181,16 @@ interface PipeOptions {
   // 防止平台墙钟（如 Vercel maxDuration）直接强杀进程，导致前端拿到无收尾的残流（只有思考没有正文）。
   // 0 或缺省表示禁用。
   timeoutMs?: number
+  // 收集本轮的工具调用（auto 模式首轮使用）。开启后会一并检测混在正文里的 XML 风格调用，
+  // 检测到工具调用后停止透传正文，避免「说了半句话又开始搜索」。
+  collectToolCalls?: boolean
+}
+
+export interface PipeResult {
+  // 本轮聚合出的工具调用，已补齐 id/type 并过滤无名调用
+  toolCalls: any[]
+  // 本轮已写给前端的正文，用于把 assistant 消息原样回灌给下一轮
+  content: string
 }
 
 // 把一次 OpenAI 流式响应的内容解析后写入给定的 controller。
@@ -187,16 +198,71 @@ interface PipeOptions {
 export const pipeOpenAIStreamToController = async(
   rawResponse: Response,
   controller: ReadableStreamDefaultController<Uint8Array>,
-  { closeWhenDone = true, timeoutMs = 0 }: PipeOptions = {},
-): Promise<void> => {
+  { closeWhenDone = true, timeoutMs = 0, collectToolCalls = false }: PipeOptions = {},
+): Promise<PipeResult> => {
   const reader = rawResponse.body?.pipeThrough(new TextDecoderStream()).getReader()
   if (!reader) {
     if (closeWhenDone) controller.close()
-    return
+    return { toolCalls: [], content: '' }
   }
 
   let isThinking = false
   const encoder = new TextEncoder()
+  const rawToolCalls: any[] = []
+  let collectedContent = ''
+  // 一旦出现工具调用就停止透传正文：首轮已写出的内容保留，后续交给第二轮生成
+  let toolCallDetected = false
+  // XML 风格工具调用的流式检测：保留可能是完整开标签前缀的尾部，
+  // 避免标签被拆到两个分片后漏检。这里必须与 parseXmlStyleToolCalls 的匹配口径一致
+  // （带 '>' 的完整标签），否则形如 '<tool_calls>' 的普通正文会误入缓冲并被吞掉。
+  // 检测到后整段正文转入缓冲区等待解析。
+  const XML_OPEN = '<tool_call>'
+  let xmlBuffer = ''
+  let xmlMode = false
+
+  const writeText = (text: string) => {
+    if (!text) return
+    if (isThinking) {
+      controller.enqueue(encoder.encode('</think>'))
+      isThinking = false
+    }
+    controller.enqueue(encoder.encode(text))
+    // 只有首轮收集模式需要回灌正文，普通聊天不额外保留一份
+    if (collectToolCalls) collectedContent += text
+  }
+
+  // 返回 buf 末尾属于 XML_OPEN 前缀的最长长度，这段暂时不能写出
+  const prefixKeepLength = (buf: string) => {
+    const max = Math.min(XML_OPEN.length - 1, buf.length)
+    for (let n = max; n > 0; n--) if (XML_OPEN.startsWith(buf.slice(-n))) return n
+    return 0
+  }
+
+  const handleText = (text: string) => {
+    if (!text || toolCallDetected) return
+    if (!collectToolCalls) {
+      writeText(text)
+      return
+    }
+    if (xmlMode) {
+      xmlBuffer += text
+      return
+    }
+
+    const pending = xmlBuffer + text
+    xmlBuffer = ''
+    const idx = pending.indexOf(XML_OPEN)
+    if (idx >= 0) {
+      // 标签前的内容照常展示，标签及之后转入 XML 收集
+      writeText(pending.slice(0, idx))
+      xmlMode = true
+      xmlBuffer = pending.slice(idx)
+      return
+    }
+    const keep = prefixKeepLength(pending)
+    writeText(pending.slice(0, pending.length - keep))
+    xmlBuffer = pending.slice(pending.length - keep)
+  }
 
   // 幂等收尾：补 think 闭合标签、按需追加提示文本，然后关闭流。
   // [DONE] 帧、上游无 [DONE] 自然断开、看门狗超时三条路径共用，保证前端总能拿到完整的流结束。
@@ -204,6 +270,11 @@ export const pipeOpenAIStreamToController = async(
   const finalize = (notice?: string) => {
     if (finalized) return
     finalized = true
+    // 流正常结束：尾部缓冲里剩下的内容确定不是工具标签，写出
+    if (!xmlMode && xmlBuffer) {
+      writeText(xmlBuffer)
+      xmlBuffer = ''
+    }
     if (isThinking) {
       controller.enqueue(encoder.encode('</think>'))
       isThinking = false
@@ -253,8 +324,15 @@ export const pipeOpenAIStreamToController = async(
         const json = JSON.parse(trimmed)
         const choice = json.choices && json.choices[0]
 
-        const rawReasoningContent = choice && choice.delta?.reasoning_content ? choice.delta.reasoning_content : null
-        const rawTextContent = choice && choice.delta?.content ? choice.delta.content : null
+        const delta = choice?.delta
+        // 首轮 auto 模式：聚合工具调用分片；一旦出现就停止透传后续正文
+        if (collectToolCalls && delta?.tool_calls?.length) {
+          toolCallDetected = true
+          mergeToolCallDelta(rawToolCalls, delta.tool_calls)
+        }
+
+        const rawReasoningContent = delta?.reasoning_content ? delta.reasoning_content : null
+        const rawTextContent = delta?.content ? delta.content : null
 
         const reasoningContent = rawReasoningContent ? extractTextContent(rawReasoningContent) : ''
         const text = rawTextContent ? extractTextContent(rawTextContent) : ''
@@ -267,13 +345,8 @@ export const pipeOpenAIStreamToController = async(
           controller.enqueue(encoder.encode(reasoningContent))
         }
 
-        if (text) {
-          if (isThinking)
-            controller.enqueue(encoder.encode('</think>'))
-
-          isThinking = false
-          controller.enqueue(encoder.encode(text))
-        }
+        if (text)
+          handleText(text)
       } catch (e) {
         // keep-alive / 注释帧
       }
@@ -294,5 +367,19 @@ export const pipeOpenAIStreamToController = async(
     else throw error
   } finally {
     if (watchdog) clearTimeout(watchdog)
+  }
+
+  // XML 风格工具调用混在正文里，流结束后统一解析成标准 tool_calls。
+  // 标签之外的正文（标签后可能还有内容，或标签未闭合导致解析失败）必须写回，
+  // 否则用户在「模型只说话」的分支里会拿到被吞掉一半的回答。
+  if (collectToolCalls && xmlMode) {
+    const { calls, cleanedContent } = parseXmlStyleToolCalls(xmlBuffer)
+    rawToolCalls.push(...calls)
+    writeText(cleanedContent)
+  }
+
+  return {
+    toolCalls: collectToolCalls ? normalizeToolCalls(rawToolCalls, 0) as any[] : [],
+    content: collectedContent,
   }
 }

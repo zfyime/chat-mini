@@ -8,7 +8,7 @@
 
 - **多平台部署**：支持 Vercel Serverless 和 Docker。
 - **模型动态切换**：无需修改环境变量，可在 UI 中选择 GPT-5.6-Terra、Claude-Sonnet-5、DeepSeek-Pro、DeepSeek-Flash、GLM-5.3。
-- **联网搜索 Agent**：在输入框底栏启用“联网”后，服务端可调用 Tavily 搜索实时信息，并在消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`；Tavily 调用失败或限流时，可自动降级到自部署的 SearXNG（配置 `SEARXNG_BASE_URL`）。
+- **联网搜索 Agent**：输入框底栏的“联网”开关默认开启，模型会按需自动调用 Tavily 搜索实时信息（日常对话不会触发），消息中显示可折叠的搜索过程。需配置 `TAVILY_API_KEY`；Tavily 调用失败或限流时，可自动降级到自部署的 SearXNG（配置 `SEARXNG_BASE_URL`）。两者都未配置时自动退回普通对话。
 - **思维过程可视化**：支持渲染特殊的 `<think>` 标签，内容可折叠显示。
 - **文件上传与分析**：支持图片、PDF、Word、文本、Markdown、代码、配置和日志文件。
 - **拖拽上传体验**：可将文件直接拖拽到浏览器页面任意位置上传。
@@ -100,7 +100,7 @@
 | `OPENAI_API_BASE_URL` | OpenAI 兼容接口基础 URL，用于代理或私有化部署。 |
 | `HEAD_SCRIPTS` | 注入到页面 `</head>` 前的脚本。 |
 | `TAVILY_API_KEY` | Tavily 搜索 API key。 |
-| `SEARXNG_BASE_URL` | 自部署 SearXNG 实例地址，例如 `https://searx.example.com`。作为 Tavily 失败时的自动降级来源；实例需在 `settings.yml` 启用 `json` 输出格式。两者至少配置一个才能使用“联网”开关。 |
+| `SEARXNG_BASE_URL` | 自部署 SearXNG 实例地址，例如 `https://searx.example.com`。作为 Tavily 失败时的自动降级来源；实例需在 `settings.yml` 启用 `json` 输出格式。两者都未配置时“联网”开关不生效，自动退回普通对话。 |
 | `STREAM_TIMEOUT_MS` | 流式响应看门狗（毫秒），超时主动截断并提示，防止平台墙钟（如 Vercel `maxDuration`）强杀导致回答无收尾。未配置时 Vercel 默认 `55000`，自托管默认禁用；设 `0` 显式禁用。 |
 
 ### 应用内常量

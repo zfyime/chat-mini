@@ -37,7 +37,8 @@ const WEB_SEARCH_STORAGE_KEY = 'web-search-enabled'
 
 export const currentModel = createAtom<string>(CONFIG.DEFAULT_MODEL)
 export const temperature = createAtom<number>(CONFIG.DEFAULT_TEMPERATURE)
-export const webSearchEnabled = createAtom(false)
+// 联网默认开启（auto：由模型按需决定是否搜索）；只有显式关闭过的用户才恢复为 false
+export const webSearchEnabled = createAtom(true)
 export const isStreaming = createAtom(false)
 export const hasMessages = createAtom(false)
 export const historyOpen = createAtom(false)
@@ -68,5 +69,6 @@ export const initUiStore = () => {
   // 校验已保存模型仍可用：模型列表更新后 localStorage 可能残留已下线的 id
   if (savedModel && AVAILABLE_MODELS.some(m => m.id === savedModel))
     currentModel.set(savedModel)
-  if (localStorage.getItem(WEB_SEARCH_STORAGE_KEY) === '1') webSearchEnabled.set(true)
+  // 只有显式存过 '0' 才关闭；未存过（含老用户）沿用默认开启
+  if (localStorage.getItem(WEB_SEARCH_STORAGE_KEY) === '0') webSearchEnabled.set(false)
 }
